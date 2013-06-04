@@ -1,14 +1,17 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QPushButton>
-
-#include <iostream>
+#include <QComboBox>
 
 #include "demonstration_visualizer.h"
 
 DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
  : QWidget(parent)
 {
+  setWindowTitle("Demonstration Visualizer");
+
+  resize(800, 600);
+
   // Initialize Rviz visualization manager and render panel.
   render_panel_ = new rviz::RenderPanel();
   visualization_manager_ = new rviz::VisualizationManager(render_panel_);
@@ -18,10 +21,22 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   visualization_manager_->startUpdate();
 
   // Initialize the window layout.
-  QPushButton *toggle_grid = new QPushButton("Toggle grid", this);
+  QPushButton *toggle_grid = new QPushButton("Toggle Grid", this);
+
+  QComboBox *select_tool = new QComboBox(this);
+  select_tool->setInsertPolicy(QComboBox::InsertAtBottom);
+
+  rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
+  ROS_INFO("There are %d tools loaded:", tool_manager->numTools());
+  for(int i = 0; i < tool_manager->numTools(); ++i)
+  {
+    ROS_INFO("%d. %s", i, tool_manager->getTool(i)->getClassId().toLocal8Bit().data());
+    select_tool->addItem(tool_manager->getTool(i)->getClassId());
+  }
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
+  controls_layout->addWidget(select_tool);
 
   QHBoxLayout *top_layout = new QHBoxLayout();
   top_layout->addLayout(controls_layout);
@@ -41,10 +56,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
 	   visualization_manager_->getFixedFrame().toLocal8Bit().data());
   
   // Create an interactive markers display for controlling the robot. 
-  
+  interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers", "PR2 Interactive Markers", true);
+  ROS_ASSERT(interactive_markers_ != NULL);
+  interactive_markers_->subProp("Update Topic")->setValue("/pr2_marker_control_transparent/update");
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
+  connect(select_tool, SIGNAL(currentIndexChanged(int)), this, SLOT(changeTool(int)));
 
   setLayout(top_layout);
 }
@@ -55,7 +73,7 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
   {
     visualization_manager_->removeAllDisplays();
   }
-  
+
   delete render_panel_;
   render_panel_ = 0;
 
@@ -75,4 +93,14 @@ void DemonstrationVisualizer::toggleGrid()
     grid_->setEnabled(true);
     ROS_INFO("Grid enabled.");
   }
+}
+
+void DemonstrationVisualizer::changeTool(int tool_index)
+{
+  rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
+
+  tool_manager->setCurrentTool(tool_manager->getTool(tool_index));
+
+  ROS_INFO("Current tool changed to: %s",
+	   visualization_manager_->getToolManager()->getCurrentTool()->getName().toLocal8Bit().data());  
 }

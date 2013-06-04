@@ -6,6 +6,8 @@
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
 #include "rviz/display.h"
+#include "rviz/tool_manager.h"
+#include "rviz/tool.h"
 
 class DemonstrationVisualizer : public QWidget
 {
@@ -17,12 +19,14 @@ public:
 
 private Q_SLOTS:
   void toggleGrid();
+  void changeTool(int tool_index);
 
 private:
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;
   rviz::Display              *grid_;
   rviz::Display              *robot_model_;
+  rviz::Display              *interactive_markers_;
 
 };
 
