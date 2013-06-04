@@ -22,7 +22,8 @@ private:
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;
   rviz::Display              *grid_;
+  rviz::Display              *robot_model_;
 
 };
 
-#endif 
+#endif // DEMONSTRATION_VISUALIZER_H

@@ -31,6 +31,16 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
   ROS_ASSERT(grid_ != NULL);
 
+  // Create a robot model display.
+  robot_model_ = visualization_manager_->createDisplay("rviz/RobotModel", "Robot Model", true);
+  ROS_ASSERT(robot_model_ != NULL);
+  ROS_INFO("Robot description: %s", 
+	   robot_model_->subProp("Robot Description")->getValue().toString().toLocal8Bit().data());
+  visualization_manager_->setFixedFrame("/odom_combined");
+  ROS_INFO("Fixed frame: %s", 
+	   visualization_manager_->getFixedFrame().toLocal8Bit().data());
+  
+  // Create an interactive markers display for controlling the robot. 
   
 
   // Connect signals to appropriate slots.
@@ -56,7 +66,13 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
 void DemonstrationVisualizer::toggleGrid()
 {
   if(grid_->isEnabled())
+  {
     grid_->setEnabled(false);
+    ROS_INFO("Grid disabled.");
+  }
   else
+  {
     grid_->setEnabled(true);
+    ROS_INFO("Grid enabled.");
+  }
 }
