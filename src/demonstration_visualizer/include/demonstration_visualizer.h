@@ -5,6 +5,7 @@
 
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
+#include "rviz/display.h"
 
 class DemonstrationVisualizer : public QWidget
 {
@@ -15,11 +16,12 @@ public:
   virtual ~DemonstrationVisualizer();
 
 private Q_SLOTS:
-  void provideInfo() const;
+  void toggleGrid();
 
 private:
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;
+  rviz::Display              *grid_;
 
 };
 

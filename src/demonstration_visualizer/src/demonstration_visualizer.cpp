@@ -18,17 +18,23 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   visualization_manager_->startUpdate();
 
   // Initialize the window layout.
-  QPushButton *info_button = new QPushButton("Info", this);
+  QPushButton *toggle_grid = new QPushButton("Toggle grid", this);
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
-  controls_layout->addWidget(info_button);
+  controls_layout->addWidget(toggle_grid);
 
   QHBoxLayout *top_layout = new QHBoxLayout();
   top_layout->addLayout(controls_layout);
   top_layout->addWidget(render_panel_);
 
+  // Create and display a grid.
+  grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
+  ROS_ASSERT(grid_ != NULL);
+
+  
+
   // Connect signals to appropriate slots.
-  connect(info_button, SIGNAL(clicked()), this, SLOT(provideInfo()));
+  connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
 
   setLayout(top_layout);
 }
@@ -47,7 +53,10 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
   visualization_manager_ = 0;
 }
 
-void DemonstrationVisualizer::provideInfo() const
+void DemonstrationVisualizer::toggleGrid()
 {
-  std::cout << "Info requested." << std::endl;
+  if(grid_->isEnabled())
+    grid_->setEnabled(false);
+  else
+    grid_->setEnabled(true);
 }

@@ -6,7 +6,7 @@ int main(int argc, char **argv)
 {
   if(!ros::isInitialized())
   {
-    ros::init(argc, argv, "demovis");
+    ros::init(argc, argv, "demo_vis");
   }
 
   QApplication a(argc, argv);
