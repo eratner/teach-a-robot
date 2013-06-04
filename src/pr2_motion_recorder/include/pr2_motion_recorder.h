@@ -6,6 +6,7 @@
 
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/JointState.h>
+#include <pr2_motion_recorder/FilePath.h>
 
 #include <string>
 #include <sstream>
@@ -20,7 +21,8 @@ public:
 
   virtual ~PR2MotionRecorder();
 
-  bool beginRecording(std_srvs::Empty::Request &, std_srvs::Empty::Response &);
+  bool beginRecording(pr2_motion_recorder::FilePath::Request  &,
+		      pr2_motion_recorder::FilePath::Response &);
 
   bool endRecording(std_srvs::Empty::Request &, std_srvs::Empty::Response &);
 

@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 #include <QComboBox>
+#include <QFileDialog>
 
 #include "demonstration_visualizer.h"
 
@@ -11,6 +12,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   setWindowTitle("Demonstration Visualizer");
 
   resize(800, 600);
+
+  // Initialize a client to the motion recording service provider.
+  ros::NodeHandle nh;
+  begin_recording_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_recording");
+  end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_recording");
 
   // Initialize Rviz visualization manager and render panel.
   render_panel_ = new rviz::RenderPanel();
@@ -22,6 +28,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
 
   // Initialize the window layout.
   QPushButton *toggle_grid = new QPushButton("Toggle Grid", this);
+  QPushButton *begin_recording = new QPushButton("Begin Recording", this);
+  QPushButton *end_recording = new QPushButton("End Recording", this);
 
   QComboBox *select_tool = new QComboBox(this);
   select_tool->setInsertPolicy(QComboBox::InsertAtBottom);
@@ -36,6 +44,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
+  controls_layout->addWidget(begin_recording);
+  controls_layout->addWidget(end_recording);
   controls_layout->addWidget(select_tool);
 
   QHBoxLayout *top_layout = new QHBoxLayout();
@@ -62,6 +72,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
+  connect(begin_recording, SIGNAL(clicked()), this, SLOT(beginRecording()));
+  connect(end_recording, SIGNAL(clicked()), this, SLOT(endRecording()));
   connect(select_tool, SIGNAL(currentIndexChanged(int)), this, SLOT(changeTool(int)));
 
   setLayout(top_layout);
@@ -103,4 +115,34 @@ void DemonstrationVisualizer::changeTool(int tool_index)
 
   ROS_INFO("Current tool changed to: %s",
 	   visualization_manager_->getToolManager()->getCurrentTool()->getName().toLocal8Bit().data());  
+}
+
+void DemonstrationVisualizer::beginRecording()
+{
+  QString directory = QFileDialog::getExistingDirectory(this,
+							tr("Open Directory"),
+							"/home",
+							QFileDialog::ShowDirsOnly);
+
+  pr2_motion_recorder::FilePath srv;
+  srv.request.file_path = directory.toStdString();
+  if(!begin_recording_client_.call(srv))
+  {
+    ROS_ERROR("Failed to call service /motion_recorder/begin_recording.");
+    return;
+  }
+
+  ROS_INFO("Recording to %s", directory.toLocal8Bit().data());
+}
+
+void DemonstrationVisualizer::endRecording()
+{
+  std_srvs::Empty srv;
+  if(!end_recording_client_.call(srv))
+  {
+    ROS_ERROR("Failed to call service /motion_recorder/end_recording.");
+    return;
+  }
+
+  ROS_INFO("Recording has ended.");
 }

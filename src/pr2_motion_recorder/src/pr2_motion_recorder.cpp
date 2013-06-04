@@ -22,7 +22,7 @@ PR2MotionRecorder::PR2MotionRecorder()
 					    &PR2MotionRecorder::recordJoints,
 					    this);
 
-  nh.param("write_bag_path", write_bag_path_, std::string("/home/eratner/Documents/"));
+  nh.param("write_bag_path", write_bag_path_, std::string(""));
 }
 
 PR2MotionRecorder::~PR2MotionRecorder()
@@ -30,15 +30,15 @@ PR2MotionRecorder::~PR2MotionRecorder()
 
 }
 
-bool PR2MotionRecorder::beginRecording(std_srvs::Empty::Request  &req,
-				       std_srvs::Empty::Response &res)
+bool PR2MotionRecorder::beginRecording(pr2_motion_recorder::FilePath::Request  &req,
+				       pr2_motion_recorder::FilePath::Response &res)
 {
   if(!is_recording_)
   {
     is_recording_ = true;
     // Start recording to a new bag file.
     std::stringstream path;
-    path << write_bag_path_ << "motion" << bag_count_ << ".bag";
+    path << req.file_path << "/motion" << bag_count_ << ".bag";
     bag_count_++;
     write_bag_.open(path.str(), rosbag::bagmode::Write);
     ROS_INFO("Beginning to record motion to %s.", path.str().c_str());
@@ -65,8 +65,6 @@ void PR2MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)
 {
   if(is_recording_)
   {
-    ROS_INFO("Recording joint states to motion%d.bag.", bag_count_-1);
-
     write_bag_.write("/joint_states", ros::Time::now(), msg);
   }
 }

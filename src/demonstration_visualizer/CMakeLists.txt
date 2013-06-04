@@ -4,7 +4,7 @@ project(demonstration_visualizer)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rviz)
+find_package(catkin REQUIRED COMPONENTS roscpp rviz pr2_motion_recorder)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -51,7 +51,7 @@ include(${QT_USE_FILE})
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES demonstration_visualizer
-   CATKIN_DEPENDS roscpp rviz
+   CATKIN_DEPENDS roscpp rviz pr2_motion_recorder
 #  DEPENDS system_lib
 )
 
@@ -83,7 +83,7 @@ target_link_libraries(demo_vis ${QT_LIBRARIES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(demonstration_visualizer_node demonstration_visualizer_generate_messages_cpp)
+add_dependencies(demo_vis pr2_motion_recorder_gencpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(demo_vis
