@@ -17,6 +17,14 @@ PR2MotionRecorder::PR2MotionRecorder()
 					 &PR2MotionRecorder::endRecording,
 					 this);
 
+  begin_replay_service_ = nh.advertiseService("begin_replay",
+					      &PR2MotionRecorder::beginReplay,
+					      this);
+
+  end_replay_service_ = nh.advertiseService("end_replay",
+					    &PR2MotionRecorder::endReplay,
+					    this);
+
   joint_states_subscription_ = nh.subscribe("/joint_states", 
 					    100,
 					    &PR2MotionRecorder::recordJoints,
@@ -58,6 +66,20 @@ bool PR2MotionRecorder::endRecording(std_srvs::Empty::Request  &req,
     write_bag_.close();
   }
 
+  return true;
+}
+
+bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &,
+				    pr2_motion_recorder::FilePath::Response &)
+{
+  // @todo 
+  return true;
+}
+
+bool PR2MotionRecorder::endReplay(pr2_motion_recorder::FilePath::Request  &,
+				  pr2_motion_recorder::FilePath::Response &)
+{
+  // @todo
   return true;
 }
 

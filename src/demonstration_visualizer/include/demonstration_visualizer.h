@@ -12,6 +12,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include "pr2_motion_recorder/FilePath.h"
+#include <visualization_msgs/Marker.h>
 
 class DemonstrationVisualizer : public QWidget
 {
@@ -25,9 +26,16 @@ private Q_SLOTS:
   void toggleGrid();
   void changeTool(int tool_index);
 
-  // For recording PR2 joint states.
+  // For recording PR2 motion.
   void beginRecording();
   void endRecording(); 
+
+  // For replaying PR2 motion from a bag file.
+  //void beginReplay();
+  //void endReplay();
+
+  // Load a mesh file.
+  void loadMesh();
 
 private:
   rviz::RenderPanel          *render_panel_;
@@ -35,10 +43,14 @@ private:
   rviz::Display              *grid_;
   rviz::Display              *robot_model_;
   rviz::Display              *interactive_markers_;
+  rviz::Display              *visualization_marker_;
 
   ros::ServiceClient         begin_recording_client_;
   ros::ServiceClient         end_recording_client_;
-  //ros::ServiceClient         replay_recording_client;
+  ros::ServiceClient         begin_replay_client_;
+  ros::ServiceClient         end_replay_client_;
+
+  ros::Publisher             mesh_pub_;
 
 };
 

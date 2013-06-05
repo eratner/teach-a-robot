@@ -17,6 +17,10 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   ros::NodeHandle nh;
   begin_recording_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_recording");
   end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_recording");
+  begin_replay_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_replay");
+  end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
+  
+  mesh_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
 
   // Initialize Rviz visualization manager and render panel.
   render_panel_ = new rviz::RenderPanel();
@@ -28,9 +32,22 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
 
   // Initialize the window layout.
   QPushButton *toggle_grid = new QPushButton("Toggle Grid", this);
-  QPushButton *begin_recording = new QPushButton("Begin Recording", this);
-  QPushButton *end_recording = new QPushButton("End Recording", this);
 
+  // Recording control panel.
+  QHBoxLayout *recording_controls = new QHBoxLayout();
+  QPushButton *begin_recording = new QPushButton("Begin Recording", this);
+  recording_controls->addWidget(begin_recording);
+  QPushButton *end_recording = new QPushButton("End Recording", this);
+  recording_controls->addWidget(end_recording);
+
+  // Replay control panel.
+  QHBoxLayout *replay_controls = new QHBoxLayout();
+  QPushButton *begin_replay = new QPushButton("Begin Replay", this);
+  replay_controls->addWidget(begin_replay);
+  QPushButton *end_replay = new QPushButton("End Replay", this);
+  replay_controls->addWidget(end_replay);
+
+  // Select tool control panel
   QComboBox *select_tool = new QComboBox(this);
   select_tool->setInsertPolicy(QComboBox::InsertAtBottom);
 
@@ -42,10 +59,14 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
     select_tool->addItem(tool_manager->getTool(i)->getClassId());
   }
 
+  // Load mesh control panel.
+  QPushButton *load_mesh = new QPushButton("Load Mesh");
+
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
-  controls_layout->addWidget(begin_recording);
-  controls_layout->addWidget(end_recording);
+  controls_layout->addLayout(recording_controls);
+  controls_layout->addLayout(replay_controls);
+  controls_layout->addWidget(load_mesh);
   controls_layout->addWidget(select_tool);
 
   QHBoxLayout *top_layout = new QHBoxLayout();
@@ -70,11 +91,18 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   ROS_ASSERT(interactive_markers_ != NULL);
   interactive_markers_->subProp("Update Topic")->setValue("/pr2_marker_control_transparent/update");
 
+  // Create a visualization marker for loading meshes of environments.
+  visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
+  ROS_ASSERT(visualization_marker_ != NULL);
+
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
   connect(begin_recording, SIGNAL(clicked()), this, SLOT(beginRecording()));
   connect(end_recording, SIGNAL(clicked()), this, SLOT(endRecording()));
   connect(select_tool, SIGNAL(currentIndexChanged(int)), this, SLOT(changeTool(int)));
+  //connect(begin_replay, SIGNAL(clicked()), this, SLOT(beginReplay()));
+  //connect(end_replay, SIGNAL(clicked()), this, SLOT(endReplay()));
+  connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
 
   setLayout(top_layout);
 }
@@ -145,4 +173,41 @@ void DemonstrationVisualizer::endRecording()
   }
 
   ROS_INFO("Recording has ended.");
+}
+
+void DemonstrationVisualizer::loadMesh()
+{
+  QString filename = QFileDialog::getOpenFileName(this, 
+						  tr("Open Mesh File"),
+						  "/home",
+						  tr("Mesh Files (*.dae)"));
+
+  std::stringstream resource_path;
+  resource_path << "file://" << filename.toStdString();
+  ROS_INFO("Loading mesh from file %s.", resource_path.str().c_str());
+
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "/odom_combined";
+  marker.header.stamp = ros::Time();
+  marker.ns = "demo_vis";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.position.x = 1;
+  marker.pose.position.y = 1;
+  marker.pose.position.z = 1;
+  marker.pose.orientation.x = 0.0;
+  marker.pose.orientation.y = 0.0;
+  marker.pose.orientation.z = 0.0;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 1;
+  marker.scale.y = 1;
+  marker.scale.z = 1;
+  marker.color.a = 0.0;
+  marker.color.r = 0.0;
+  marker.color.g = 0.0;
+  marker.color.b = 0.0;
+  marker.mesh_resource = resource_path.str();
+  marker.mesh_use_embedded_materials = true;
+  mesh_pub_.publish(marker);  
 }
