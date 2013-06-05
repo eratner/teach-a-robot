@@ -100,8 +100,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   connect(begin_recording, SIGNAL(clicked()), this, SLOT(beginRecording()));
   connect(end_recording, SIGNAL(clicked()), this, SLOT(endRecording()));
   connect(select_tool, SIGNAL(currentIndexChanged(int)), this, SLOT(changeTool(int)));
-  //connect(begin_replay, SIGNAL(clicked()), this, SLOT(beginReplay()));
-  //connect(end_replay, SIGNAL(clicked()), this, SLOT(endReplay()));
+  connect(begin_replay, SIGNAL(clicked()), this, SLOT(beginReplay()));
+  connect(end_replay, SIGNAL(clicked()), this, SLOT(endReplay()));
   connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
 
   setLayout(top_layout);
@@ -152,6 +152,12 @@ void DemonstrationVisualizer::beginRecording()
 							"/home",
 							QFileDialog::ShowDirsOnly);
 
+  if(directory.isEmpty())
+  {
+    ROS_INFO("No directory selected.");
+    return;
+  }
+
   pr2_motion_recorder::FilePath srv;
   srv.request.file_path = directory.toStdString();
   if(!begin_recording_client_.call(srv))
@@ -175,12 +181,47 @@ void DemonstrationVisualizer::endRecording()
   ROS_INFO("Recording has ended.");
 }
 
+void DemonstrationVisualizer::beginReplay()
+{
+  QString filename = QFileDialog::getOpenFileName(this,
+						  tr("Replay Bag File"),
+						  "/home",
+						  tr("Bag Files *.bag"));
+
+  if(filename.isEmpty())
+  {
+    ROS_INFO("No directory selected.");
+    return;
+  }
+
+  pr2_motion_recorder::FilePath srv;
+  srv.request.file_path = filename.toStdString();
+  if(!begin_replay_client_.call(srv))
+  {
+    ROS_ERROR("Failed to call service /motion_recorder/begin_replay.");
+    return;
+  }
+
+  ROS_INFO("Replaying from file %s", filename.toLocal8Bit().data());
+}
+
+void DemonstrationVisualizer::endReplay()
+{
+
+}
+
 void DemonstrationVisualizer::loadMesh()
 {
   QString filename = QFileDialog::getOpenFileName(this, 
 						  tr("Open Mesh File"),
 						  "/home",
-						  tr("Mesh Files (*.dae)"));
+						  tr("Mesh Files (*.dae *.stl *.mesh)"));
+
+  if(filename.isEmpty())
+  {
+    ROS_INFO("No file selected.");
+    return;
+  }
 
   std::stringstream resource_path;
   resource_path << "file://" << filename.toStdString();
@@ -193,9 +234,9 @@ void DemonstrationVisualizer::loadMesh()
   marker.id = 0;
   marker.type = visualization_msgs::Marker::MESH_RESOURCE;
   marker.action = visualization_msgs::Marker::ADD;
-  marker.pose.position.x = 1;
-  marker.pose.position.y = 1;
-  marker.pose.position.z = 1;
+  marker.pose.position.x = 0;
+  marker.pose.position.y = 0;
+  marker.pose.position.z = 0;
   marker.pose.orientation.x = 0.0;
   marker.pose.orientation.y = 0.0;
   marker.pose.orientation.z = 0.0;

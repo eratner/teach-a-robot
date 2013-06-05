@@ -31,8 +31,8 @@ private Q_SLOTS:
   void endRecording(); 
 
   // For replaying PR2 motion from a bag file.
-  //void beginReplay();
-  //void endReplay();
+  void beginReplay();
+  void endReplay();
 
   // Load a mesh file.
   void loadMesh();

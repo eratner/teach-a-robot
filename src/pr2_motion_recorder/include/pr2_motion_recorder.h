@@ -3,16 +3,23 @@
 
 #include <ros/ros.h>
 #include <rosbag/bag.h>
+#include <rosbag/view.h>
 
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/JointState.h>
 #include <pr2_motion_recorder/FilePath.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <pr2_controllers_msgs/JointTrajectoryAction.h>
+#include <actionlib/client/simple_action_client.h>
 
 #include <string>
 #include <sstream>
 #include <boost/foreach.hpp>
 
 #define foreach BOOST_FOREACH
+
+typedef actionlib::SimpleActionClient<pr2_controllers_msgs::JointTrajectoryAction> TrajectoryClient;
 
 class PR2MotionRecorder
 {
@@ -30,15 +37,21 @@ public:
   bool beginReplay(pr2_motion_recorder::FilePath::Request  &,
 		   pr2_motion_recorder::FilePath::Response &);
 
-  bool endReplay(pr2_motion_recorder::FilePath::Request  &,
-		 pr2_motion_recorder::FilePath::Response &);
+  bool endReplay(std_srvs::Empty::Request  &,
+		 std_srvs::Empty::Response &);
 
   void recordJoints(const sensor_msgs::JointState &msg);
+
+  void recordBasePose(const nav_msgs::Odometry &msg);
 
   void run();
 
 private:
+  void startJointTrajectory(pr2_controllers_msgs::JointTrajectoryGoal goal,
+			    TrajectoryClient *trajectory_client);
+
   bool is_recording_;
+  bool is_replaying_;
   int bag_count_;
   std::string write_bag_path_;
   rosbag::Bag write_bag_;
@@ -50,6 +63,9 @@ private:
   ros::ServiceServer end_replay_service_;
   
   ros::Subscriber joint_states_subscription_;
+  ros::Subscriber base_pose_subscription_;
+
+  TrajectoryClient *r_arm_traj_client_;
 
 };
 
