@@ -6,21 +6,12 @@
 
 #include "demonstration_visualizer.h"
 
-DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
- : QWidget(parent)
+DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
+ : QWidget(parent), node_(argc, argv)
 {
   setWindowTitle("Demonstration Visualizer");
 
   resize(800, 600);
-
-  // Initialize a client to the motion recording service provider.
-  ros::NodeHandle nh;
-  begin_recording_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_recording");
-  end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_recording");
-  begin_replay_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_replay");
-  end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
-  
-  mesh_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
 
   // Initialize Rviz visualization manager and render panel.
   render_panel_ = new rviz::RenderPanel();
@@ -166,7 +157,7 @@ void DemonstrationVisualizer::beginRecording()
 
   pr2_motion_recorder::FilePath srv;
   srv.request.file_path = directory.toStdString();
-  if(!begin_recording_client_.call(srv))
+  if(!node_.beginRecording(srv))
   {
     ROS_ERROR("Failed to call service /motion_recorder/begin_recording.");
     return;
@@ -178,7 +169,7 @@ void DemonstrationVisualizer::beginRecording()
 void DemonstrationVisualizer::endRecording()
 {
   std_srvs::Empty srv;
-  if(!end_recording_client_.call(srv))
+  if(!node_.endRecording(srv))
   {
     ROS_ERROR("Failed to call service /motion_recorder/end_recording.");
     return;
@@ -202,7 +193,7 @@ void DemonstrationVisualizer::beginReplay()
 
   pr2_motion_recorder::FilePath srv;
   srv.request.file_path = filename.toStdString();
-  if(!begin_replay_client_.call(srv))
+  if(!node_.beginReplay(srv))
   {
     ROS_ERROR("Failed to call service /motion_recorder/begin_replay.");
     return;
@@ -213,7 +204,7 @@ void DemonstrationVisualizer::beginReplay()
 
 void DemonstrationVisualizer::endReplay()
 {
-
+  //@todo node_.endReplay(srv); ...
 }
 
 void DemonstrationVisualizer::loadMesh()
@@ -272,7 +263,8 @@ void DemonstrationVisualizer::loadMesh()
   marker.color.b = 0.0;
   marker.mesh_resource = resource_path.str();
   marker.mesh_use_embedded_materials = true;
-  mesh_pub_.publish(marker);  
+ 
+  node_.publishVisualizationMarker(marker);
 }
 
 void DemonstrationVisualizer::selectMesh(int mesh_index)

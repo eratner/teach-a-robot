@@ -70,10 +70,11 @@ include_directories(include
 #   src/${PROJECT_NAME}/demonstration_visualizer.cpp
 # )
 
-qt4_wrap_cpp(MOC_FILES include/demonstration_visualizer.h)
+qt4_wrap_cpp(MOC_FILES include/demonstration_visualizer.h include/demonstration_visualizer_node.h)
 
 add_executable(demo_vis src/main.cpp 
-  src/demonstration_visualizer.cpp 
+  src/demonstration_visualizer.cpp
+  src/demonstration_visualizer_node.cpp
   ${MOC_FILES})
 
 target_link_libraries(demo_vis ${QT_LIBRARIES})
