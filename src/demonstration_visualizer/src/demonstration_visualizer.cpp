@@ -1,7 +1,6 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QPushButton>
-#include <QComboBox>
 #include <QFileDialog>
 
 #include "demonstration_visualizer.h"
@@ -47,9 +46,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   QPushButton *end_replay = new QPushButton("End Replay", this);
   replay_controls->addWidget(end_replay);
 
-  // Select tool control panel
-  QComboBox *select_tool = new QComboBox(this);
+  // Select tool control panel.
+  QComboBox *select_tool = new QComboBox();
   select_tool->setInsertPolicy(QComboBox::InsertAtBottom);
+
+  // Select possible meshes.
+  select_mesh_ = new QComboBox();
+  select_mesh_->setInsertPolicy(QComboBox::InsertAtBottom);
 
   rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
   ROS_INFO("There are %d tools loaded:", tool_manager->numTools());
@@ -67,6 +70,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   controls_layout->addLayout(recording_controls);
   controls_layout->addLayout(replay_controls);
   controls_layout->addWidget(load_mesh);
+  controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
 
   QHBoxLayout *top_layout = new QHBoxLayout();
@@ -103,6 +107,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   connect(begin_replay, SIGNAL(clicked()), this, SLOT(beginReplay()));
   connect(end_replay, SIGNAL(clicked()), this, SLOT(endReplay()));
   connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
+  connect(select_mesh_, SIGNAL(currentIndexChanged(int)), this, SLOT(selectMesh(int)));
 
   setLayout(top_layout);
 }
@@ -227,11 +232,27 @@ void DemonstrationVisualizer::loadMesh()
   resource_path << "file://" << filename.toStdString();
   ROS_INFO("Loading mesh from file %s.", resource_path.str().c_str());
 
+  int i = resource_path.str().size()-1;
+  for(; i >= 0; i--)
+  {
+    if(resource_path.str()[i] == '/')
+      break;
+  }
+  mesh_names_.push_back(resource_path.str().substr(i+1));
+
+  select_mesh_->addItem(QString(mesh_names_.back().c_str()));
+
+  ROS_INFO("Mesh list:");
+  for(int j = 0; j < mesh_names_.size(); ++j)
+  {
+    ROS_INFO("%d. %s", j, mesh_names_[j].c_str());
+  }
+
   visualization_msgs::Marker marker;
   marker.header.frame_id = "/odom_combined";
   marker.header.stamp = ros::Time();
   marker.ns = "demo_vis";
-  marker.id = 0;
+  marker.id = mesh_names_.size()-1;
   marker.type = visualization_msgs::Marker::MESH_RESOURCE;
   marker.action = visualization_msgs::Marker::ADD;
   marker.pose.position.x = 0;
@@ -251,4 +272,11 @@ void DemonstrationVisualizer::loadMesh()
   marker.mesh_resource = resource_path.str();
   marker.mesh_use_embedded_materials = true;
   mesh_pub_.publish(marker);  
+}
+
+void DemonstrationVisualizer::selectMesh(int mesh_index)
+{
+  selected_mesh_ = mesh_index;
+  // @todo is it possible to highlight/box the selected mesh?
+  // possibly with selection tool?
 }

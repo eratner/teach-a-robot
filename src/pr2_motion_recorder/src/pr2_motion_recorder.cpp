@@ -88,15 +88,13 @@ bool PR2MotionRecorder::endRecording(std_srvs::Empty::Request  &req,
 bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req,
 				    pr2_motion_recorder::FilePath::Response &res)
 {
-  // @todo load appropriate bag file, populate a JointTrajectoryGoal for each controller
-  // and pass the to trajectory action client. 
+  // Load appropriate bag file, populate a JointTrajectoryGoal for each controller
+  // and pass the to appropriate trajectory action client. 
   read_bag_.open(req.file_path, rosbag::bagmode::Read);
 
   rosbag::View joints_view(read_bag_, rosbag::TopicQuery("/joint_states"));
 
   // RIGHT ARM JOINTS.
-//  int jointConversionTable[] = { 2, 0, 1, 4, 3, 5, 6 };
-
   pr2_controllers_msgs::JointTrajectoryGoal r_arm_goal;
 
   // Set the joint names.
@@ -124,7 +122,6 @@ bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req
       r_arm_goal.trajectory.points[index].velocities.resize(7);
       for(int i = 0; i < 7; ++i)
       {
-	//ROS_INFO("%f", joint_state->position[i]);
 	r_arm_goal.trajectory.points[index].positions[i] = joint_state->position[17+i];
 	r_arm_goal.trajectory.points[index].velocities[i] = 0; /*joint_state->velocity[17+i];*/
       }

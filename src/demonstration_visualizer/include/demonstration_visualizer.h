@@ -2,6 +2,7 @@
 #define DEMONSTRATION_VISUALIZER
 
 #include <QWidget>
+#include <QComboBox>
 
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
@@ -37,6 +38,8 @@ private Q_SLOTS:
   // Load a mesh file.
   void loadMesh();
 
+  void selectMesh(int mesh_index);
+
 private:
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;
@@ -51,6 +54,10 @@ private:
   ros::ServiceClient         end_replay_client_;
 
   ros::Publisher             mesh_pub_;
+
+  QComboBox                  *select_mesh_;
+  std::vector<std::string>   mesh_names_;
+  int                        selected_mesh_;
 
 };
 
