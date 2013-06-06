@@ -55,13 +55,17 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   }
 
   // Load mesh control panel.
+  QHBoxLayout *mesh_controls = new QHBoxLayout();
   QPushButton *load_mesh = new QPushButton("Load Mesh");
+  mesh_controls->addWidget(load_mesh);
+  QPushButton *delete_mesh = new QPushButton("Delete Mesh");
+  mesh_controls->addWidget(delete_mesh);
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
   controls_layout->addLayout(recording_controls);
   controls_layout->addLayout(replay_controls);
-  controls_layout->addWidget(load_mesh);
+  controls_layout->addLayout(mesh_controls);
   controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
 
@@ -91,6 +95,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
   ROS_ASSERT(visualization_marker_ != NULL);
 
+  // Create an interactive markers display for moving meshes around the scene.
+  mesh_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
+								    "Mesh Interactive Markers",
+								    true);
+  ROS_ASSERT(mesh_interactive_markers_ != NULL);
+  mesh_interactive_markers_->subProp("Update Topic")->setValue("/mesh_marker/update");
+
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
   connect(begin_recording, SIGNAL(clicked()), this, SLOT(beginRecording()));
@@ -100,6 +111,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(end_replay, SIGNAL(clicked()), this, SLOT(endReplay()));
   connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
   connect(select_mesh_, SIGNAL(currentIndexChanged(int)), this, SLOT(selectMesh(int)));
+  connect(delete_mesh, SIGNAL(clicked()), this, SLOT(deleteMesh()));
+  connect(&node_, SIGNAL(interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
+	  this, SLOT(interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
+
+  next_mesh_id_ = 0;
+  selected_mesh_ = -1;
 
   setLayout(window_layout);
 }
@@ -230,21 +247,18 @@ void DemonstrationVisualizer::loadMesh()
     if(resource_path.str()[i] == '/')
       break;
   }
-  mesh_names_.push_back(resource_path.str().substr(i+1));
 
-  select_mesh_->addItem(QString(mesh_names_.back().c_str()));
+  std::string mesh_name = resource_path.str().substr(i+1);
+  mesh_names_.insert(std::pair<int, std::string>(next_mesh_id_, resource_path.str()));
+  next_mesh_id_++;
 
-  ROS_INFO("Mesh list:");
-  for(int j = 0; j < mesh_names_.size(); ++j)
-  {
-    ROS_INFO("%d. %s", j, mesh_names_[j].c_str());
-  }
+  select_mesh_->addItem(QString(mesh_name.c_str()));
 
   visualization_msgs::Marker marker;
   marker.header.frame_id = "/odom_combined";
   marker.header.stamp = ros::Time();
   marker.ns = "demonstration_visualizer";
-  marker.id = mesh_names_.size()-1;
+  marker.id = next_mesh_id_-1;
   marker.type = visualization_msgs::Marker::MESH_RESOURCE;
   marker.action = visualization_msgs::Marker::ADD;
   marker.pose.position.x = 0;
@@ -267,9 +281,66 @@ void DemonstrationVisualizer::loadMesh()
   node_.publishVisualizationMarker(marker, true);
 }
 
+void DemonstrationVisualizer::deleteMesh()
+{
+  if(selected_mesh_ == -1)
+  {
+    ROS_INFO("No marker selected.");
+    return;
+  }
+
+  ROS_INFO("Deleting mesh %d.", selected_mesh_);
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "/odom_combined";
+  marker.header.stamp = ros::Time();
+  marker.ns = "demonstration_visualizer";
+  marker.id = selected_mesh_;
+  marker.action = visualization_msgs::Marker::DELETE;
+
+  node_.publishVisualizationMarker(marker);
+
+  select_mesh_->removeItem(selected_mesh_);
+  mesh_names_.erase(mesh_names_.find(selected_mesh_));
+
+  if(mesh_names_.size() == 0)
+    selected_mesh_ = -1;
+  else
+    selected_mesh_ = select_mesh_->currentIndex();
+}
+
 void DemonstrationVisualizer::selectMesh(int mesh_index)
 {
+  ROS_INFO("Selected mesh %d.", mesh_index);
   selected_mesh_ = mesh_index;
-  // @todo is it possible to highlight/box the selected mesh?
-  // possibly with selection tool?
+}
+
+void DemonstrationVisualizer::interactiveMarkerMoved(
+  const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  // Just redraw the marker at the specified pose.
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "/odom_combined";
+  marker.header.stamp = ros::Time();
+  marker.ns = "demonstration_visualizer";
+  marker.id = selected_mesh_;
+  marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose = feedback->pose;
+  marker.scale.x = 1;
+  marker.scale.y = 1;
+  marker.scale.z = 1;
+  marker.color.a = 0.0;
+  marker.color.r = 0.0;
+  marker.color.g = 0.0;
+  marker.color.b = 0.0;
+  marker.mesh_resource = mesh_names_[selected_mesh_];
+  marker.mesh_use_embedded_materials = true;
+ 
+  ROS_INFO_STREAM("Moving mesh " << mesh_names_[selected_mesh_] << " with id "
+		  << selected_mesh_ << " to pose (" << feedback->pose.position.x
+		  << ", " << feedback->pose.position.y << ", " 
+		  << feedback->pose.position.z << ")");
+
+  node_.publishVisualizationMarker(marker);  
 }

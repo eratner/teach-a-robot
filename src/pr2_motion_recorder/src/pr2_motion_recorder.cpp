@@ -121,11 +121,13 @@ bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req
       r_arm_goal.trajectory.points[index].velocities.resize(7);
       for(int i = 0; i < 7; ++i)
       {
+	ROS_INFO_STREAM("joint " << i << " = " << joint_state->position[17+i]);
 	r_arm_goal.trajectory.points[index].positions[i] = joint_state->position[17+i];
 	r_arm_goal.trajectory.points[index].velocities[i] = 0; /*joint_state->velocity[17+i];*/
       }
       // To be reached index*0.1 seconds after beginning the trajectory.
       r_arm_goal.trajectory.points[index].time_from_start = ros::Duration(index*0.1);  
+      ROS_INFO_STREAM(index*0.1 << " seconds.");
       index++;
     }
   }

@@ -72,13 +72,13 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
 {
   if(interactive_marker)
   {
-    ROS_INFO("Attaching a visual marker to marker %d.", msg.id);
+    ROS_INFO("Attaching an interactive marker to visual marker %d.", msg.id);
     // Attach an interactive marker to control this marker.
     // 1. Create interactive marker.
     visualization_msgs::InteractiveMarker int_marker;
     int_marker.header.frame_id = "/odom_combined";
     int_marker.name = "test_marker";
-    int_marker.description = "Simple 1-DOF Control";
+    int_marker.description = "Move/Rotate Mesh";
 
     // 2. Create non-interactive marker control.
     visualization_msgs::InteractiveMarkerControl marker_control;
@@ -88,13 +88,41 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
     // 3. Add control to interactive marker.
     int_marker.controls.push_back(marker_control);
 
-    // 4. Create a control to move the marker.
-    visualization_msgs::InteractiveMarkerControl move_control_x;
-    move_control_x.name = "move_x";
-    move_control_x.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    // 4. Create controls to move the marker.
+    visualization_msgs::InteractiveMarkerControl control;
 
-    // 5. Add the control to the interactive marker.
-    int_marker.controls.push_back(move_control_x);
+    control.orientation.w = 1;
+    control.orientation.x = 1;
+    control.orientation.y = 0;
+    control.orientation.z = 0;
+    control.name = "rotate_x";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+    control.name = "move_x";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    int_marker.controls.push_back(control);
+
+    control.orientation.w = 1;
+    control.orientation.x = 0;
+    control.orientation.y = 1;
+    control.orientation.z = 0;
+    control.name = "rotate_z";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+    control.name = "move_z";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    int_marker.controls.push_back(control);
+
+    control.orientation.w = 1;
+    control.orientation.x = 0;
+    control.orientation.y = 0;
+    control.orientation.z = 1;
+    control.name = "rotate_y";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+    control.name = "move_y";
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    int_marker.controls.push_back(control);
 
     interactive_marker_server_->insert(int_marker, 
     				       boost::bind(
@@ -124,8 +152,9 @@ void DemonstrationVisualizerNode::processInteractiveMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
   )
 {
-  ROS_INFO_STREAM(feedback->marker_name << " is now at position ("
-		  << feedback->pose.position.x << ", "
-		  << feedback->pose.position.y << ", "
-		  << feedback->pose.position.z << ").");
+  // ROS_INFO_STREAM(feedback->marker_name << " is now at position ("
+  // 		  << feedback->pose.position.x << ", "
+  // 		  << feedback->pose.position.y << ", "
+  // 		  << feedback->pose.position.z << ").");
+  Q_EMIT interactiveMarkerMoved(feedback);
 }

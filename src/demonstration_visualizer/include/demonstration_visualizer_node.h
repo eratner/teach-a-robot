@@ -39,6 +39,8 @@ public:
 Q_SIGNALS:
   void rosShutdown();
 
+  void interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
 private:
   ros::ServiceClient begin_recording_client_;
   ros::ServiceClient end_recording_client_;

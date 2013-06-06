@@ -17,6 +17,8 @@
 #include "pr2_motion_recorder/FilePath.h"
 #include <visualization_msgs/Marker.h>
 
+#include <map>
+
 class DemonstrationVisualizer : public QWidget
 {
 Q_OBJECT
@@ -37,10 +39,13 @@ private Q_SLOTS:
   void beginReplay();
   void endReplay();
 
-  // Load a mesh file.
+  // Load/delete a mesh file.
   void loadMesh();
+  void deleteMesh();
 
   void selectMesh(int mesh_index);
+
+  void interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 private:
   DemonstrationVisualizerNode node_;
@@ -51,9 +56,11 @@ private:
   rviz::Display              *robot_model_;
   rviz::Display              *interactive_markers_;
   rviz::Display              *visualization_marker_;
+  rviz::Display              *mesh_interactive_markers_;
 
   QComboBox                  *select_mesh_;
-  std::vector<std::string>   mesh_names_;
+  std::map<int, std::string> mesh_names_;
+  int                        next_mesh_id_;
   int                        selected_mesh_;
 
 };
