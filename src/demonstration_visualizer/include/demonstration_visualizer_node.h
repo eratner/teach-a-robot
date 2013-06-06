@@ -7,6 +7,7 @@
 #include <pr2_motion_recorder/FilePath.h>
 #include <std_srvs/Empty.h>
 #include <visualization_msgs/Marker.h>
+#include <interactive_markers/interactive_marker_server.h>
 
 #include <string>
 
@@ -28,9 +29,12 @@ public:
 
   bool endReplay(std_srvs::Empty &srv);
 
-  void publishVisualizationMarker(const visualization_msgs::Marker &msg);
+  void publishVisualizationMarker(const visualization_msgs::Marker &msg,
+				  bool interactive_marker = false);
 
   void run();
+
+  void processInteractiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 Q_SIGNALS:
   void rosShutdown();
@@ -42,6 +46,8 @@ private:
   ros::ServiceClient end_replay_client_;
 
   ros::Publisher marker_pub_;
+
+  interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
 
 };
 

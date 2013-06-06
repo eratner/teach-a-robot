@@ -62,7 +62,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(recording_controls);
   controls_layout->addLayout(replay_controls);
   controls_layout->addWidget(load_mesh);
-  //controls_layout->addWidget(select_mesh_);
+  controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
 
   QGridLayout *window_layout = new QGridLayout();
@@ -243,7 +243,7 @@ void DemonstrationVisualizer::loadMesh()
   visualization_msgs::Marker marker;
   marker.header.frame_id = "/odom_combined";
   marker.header.stamp = ros::Time();
-  marker.ns = "demo_vis";
+  marker.ns = "demonstration_visualizer";
   marker.id = mesh_names_.size()-1;
   marker.type = visualization_msgs::Marker::MESH_RESOURCE;
   marker.action = visualization_msgs::Marker::ADD;
@@ -264,7 +264,7 @@ void DemonstrationVisualizer::loadMesh()
   marker.mesh_resource = resource_path.str();
   marker.mesh_use_embedded_materials = true;
  
-  node_.publishVisualizationMarker(marker);
+  node_.publishVisualizationMarker(marker, true);
 }
 
 void DemonstrationVisualizer::selectMesh(int mesh_index)

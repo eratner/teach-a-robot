@@ -4,7 +4,12 @@ project(demonstration_visualizer)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp rviz pr2_motion_recorder visualization_msgs)
+find_package(catkin REQUIRED COMPONENTS 
+  roscpp
+  rviz
+  pr2_motion_recorder
+  visualization_msgs
+  interactive_markers)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -51,7 +56,7 @@ include(${QT_USE_FILE})
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES demonstration_visualizer
-   CATKIN_DEPENDS roscpp rviz pr2_motion_recorder visualization_msgs
+   CATKIN_DEPENDS roscpp rviz pr2_motion_recorder visualization_msgs interactive_markers
 #  DEPENDS system_lib
 )
 

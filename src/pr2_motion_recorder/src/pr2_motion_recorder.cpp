@@ -110,7 +110,6 @@ bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req
   ROS_INFO("Constructing a joint trajectory with %d waypoints.", joints_view.size());
   r_arm_goal.trajectory.points.resize(joints_view.size());
 
-
   int index = 0;
   foreach(rosbag::MessageInstance const m, joints_view)
   {
