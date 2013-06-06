@@ -1,5 +1,6 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QGridLayout>
 #include <QPushButton>
 #include <QFileDialog>
 
@@ -70,12 +71,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   controls_layout->addLayout(recording_controls);
   controls_layout->addLayout(replay_controls);
   controls_layout->addWidget(load_mesh);
-  controls_layout->addWidget(select_mesh_);
+  //controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
 
-  QHBoxLayout *top_layout = new QHBoxLayout();
-  top_layout->addLayout(controls_layout);
-  top_layout->addWidget(render_panel_);
+  QGridLayout *window_layout = new QGridLayout();
+  window_layout->addLayout(controls_layout, 0, 0, 1, 1);
+  window_layout->addWidget(render_panel_, 0, 1, 2, 3);
 
   // Create and display a grid.
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
@@ -109,7 +110,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(QWidget *parent)
   connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
   connect(select_mesh_, SIGNAL(currentIndexChanged(int)), this, SLOT(selectMesh(int)));
 
-  setLayout(top_layout);
+  setLayout(window_layout);
 }
 
 DemonstrationVisualizer::~DemonstrationVisualizer()
