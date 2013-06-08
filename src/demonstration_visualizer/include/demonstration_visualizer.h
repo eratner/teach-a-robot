@@ -45,8 +45,6 @@ private Q_SLOTS:
 
   void selectMesh(int mesh_index);
 
-  void interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
-
 private:
   DemonstrationVisualizerNode node_;
 

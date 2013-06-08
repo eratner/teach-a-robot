@@ -56,18 +56,26 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
     select_tool->addItem(tool_manager->getTool(i)->getClassId());
   }
 
-  // Load mesh control panel.
+  // Load/delete mesh control panel.
   QHBoxLayout *mesh_controls = new QHBoxLayout();
   QPushButton *load_mesh = new QPushButton("Load Mesh");
   mesh_controls->addWidget(load_mesh);
   QPushButton *delete_mesh = new QPushButton("Delete Mesh");
   mesh_controls->addWidget(delete_mesh);
 
+  // Load/save scene control panel.
+  QHBoxLayout *scene_controls = new QHBoxLayout();
+  QPushButton *load_scene = new QPushButton("Load Scene");
+  scene_controls->addWidget(load_scene);
+  QPushButton *save_scene = new QPushButton("Save Scene");
+  scene_controls->addWidget(save_scene);
+
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
   controls_layout->addLayout(recording_controls);
   controls_layout->addLayout(replay_controls);
   controls_layout->addLayout(mesh_controls);
+  controls_layout->addLayout(scene_controls);
   controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
 
@@ -122,8 +130,6 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
   connect(select_mesh_, SIGNAL(currentIndexChanged(int)), this, SLOT(selectMesh(int)));
   connect(delete_mesh, SIGNAL(clicked()), this, SLOT(deleteMesh()));
-  connect(&node_, SIGNAL(interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
-	  this, SLOT(interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
 
   next_mesh_id_ = 2;
   selected_mesh_ = -1;
@@ -267,29 +273,27 @@ void DemonstrationVisualizer::loadMesh()
 
   select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(next_mesh_id_-1));
 
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = node_.getGlobalFrame();
-  marker.header.stamp = ros::Time();
-  marker.ns = "demonstration_visualizer";
-  marker.id = next_mesh_id_-1;
-  marker.type = visualization_msgs::Marker::MESH_RESOURCE;
-  marker.action = visualization_msgs::Marker::ADD;
-  marker.pose.position.x = 0;
-  marker.pose.position.y = 0;
-  marker.pose.position.z = 0;
-  marker.pose.orientation.x = 0.0;
-  marker.pose.orientation.y = 0.0;
-  marker.pose.orientation.z = 0.0;
-  marker.pose.orientation.w = 1.0;
-  marker.scale.x = 1;
-  marker.scale.y = 1;
-  marker.scale.z = 1;
-  marker.color.a = 0.0;
-  marker.color.r = 0.0;
-  marker.color.g = 0.0;
-  marker.color.b = 0.0;
-  marker.mesh_resource = resource_path.str();
-  marker.mesh_use_embedded_materials = true;
+  // Spawn the mesh at the origin.
+  geometry_msgs::PoseStamped pose_stamped;
+  pose_stamped.header.frame_id = node_.getGlobalFrame();
+  pose_stamped.header.stamp = ros::Time();
+  pose_stamped.pose.position.x = 0;
+  pose_stamped.pose.position.y = 0;
+  pose_stamped.pose.position.z = 0;
+  pose_stamped.pose.orientation.x = 0.0;
+  pose_stamped.pose.orientation.y = 0.0;
+  pose_stamped.pose.orientation.z = 0.0;
+  pose_stamped.pose.orientation.w = 1.0;  
+  geometry_msgs::Vector3 scale;
+  scale.x = scale.y = scale.z = 1;
+
+  visualization_msgs::Marker marker = makeMeshMarker(resource_path.str(),
+						     "demonstration_visualizer",
+						     next_mesh_id_-1,
+						     pose_stamped,
+						     scale,
+						     0.0,
+						     true);
  
   node_.publishVisualizationMarker(marker, true);
 }
@@ -335,35 +339,4 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
     ROS_INFO("Selected mesh %d.", (int)select_mesh_->itemData(mesh_index+1).value<int>());
     selected_mesh_ = select_mesh_->itemData(mesh_index+1).value<int>();
   }
-}
-
-void DemonstrationVisualizer::interactiveMarkerMoved(
-  const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
-  )
-{
-  // Just redraw the marker at the specified pose.
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = node_.getGlobalFrame();
-  marker.header.stamp = ros::Time();
-  marker.ns = "demonstration_visualizer";
-  marker.id = selected_mesh_;
-  marker.type = visualization_msgs::Marker::MESH_RESOURCE;
-  marker.action = visualization_msgs::Marker::ADD;
-  marker.pose = feedback->pose;
-  marker.scale.x = 1;
-  marker.scale.y = 1;
-  marker.scale.z = 1;
-  marker.color.a = 0.0;
-  marker.color.r = 0.0;
-  marker.color.g = 0.0;
-  marker.color.b = 0.0;
-  marker.mesh_resource = mesh_names_[selected_mesh_];
-  marker.mesh_use_embedded_materials = true;
- 
-  ROS_INFO_STREAM("Moving mesh " << mesh_names_[selected_mesh_] << " with id "
-		  << selected_mesh_ << " to pose (" << feedback->pose.position.x
-		  << ", " << feedback->pose.position.y << ", " 
-		  << feedback->pose.position.z << ")");
-
-  node_.publishVisualizationMarker(marker);  
 }

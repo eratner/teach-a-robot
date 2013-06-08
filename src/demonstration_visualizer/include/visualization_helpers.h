@@ -12,7 +12,7 @@ visualization_msgs::Marker makeMeshMarker(std::string mesh_resource,
 					  int id,
 					  const geometry_msgs::PoseStamped &pose_stamped,
 					  const geometry_msgs::Vector3 &scale,
-					  float alpha = 1.0,
+					  double alpha = 1.0,
 					  bool use_embedded_materials = true);
 
 visualization_msgs::Marker makeShapeMarker(int type,

@@ -82,6 +82,7 @@ add_executable(demo_vis src/main.cpp
   src/demonstration_visualizer.cpp
   src/demonstration_visualizer_node.cpp
   src/visualization_helpers.cpp
+  src/base_movement_controller.cpp
   ${MOC_FILES})
 
 target_link_libraries(demo_vis ${QT_LIBRARIES})

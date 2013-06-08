@@ -63,16 +63,12 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 					  _1)
 			      );
   base_marker_server_->applyChanges();
-
-  base_rotation_done_ = base_translation_done_ = true;
 }
 
 DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 {
   delete interactive_marker_server_;
   delete base_marker_server_;
-  delete tf_listener_;
-  interactive_marker_server_ = 0;
 
   if(ros::isStarted())
   {
@@ -91,8 +87,6 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
     return false;
 
   ros::start();
-
-  tf_listener_ = new tf::TransformListener();
 
   ros::NodeHandle nh("~");
 
@@ -150,29 +144,30 @@ bool DemonstrationVisualizerNode::endReplay(std_srvs::Empty &srv)
 }
 
 void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization_msgs::Marker &msg,
-							     bool interactive_marker)
+							     bool attach_interactive_marker)
 {
-  if(interactive_marker)
+  if(attach_interactive_marker)
   {
     ROS_INFO("Attaching an interactive marker to visual marker %d.", msg.id);
+
     // Attach an interactive marker to control this marker.
-    // 1. Create interactive marker.
     visualization_msgs::InteractiveMarker int_marker;
     int_marker.header.frame_id = global_frame_;
-    int_marker.name = "mesh_marker";
+
+    // Give each interactive marker a unique name according to each mesh's unique id.
+    std::stringstream marker_name;
+    marker_name << "mesh_marker_" << msg.id;
+
+    int_marker.name = marker_name.str();
     int_marker.description = "Move Mesh";
 
-    // 2. Create non-interactive marker control.
     visualization_msgs::InteractiveMarkerControl marker_control;
     marker_control.always_visible = true;
     marker_control.markers.push_back(msg);
 
-    // 3. Add control to interactive marker.
     int_marker.controls.push_back(marker_control);
 
-    // 4. Create controls to move the marker.
     visualization_msgs::InteractiveMarkerControl control;
-
     control.orientation.w = 1;
     control.orientation.x = 1;
     control.orientation.y = 0;
@@ -206,16 +201,13 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
     control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
     int_marker.controls.push_back(control);
 
-    interactive_marker_server_->insert(int_marker, 
-    				       boost::bind(
-				         &DemonstrationVisualizerNode::processInteractiveMarkerFeedback,
-					 this,
-					 _1)
-				       );
+    interactive_marker_server_->insert(int_marker);
     interactive_marker_server_->applyChanges();
   }
-
-  marker_pub_.publish(msg);
+  else
+  {
+    marker_pub_.publish(msg);
+  }
 }
 
 bool DemonstrationVisualizerNode::removeInteractiveMarker(const std::string &name)
@@ -242,13 +234,6 @@ void DemonstrationVisualizerNode::run()
   Q_EMIT rosShutdown();
 }
 
-void DemonstrationVisualizerNode::processInteractiveMarkerFeedback(
-  const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
-  )
-{
-  Q_EMIT interactiveMarkerMoved(feedback);
-}
-
 void DemonstrationVisualizerNode::updateLatestBasePose(const geometry_msgs::PoseWithCovarianceStamped &msg)
 {
   geometry_msgs::PoseStamped pose_stamped;
@@ -268,7 +253,7 @@ void DemonstrationVisualizerNode::processBaseMarkerFeedback(
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      base_rotation_done_ = base_translation_done_ = false;
+      base_movement_controller_.setState(BaseMovementController::READY);
       base_goal_pose_.pose = feedback->pose;
       // ROS_INFO("Frame %s", feedback->header.frame_id.c_str());
       // base_goal_pose_.pose.position.x = feedback->mouse_point.x;
@@ -306,13 +291,10 @@ void DemonstrationVisualizerNode::processBaseMarkerFeedback(
 
 void DemonstrationVisualizerNode::updateBaseMarker()
 { 
-  // Keep the interactive marker for the base, at the base pose of the robot.
-  if(base_rotation_done_ && base_translation_done_)
+  // After the robot has completed moving to the goal pose, snap the marker back to the
+  // base pose of the robot.
+  if(base_movement_controller_.getState() == BaseMovementController::DONE)
   {
-    // ROS_INFO("Resetting base marker to pose of robot base = (%f, %f).",
-    // 	     latest_base_pose_.pose.position.x,
-    // 	     latest_base_pose_.pose.position.y);
-    // ROS_INFO("Base marker frame: %s", latest_base_pose_.header.frame_id.c_str());
     base_marker_server_->setPose("base_marker", latest_base_pose_.pose, latest_base_pose_.header);
     base_marker_server_->applyChanges();
   }
@@ -320,61 +302,11 @@ void DemonstrationVisualizerNode::updateBaseMarker()
 
 void DemonstrationVisualizerNode::moveBaseToGoal()
 {
-  // @todo first check if the base is close enough to the goal; if not,
-  // rotate until an acceptable tolerance, then translate until an acceptable
-  // tolerance.   
-  double currentYaw = tf::getYaw(latest_base_pose_.pose.orientation);
-  double goalYaw = std::atan2(base_goal_pose_.pose.position.y - latest_base_pose_.pose.position.y,
-			      base_goal_pose_.pose.position.x - latest_base_pose_.pose.position.x);
-  double distance = std::sqrt(
-		      std::pow(base_goal_pose_.pose.position.x - latest_base_pose_.pose.position.x, 2)
-		      + std::pow(base_goal_pose_.pose.position.y - latest_base_pose_.pose.position.y, 2)
-		    );
-
-  geometry_msgs::Twist base_cmd;
-
-  if(base_rotation_done_ || std::abs(goalYaw - currentYaw) < 0.1)
+  if(base_movement_controller_.getState() != BaseMovementController::DONE)
   {
-    if(!base_rotation_done_)
-      base_rotation_done_ = true;
+    geometry_msgs::Twist base_cmd;
 
-    // Start moving toward the goal.
-    base_cmd.angular.z = base_cmd.linear.y = 0.0;
-
-    if(base_translation_done_)
-    {
-      base_cmd.linear.x = 0.0;
-    }
-    else if(distance > 0.1)
-    {
-      base_cmd.linear.x = 0.4; // 0.3 m/s.
-    }
-    else
-      base_translation_done_ = true;
-    
-    base_cmd_vel_pub_.publish(base_cmd);
-  }
-  else
-  {
-    // Continue rotating until we are close enough to the goal orientation.
-    base_cmd.linear.x = base_cmd.linear.y = 0.0;
-    base_cmd.angular.z = 0.2;  // 0.2 rad/s.
-
-    if(goalYaw - currentYaw < 0) // Rotate counter-clockwise.
-    {
-      // ROS_INFO("Rotating counter-clockwise (delta = %f, goal = %f, current = %f).", 
-      // 	       std::abs(goalYaw - currentYaw),
-      // 	       goalYaw,
-      // 	       currentYaw);
-      base_cmd.angular.z *= -1.0;
-    }
-    // else
-    // {
-    //   // ROS_INFO("Rotating clockwise (delta = %f, goal = %f, current = %f).", 
-    //   // 	       std::abs(goalYaw - currentYaw),
-    //   // 	       goalYaw,
-    //   // 	       currentYaw);
-    // }
+    base_cmd = base_movement_controller_.getNextVelocities(latest_base_pose_.pose, base_goal_pose_.pose);
 
     base_cmd_vel_pub_.publish(base_cmd);
   }

@@ -11,6 +11,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 #include "visualization_helpers.h"
+#include "base_movement_controller.h"
 #include <cmath>
 
 #include <QThread>
@@ -36,7 +37,7 @@ public:
   bool endReplay(std_srvs::Empty &srv);
 
   void publishVisualizationMarker(const visualization_msgs::Marker &msg,
-				  bool interactive_marker = false);
+				  bool attach_interactive_marker = false);
 
   bool removeInteractiveMarker(const std::string &name);
 
@@ -54,8 +55,6 @@ public:
 
 Q_SIGNALS:
   void rosShutdown();
-
-  void interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 private:
   std::string global_frame_;
@@ -77,7 +76,7 @@ private:
   bool base_rotation_done_;
   bool base_translation_done_;
 
-  tf::TransformListener *tf_listener_;
+  BaseMovementController base_movement_controller_;
 
 };
 
