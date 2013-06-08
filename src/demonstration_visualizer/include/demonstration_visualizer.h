@@ -1,8 +1,14 @@
 #ifndef DEMONSTRATION_VISUALIZER
 #define DEMONSTRATION_VISUALIZER
 
-#include <QWidget>
-#include <QComboBox>
+#include <ros/ros.h>
+#include <std_srvs/Empty.h>
+#include "pr2_motion_recorder/FilePath.h"
+#include <visualization_msgs/Marker.h>
+
+#include <map>
+
+#include "demonstration_visualizer_node.h"
 
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
@@ -10,14 +16,8 @@
 #include "rviz/tool_manager.h"
 #include "rviz/tool.h"
 
-#include "demonstration_visualizer_node.h"
-
-#include <ros/ros.h>
-#include <std_srvs/Empty.h>
-#include "pr2_motion_recorder/FilePath.h"
-#include <visualization_msgs/Marker.h>
-
-#include <map>
+#include <QWidget>
+#include <QComboBox>
 
 class DemonstrationVisualizer : public QWidget
 {
@@ -57,6 +57,8 @@ private:
   rviz::Display              *interactive_markers_;
   rviz::Display              *visualization_marker_;
   rviz::Display              *mesh_interactive_markers_;
+
+  rviz::Display              *base_movement_marker_;
 
   QComboBox                  *select_mesh_;
   std::map<int, std::string> mesh_names_;

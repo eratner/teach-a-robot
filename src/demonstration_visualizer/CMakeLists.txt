@@ -9,7 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   rviz
   pr2_motion_recorder
   visualization_msgs
-  interactive_markers)
+  interactive_markers
+  tf)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -56,7 +57,7 @@ include(${QT_USE_FILE})
 catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES demonstration_visualizer
-   CATKIN_DEPENDS roscpp rviz pr2_motion_recorder visualization_msgs interactive_markers
+   CATKIN_DEPENDS roscpp rviz pr2_motion_recorder visualization_msgs interactive_markers tf
 #  DEPENDS system_lib
 )
 
@@ -80,6 +81,7 @@ qt4_wrap_cpp(MOC_FILES include/demonstration_visualizer.h include/demonstration_
 add_executable(demo_vis src/main.cpp 
   src/demonstration_visualizer.cpp
   src/demonstration_visualizer_node.cpp
+  src/visualization_helpers.cpp
   ${MOC_FILES})
 
 target_link_libraries(demo_vis ${QT_LIBRARIES})

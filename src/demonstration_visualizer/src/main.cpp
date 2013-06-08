@@ -1,6 +1,6 @@
-#include <QApplication>
-#include <ros/ros.h>
 #include "demonstration_visualizer.h"
+
+#include <QApplication>
 
 int main(int argc, char **argv)
 {

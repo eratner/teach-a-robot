@@ -1,10 +1,10 @@
+#include "demonstration_visualizer.h"
+
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QGridLayout>
 #include <QPushButton>
 #include <QFileDialog>
-
-#include "demonstration_visualizer.h"
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -41,10 +41,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   // Select tool control panel.
   QComboBox *select_tool = new QComboBox();
   select_tool->setInsertPolicy(QComboBox::InsertAtBottom);
+  select_tool->addItem("Select Tool...");
 
   // Select possible meshes.
   select_mesh_ = new QComboBox();
   select_mesh_->setInsertPolicy(QComboBox::InsertAtBottom);
+  select_mesh_->addItem("Select Mesh...");
 
   rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
   ROS_INFO("There are %d tools loaded:", tool_manager->numTools());
@@ -82,7 +84,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   ROS_ASSERT(robot_model_ != NULL);
   ROS_INFO("Robot description: %s", 
 	   robot_model_->subProp("Robot Description")->getValue().toString().toLocal8Bit().data());
-  visualization_manager_->setFixedFrame("/odom_combined");
+  visualization_manager_->setFixedFrame("/map");
   ROS_INFO("Fixed frame: %s", 
 	   visualization_manager_->getFixedFrame().toLocal8Bit().data());
   
@@ -93,6 +95,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // Create a visualization marker for loading meshes of environments.
   visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
+  visualization_marker_->subProp("Marker Topic")->setValue("/demonstration_visualizer/visualization_marker");
   ROS_ASSERT(visualization_marker_ != NULL);
 
   // Create an interactive markers display for moving meshes around the scene.
@@ -101,6 +104,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 								    true);
   ROS_ASSERT(mesh_interactive_markers_ != NULL);
   mesh_interactive_markers_->subProp("Update Topic")->setValue("/mesh_marker/update");
+
+  // Create an interactive marker to allow the user to interact with the base of the robot.
+  base_movement_marker_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
+								"Move Base Marker",
+								true);
+  ROS_ASSERT(base_movement_marker_ != NULL);
+  base_movement_marker_->subProp("Update Topic")->setValue("/base_marker/update");
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
@@ -115,7 +125,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(&node_, SIGNAL(interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
 	  this, SLOT(interactiveMarkerMoved(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
 
-  next_mesh_id_ = 0;
+  next_mesh_id_ = 2;
   selected_mesh_ = -1;
 
   setLayout(window_layout);
@@ -151,9 +161,12 @@ void DemonstrationVisualizer::toggleGrid()
 
 void DemonstrationVisualizer::changeTool(int tool_index)
 {
+  if(tool_index == 0)
+    return;
+
   rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
 
-  tool_manager->setCurrentTool(tool_manager->getTool(tool_index));
+  tool_manager->setCurrentTool(tool_manager->getTool(tool_index-1));
 
   ROS_INFO("Current tool changed to: %s",
 	   visualization_manager_->getToolManager()->getCurrentTool()->getName().toLocal8Bit().data());  
@@ -252,10 +265,10 @@ void DemonstrationVisualizer::loadMesh()
   mesh_names_.insert(std::pair<int, std::string>(next_mesh_id_, resource_path.str()));
   next_mesh_id_++;
 
-  select_mesh_->addItem(QString(mesh_name.c_str()));
+  select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(next_mesh_id_-1));
 
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "/odom_combined";
+  marker.header.frame_id = node_.getGlobalFrame();
   marker.header.stamp = ros::Time();
   marker.ns = "demonstration_visualizer";
   marker.id = next_mesh_id_-1;
@@ -290,8 +303,14 @@ void DemonstrationVisualizer::deleteMesh()
   }
 
   ROS_INFO("Deleting mesh %d.", selected_mesh_);
+  
+  if(!node_.removeInteractiveMarker("mesh_marker"))
+  {
+    ROS_ERROR("Failed to remove interactive marker!");
+  }
+
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "/odom_combined";
+  marker.header.frame_id = node_.getGlobalFrame();
   marker.header.stamp = ros::Time();
   marker.ns = "demonstration_visualizer";
   marker.id = selected_mesh_;
@@ -299,19 +318,23 @@ void DemonstrationVisualizer::deleteMesh()
 
   node_.publishVisualizationMarker(marker);
 
-  select_mesh_->removeItem(selected_mesh_);
-  mesh_names_.erase(mesh_names_.find(selected_mesh_));
+  select_mesh_->removeItem(select_mesh_->findData(QVariant(selected_mesh_)));
+  std::map<int, std::string>::iterator it = mesh_names_.find(selected_mesh_);
+  if(it != mesh_names_.end())
+    mesh_names_.erase(mesh_names_.find(selected_mesh_));
 
   if(mesh_names_.size() == 0)
     selected_mesh_ = -1;
-  else
-    selected_mesh_ = select_mesh_->currentIndex();
 }
 
 void DemonstrationVisualizer::selectMesh(int mesh_index)
 {
-  ROS_INFO("Selected mesh %d.", mesh_index);
-  selected_mesh_ = mesh_index;
+  mesh_index -= 1;
+  if(mesh_index >= 0)
+  {
+    ROS_INFO("Selected mesh %d.", (int)select_mesh_->itemData(mesh_index+1).value<int>());
+    selected_mesh_ = select_mesh_->itemData(mesh_index+1).value<int>();
+  }
 }
 
 void DemonstrationVisualizer::interactiveMarkerMoved(
@@ -320,7 +343,7 @@ void DemonstrationVisualizer::interactiveMarkerMoved(
 {
   // Just redraw the marker at the specified pose.
   visualization_msgs::Marker marker;
-  marker.header.frame_id = "/odom_combined";
+  marker.header.frame_id = node_.getGlobalFrame();
   marker.header.stamp = ros::Time();
   marker.ns = "demonstration_visualizer";
   marker.id = selected_mesh_;
