@@ -201,7 +201,12 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
     control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
     int_marker.controls.push_back(control);
 
-    interactive_marker_server_->insert(int_marker);
+    interactive_marker_server_->insert(int_marker,
+				       boost::bind(
+                                         &DemonstrationVisualizerNode::processInteractiveMarkerFeedback,
+					 this,
+					 _1)
+				       );
     interactive_marker_server_->applyChanges();
   }
   else
@@ -218,6 +223,12 @@ bool DemonstrationVisualizerNode::removeInteractiveMarker(const std::string &nam
     interactive_marker_server_->applyChanges();
   
   return success;
+}
+
+void DemonstrationVisualizerNode::clearInteractiveMarkers()
+{
+  interactive_marker_server_->clear();
+  interactive_marker_server_->applyChanges();
 }
 
 void DemonstrationVisualizerNode::run()
@@ -287,6 +298,13 @@ void DemonstrationVisualizerNode::processBaseMarkerFeedback(
   default:
     break;
   }
+}
+
+void DemonstrationVisualizerNode::processInteractiveMarkerFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  Q_EMIT interactiveMarkerFeedback(feedback);
 }
 
 void DemonstrationVisualizerNode::updateBaseMarker()

@@ -9,6 +9,7 @@
 #include <map>
 
 #include "demonstration_visualizer_node.h"
+#include "demonstration_scene_manager.h"
 
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
@@ -43,10 +44,18 @@ private Q_SLOTS:
   void loadMesh();
   void deleteMesh();
 
+  // Load from/save to a demonstration scene file.
+  void loadScene();
+  void saveScene();
+
   void selectMesh(int mesh_index);
+
+  // Called whenever an interactive marker attached to a mesh is moved. 
+  void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 private:
   DemonstrationVisualizerNode node_;
+  DemonstrationSceneManager   demonstration_scene_manager_;
 
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;

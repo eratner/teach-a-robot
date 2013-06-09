@@ -58,7 +58,7 @@ catkin_package(
    INCLUDE_DIRS include
 #  LIBRARIES demonstration_visualizer
    CATKIN_DEPENDS roscpp rviz pr2_motion_recorder visualization_msgs interactive_markers tf
-#  DEPENDS system_lib
+   DEPENDS tinyxml
 )
 
 ###########
@@ -83,6 +83,7 @@ add_executable(demo_vis src/main.cpp
   src/demonstration_visualizer_node.cpp
   src/visualization_helpers.cpp
   src/base_movement_controller.cpp
+  src/demonstration_scene_manager.cpp
   ${MOC_FILES})
 
 target_link_libraries(demo_vis ${QT_LIBRARIES})
@@ -97,6 +98,7 @@ add_dependencies(demo_vis pr2_motion_recorder_gencpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(demo_vis
   ${catkin_LIBRARIES}
+  tinyxml
 )
 
 #############

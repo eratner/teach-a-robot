@@ -5,6 +5,7 @@
 #include <QGridLayout>
 #include <QPushButton>
 #include <QFileDialog>
+#include <QMessageBox>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -130,6 +131,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(load_mesh, SIGNAL(clicked()), this, SLOT(loadMesh()));
   connect(select_mesh_, SIGNAL(currentIndexChanged(int)), this, SLOT(selectMesh(int)));
   connect(delete_mesh, SIGNAL(clicked()), this, SLOT(deleteMesh()));
+  connect(load_scene, SIGNAL(clicked()), this, SLOT(loadScene()));
+  connect(save_scene, SIGNAL(clicked()), this, SLOT(saveScene()));
+  connect(&node_, 
+	  SIGNAL(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
+	  this,
+	  SLOT(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
 
   next_mesh_id_ = 2;
   selected_mesh_ = -1;
@@ -294,6 +301,8 @@ void DemonstrationVisualizer::loadMesh()
 						     scale,
 						     0.0,
 						     true);
+
+  demonstration_scene_manager_.addMesh(marker);
  
   node_.publishVisualizationMarker(marker, true);
 }
@@ -307,21 +316,18 @@ void DemonstrationVisualizer::deleteMesh()
   }
 
   ROS_INFO("Deleting mesh %d.", selected_mesh_);
+
+  std::stringstream int_marker_name;
+  int_marker_name << "mesh_marker_" << selected_mesh_;
   
-  if(!node_.removeInteractiveMarker("mesh_marker"))
+  if(!node_.removeInteractiveMarker(int_marker_name.str().c_str()))
   {
     ROS_ERROR("Failed to remove interactive marker!");
   }
 
-  visualization_msgs::Marker marker;
-  marker.header.frame_id = node_.getGlobalFrame();
-  marker.header.stamp = ros::Time();
-  marker.ns = "demonstration_visualizer";
-  marker.id = selected_mesh_;
-  marker.action = visualization_msgs::Marker::DELETE;
+  demonstration_scene_manager_.removeMesh(selected_mesh_);
 
-  node_.publishVisualizationMarker(marker);
-
+  // @todo it would be cleaner to let the demonstration scene manager handle this.
   select_mesh_->removeItem(select_mesh_->findData(QVariant(selected_mesh_)));
   std::map<int, std::string>::iterator it = mesh_names_.find(selected_mesh_);
   if(it != mesh_names_.end())
@@ -331,6 +337,76 @@ void DemonstrationVisualizer::deleteMesh()
     selected_mesh_ = -1;
 }
 
+void DemonstrationVisualizer::loadScene()
+{
+  QString filename = QFileDialog::getOpenFileName(this, 
+						  tr("Open Demonstration Scene File"),
+						  "/home",
+						  tr("Demonstration Scene Files (*.xml)"));
+
+  if(filename.isEmpty())
+  {
+    ROS_INFO("No file selected.");
+    return;
+  }  
+
+  switch(QMessageBox::warning(this,
+			      "Clear Current Demonstration Scene?",
+			      "Loading a new scene will clear the current demonstration scene."
+			      " Are you sure you wish to do this?",
+			      QMessageBox::Yes, QMessageBox::No))
+  {
+  case QMessageBox::Yes:
+    {
+      // Load the scene into the demonstration scene manager.
+      demonstration_scene_manager_.loadScene(filename.toStdString());
+      
+      // Re-publish each mesh marker.
+      node_.clearInteractiveMarkers();
+      std::vector<visualization_msgs::Marker> meshes = demonstration_scene_manager_.getMeshes();
+      std::vector<visualization_msgs::Marker>::iterator it;
+      for(it = meshes.begin(); it != meshes.end(); ++it)
+      {
+	it->header.frame_id = node_.getGlobalFrame();
+	it->header.stamp = ros::Time();
+	it->action = visualization_msgs::Marker::ADD;
+	it->mesh_use_embedded_materials = true;
+
+	ROS_INFO_STREAM("Mesh " << it->id << " ns = "
+			<< it->ns << " mesh_resource = " 
+			<< it->mesh_resource << " pos = ("
+			<< it->pose.position.x << ", " 
+			<< it->pose.position.y << ", "
+			<< it->pose.position.z << ").");
+
+	node_.publishVisualizationMarker(*it, true);
+      }
+      break;
+    }
+  case QMessageBox::No:
+    break;
+  default:
+    ROS_ERROR("An error has occured in loading the scene!");
+    break;
+  }
+}
+
+void DemonstrationVisualizer::saveScene()
+{
+  QString filename = QFileDialog::getSaveFileName(this, 
+						  tr("Save Demonstration Scene File"),
+						  "/home",
+						  tr("Demonstration Scene Files (*.xml)"));
+
+  if(filename.isEmpty())
+  {
+    ROS_INFO("No file selected.");
+    return;
+  }
+
+  demonstration_scene_manager_.saveScene(filename.toStdString());
+}
+
 void DemonstrationVisualizer::selectMesh(int mesh_index)
 {
   mesh_index -= 1;
@@ -338,5 +414,23 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
   {
     ROS_INFO("Selected mesh %d.", (int)select_mesh_->itemData(mesh_index+1).value<int>());
     selected_mesh_ = select_mesh_->itemData(mesh_index+1).value<int>();
+  }
+}
+
+void DemonstrationVisualizer::interactiveMarkerFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  int i;
+  for(i = feedback->marker_name.size()-1; i >= 0; --i)
+  {
+    if(feedback->marker_name.at(i) == '_')
+      break;
+  }
+
+  if(!demonstration_scene_manager_.updateMeshPose(atoi(feedback->marker_name.substr(i+1).c_str()),
+						  feedback->pose))
+  {
+    ROS_ERROR("Demonstration scene manager failed to update pose!");
   }
 }

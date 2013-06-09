@@ -41,6 +41,8 @@ public:
 
   bool removeInteractiveMarker(const std::string &name);
 
+  void clearInteractiveMarkers();
+
   void run();
 
   void processInteractiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -55,6 +57,7 @@ public:
 
 Q_SIGNALS:
   void rosShutdown();
+  void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 private:
   std::string global_frame_;
