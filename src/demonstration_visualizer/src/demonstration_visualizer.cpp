@@ -137,7 +137,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SIGNAL(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
 	  this,
 	  SLOT(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
-
+  
   next_mesh_id_ = 2;
   selected_mesh_ = -1;
 
@@ -365,14 +365,31 @@ void DemonstrationVisualizer::loadScene()
       node_.clearInteractiveMarkers();
       std::vector<visualization_msgs::Marker> meshes = demonstration_scene_manager_.getMeshes();
       std::vector<visualization_msgs::Marker>::iterator it;
+      int max_mesh_id = -1;
       for(it = meshes.begin(); it != meshes.end(); ++it)
       {
+	if(it->id > max_mesh_id)
+	  max_mesh_id = it->id;
+
 	it->header.frame_id = node_.getGlobalFrame();
 	it->header.stamp = ros::Time();
 	it->action = visualization_msgs::Marker::ADD;
+	it->type = visualization_msgs::Marker::MESH_RESOURCE;
 	it->mesh_use_embedded_materials = true;
 
-	ROS_INFO_STREAM("Mesh " << it->id << " ns = "
+	int i = it->mesh_resource.size()-1;
+	for(; i >= 0; i--)
+	{
+	  if(it->mesh_resource[i] == '/')
+	    break;
+	}
+
+	std::string mesh_name = it->mesh_resource.substr(i+1);
+	mesh_names_.insert(std::pair<int, std::string>(it->id, mesh_name));
+
+	select_mesh_->addItem(QString(it->mesh_resource.c_str()), QVariant(it->id));
+
+	ROS_INFO_STREAM("Adding mesh " << it->id << " ns = "
 			<< it->ns << " mesh_resource = " 
 			<< it->mesh_resource << " pos = ("
 			<< it->pose.position.x << ", " 
@@ -381,6 +398,9 @@ void DemonstrationVisualizer::loadScene()
 
 	node_.publishVisualizationMarker(*it, true);
       }
+
+      next_mesh_id_ = max_mesh_id;
+
       break;
     }
   case QMessageBox::No:

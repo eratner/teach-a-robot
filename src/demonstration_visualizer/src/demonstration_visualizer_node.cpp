@@ -12,50 +12,54 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
   
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = global_frame_;
+  int_marker.header.stamp = ros::Time();
   int_marker.name = "base_marker";
   int_marker.description = "Move Base";
 
-  // geometry_msgs::PoseStamped base_marker_pose;
-  // base_marker_pose.pose = latest_base_pose_.pose;
-  // base_marker_pose.header.frame_id = global_frame_;
-  // base_marker_pose.header.stamp = ros::Time();
-  // geometry_msgs::Vector3 scale;
-  // scale.x = 1.2;
-  // scale.y = 1.2;
-  // scale.z = 1.2;
+  geometry_msgs::PoseStamped base_marker_pose;
+  base_marker_pose.header.stamp = ros::Time();
+  geometry_msgs::Vector3 scale;
+  scale.x = 1.2;
+  scale.y = 1.2;
+  scale.z = 1.2;
 
-  // std_msgs::ColorRGBA color;
-  // color.r = 0.5;
-  // color.g = 0.0;
-  // color.b = 0.5;
-  // color.a = 0.5;
+  std_msgs::ColorRGBA color;
+  color.r = 0.0;
+  color.g = 0.0;
+  color.b = 0.0;
+  color.a = 0.5;
 
-  // visualization_msgs::Marker base_marker = makeMeshMarker("package://pr2_description/meshes/base_v0/base.dae",
-  // 							  "demonstration_visualizer",
-  // 							  0, // Reserved id = 0 for base marker.
-  // 							  base_marker_pose,
-  // 							  scale,
-  // 							  0.5,
-  // 							  true);
+  visualization_msgs::Marker base_marker = makeMeshMarker("package://pr2_description/meshes/base_v0/base.dae",
+  							  "demonstration_visualizer",
+  							  0, // Reserved id = 0 for base marker.
+  							  geometry_msgs::PoseStamped(),
+  							  scale,
+  							  0.5,
+  							  true);
 
-  // visualization_msgs::InteractiveMarkerControl base_control;
-  // base_control.always_visible = true;
-  // base_control.markers.push_back(base_marker);
+  visualization_msgs::InteractiveMarkerControl base_control;
+  base_control.always_visible = true;
+  base_control.markers.push_back(base_marker);
 
-  // int_marker.controls.push_back(base_control);
+  int_marker.controls.push_back(base_control);
 
   visualization_msgs::InteractiveMarkerControl marker_control;
   marker_control.orientation.w = 1;
   marker_control.orientation.x = 0;
   marker_control.orientation.y = 1;
   marker_control.orientation.z = 0;
-  //marker_control.always_visible = true;
-  //marker_control.markers.push_back(base_marker);
+  marker_control.always_visible = true;
+  marker_control.markers.push_back(base_marker);
   marker_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
 
-  // @todo add planar rotation control.
-
   int_marker.controls.push_back(marker_control);
+
+  marker_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  marker_control.markers.clear();
+  
+  int_marker.controls.push_back(marker_control);
+
+  //interactive_markers::makeArrow(int_marker, marker_control, 0);
   
   base_marker_server_->insert(int_marker,
 			      boost::bind(&DemonstrationVisualizerNode::processBaseMarkerFeedback,
@@ -266,34 +270,31 @@ void DemonstrationVisualizerNode::processBaseMarkerFeedback(
     {
       base_movement_controller_.setState(BaseMovementController::READY);
       base_goal_pose_.pose = feedback->pose;
-      // ROS_INFO("Frame %s", feedback->header.frame_id.c_str());
-      // base_goal_pose_.pose.position.x = feedback->mouse_point.x;
-      // base_goal_pose_.pose.position.y = feedback->mouse_point.y;
       double yaw = std::atan2(base_goal_pose_.pose.position.y - latest_base_pose_.pose.position.y,
 			      base_goal_pose_.pose.position.x - latest_base_pose_.pose.position.x);
       ROS_INFO("New goal set at (x, y, yaw) = (%f, %f, %f).", 
       	       base_goal_pose_.pose.position.x,
       	       base_goal_pose_.pose.position.y,
       	       yaw * (180.0/M_PI));
-      geometry_msgs::PoseStamped base_pose_stamped;
-      base_pose_stamped.header.frame_id = global_frame_;
-      base_pose_stamped.header.stamp = ros::Time();
-      base_pose_stamped.pose = base_goal_pose_.pose;
-      geometry_msgs::Vector3 scale;
-      scale.x = scale.y = scale.z = 1.0;
-      std_msgs::ColorRGBA color;
-      color.r = 0.0;
-      color.g = 0.0;
-      color.b = 1.0;
-      color.a = 0.5;
-      visualization_msgs::Marker goal_marker = makeShapeMarker(visualization_msgs::Marker::SPHERE,
-							       "demonstration_visualizer",
-							       1, // Reserved for the goal marker.
-							       base_pose_stamped,
-							       scale,
-							       color);
+      // geometry_msgs::PoseStamped base_pose_stamped;
+      // base_pose_stamped.header.frame_id = global_frame_;
+      // base_pose_stamped.header.stamp = ros::Time();
+      // base_pose_stamped.pose = base_goal_pose_.pose;
+      // geometry_msgs::Vector3 scale;
+      // scale.x = scale.y = scale.z = 0.8;
+      // std_msgs::ColorRGBA color;
+      // color.r = 0.0;
+      // color.g = 1.0;
+      // color.b = 0.0;
+      // color.a = 0.5;
+      // visualization_msgs::Marker goal_marker = makeShapeMarker(visualization_msgs::Marker::ARROW,
+      // 							       "demonstration_visualizer",
+      // 							       1, // Reserved for the goal marker.
+      // 							       base_pose_stamped,
+      // 							       scale,
+      // 							       color);
 
-      marker_pub_.publish(goal_marker);
+      // marker_pub_.publish(goal_marker);
     }
   default:
     break;

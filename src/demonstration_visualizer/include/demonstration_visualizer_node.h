@@ -9,6 +9,7 @@
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <interactive_markers/tools.h>
 
 #include "visualization_helpers.h"
 #include "base_movement_controller.h"

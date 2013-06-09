@@ -32,7 +32,7 @@ PR2MotionRecorder::PR2MotionRecorder()
 					    this);
 
   // Listen to the ground truth pose of the base.
-  base_pose_subscription_ = nh.subscribe("/base_pose_ground_truth",
+  base_pose_subscription_ = nh.subscribe("/amcl_pose",
 					 100,
 					 &PR2MotionRecorder::recordBasePose,
 					 this);
@@ -78,7 +78,7 @@ bool PR2MotionRecorder::endRecording(std_srvs::Empty::Request  &req,
   {
     is_recording_ = false;
     // Stop recording.
-    ROS_INFO("Recording finished with %d joint states.", write_bag_.getSize());
+    ROS_INFO("Recording finished with %d messages.", write_bag_.getSize());
     write_bag_.close();
   }
 
@@ -162,7 +162,7 @@ void PR2MotionRecorder::recordBasePose(const nav_msgs::Odometry &msg)
 {
   if(is_recording_)
   {
-    write_bag_.write("/base_pose_ground_truth", ros::Time::now(), msg);
+    write_bag_.write("/amcl_pose", ros::Time::now(), msg);
   }
 }
 
