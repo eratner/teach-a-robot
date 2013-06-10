@@ -68,6 +68,8 @@ private:
   ros::ServiceClient begin_replay_client_;
   ros::ServiceClient end_replay_client_;
 
+  ros::ServiceClient reset_world_client_;
+
   ros::Publisher marker_pub_;
 
   interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
@@ -77,8 +79,7 @@ private:
   geometry_msgs::PoseStamped base_goal_pose_;
 
   ros::Publisher base_cmd_vel_pub_;
-  bool base_rotation_done_;
-  bool base_translation_done_;
+  bool setting_new_goal_;
 
   BaseMovementController base_movement_controller_;
 

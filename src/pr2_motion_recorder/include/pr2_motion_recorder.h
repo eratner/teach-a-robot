@@ -42,7 +42,7 @@ public:
 
   void recordJoints(const sensor_msgs::JointState &msg);
 
-  void recordBasePose(const nav_msgs::Odometry &msg);
+  void recordBasePose(const geometry_msgs::PoseWithCovarianceStamped &msg);
 
   void run();
 

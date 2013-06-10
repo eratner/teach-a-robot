@@ -158,7 +158,7 @@ void PR2MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)
   }
 }
 
-void PR2MotionRecorder::recordBasePose(const nav_msgs::Odometry &msg)
+void PR2MotionRecorder::recordBasePose(const geometry_msgs::PoseWithCovarianceStamped &msg)
 {
   if(is_recording_)
   {

@@ -37,29 +37,22 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
   							  0.5,
   							  true);
 
-  visualization_msgs::InteractiveMarkerControl base_control;
-  base_control.always_visible = true;
-  base_control.markers.push_back(base_marker);
-
-  int_marker.controls.push_back(base_control);
-
-  visualization_msgs::InteractiveMarkerControl marker_control;
-  marker_control.orientation.w = 1;
-  marker_control.orientation.x = 0;
-  marker_control.orientation.y = 1;
-  marker_control.orientation.z = 0;
-  marker_control.always_visible = true;
-  marker_control.markers.push_back(base_marker);
-  marker_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
-
-  int_marker.controls.push_back(marker_control);
-
-  marker_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  marker_control.markers.clear();
+  visualization_msgs::InteractiveMarkerControl control;
   
-  int_marker.controls.push_back(marker_control);
+  // Add a control to move the base in the xy-plane.
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+  control.markers.push_back(base_marker);
+  control.always_visible = true;
+  int_marker.controls.push_back(control);
 
-  //interactive_markers::makeArrow(int_marker, marker_control, 0);
+  // Add a control to rotate the base in the xy-plane.
+  control. markers.clear();
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  int_marker.controls.push_back(control);
   
   base_marker_server_->insert(int_marker,
 			      boost::bind(&DemonstrationVisualizerNode::processBaseMarkerFeedback,
@@ -67,6 +60,8 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 					  _1)
 			      );
   base_marker_server_->applyChanges();
+
+  setting_new_goal_ = false;
 }
 
 DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
@@ -101,6 +96,9 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_recording");
   begin_replay_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_replay");
   end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
+
+  // Service for resetting the state of the robot and environment.
+  reset_world_client_ = nh.serviceClient<std_srvs::Empty>("/gazebo/reset_world");
 
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
@@ -139,6 +137,13 @@ bool DemonstrationVisualizerNode::endRecording(std_srvs::Empty &srv)
 
 bool DemonstrationVisualizerNode::beginReplay(pr2_motion_recorder::FilePath &srv)
 {
+  std_srvs::Empty empty;
+  if(!reset_world_client_.call(empty))
+  {
+    ROS_ERROR("Error resetting the world!");
+    return false;
+  }
+
   return begin_replay_client_.call(srv);
 }
 
@@ -265,9 +270,11 @@ void DemonstrationVisualizerNode::processBaseMarkerFeedback(
   switch(feedback->event_type)
   {
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
+    setting_new_goal_ = true;
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
+      setting_new_goal_ = false;
       base_movement_controller_.setState(BaseMovementController::READY);
       base_goal_pose_.pose = feedback->pose;
       double yaw = std::atan2(base_goal_pose_.pose.position.y - latest_base_pose_.pose.position.y,
@@ -312,7 +319,7 @@ void DemonstrationVisualizerNode::updateBaseMarker()
 { 
   // After the robot has completed moving to the goal pose, snap the marker back to the
   // base pose of the robot.
-  if(base_movement_controller_.getState() == BaseMovementController::DONE)
+  if(base_movement_controller_.getState() == BaseMovementController::DONE && !setting_new_goal_)
   {
     base_marker_server_->setPose("base_marker", latest_base_pose_.pose, latest_base_pose_.header);
     base_marker_server_->applyChanges();
