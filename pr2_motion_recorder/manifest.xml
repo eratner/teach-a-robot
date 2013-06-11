@@ -1,0 +1,30 @@
+<package>
+
+  <description brief="Record/replay PR2 motion.">
+
+    A tool used to record and replay PR2 motion.
+
+  </description>
+
+  <author>Ellis Ratner/eratner@bowdoin.edu</author>
+
+  <license>BSD</license>
+
+  <url></url>
+
+  <depend package="roscpp" />
+  <depend package="rosbag" />
+  <depend package="std_srvs" />
+  <depend package="sensor_msgs" />
+  <depend package="geometry_msgs" />
+  <depend package="nav_msgs" />
+  <depend package="actionlib" />
+  <depend package="pr2_controllers_msgs" />
+
+  <versioncontrol type="git" url="https://sbpl.pc.cs.cmu.edu/redmine/egraph-user-demos.git" />
+  
+  <export>
+
+  </export>
+
+</package>
