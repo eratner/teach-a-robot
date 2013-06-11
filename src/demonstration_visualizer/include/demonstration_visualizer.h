@@ -20,6 +20,10 @@
 #include <QWidget>
 #include <QComboBox>
 
+/* \brief A Qt-based application that provides a user interface for capturing 
+          and replaying user demonstrations and creating demonstration scenes
+	  from a collection of meshes.
+*/
 class DemonstrationVisualizer : public QWidget
 {
 Q_OBJECT
