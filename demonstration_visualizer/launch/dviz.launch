@@ -1,0 +1,15 @@
+<launch>
+
+  <!-- Send the PR2 URDF to the parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find pr2_description)/robots/pr2.urdf.xacro'" />
+
+  <!-- The corresponding semantic description -->
+  <param name="robot_description_semantic" textfile="$(find pr2_description)/robots/pr2.srdf" />
+
+  <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" />
+
+  <!-- TODO: launch the pr2_motion_recorder node -->
+
+  <node name="dviz" pkg="demonstration_visualizer" type="dviz" />
+
+</launch>
