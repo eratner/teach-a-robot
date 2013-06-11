@@ -1,7 +1,8 @@
 #include "pr2_simple_simulator/base_movement_controller.h"
 
 BaseMovementController::BaseMovementController()
-  : last_state_(INITIAL), frames_(0)
+  : last_state_(INITIAL), frames_(0),
+    linear_velocity_(0.2), angular_velocity_(0.2)
 {
 
 }
@@ -77,6 +78,26 @@ BaseMovementController::State BaseMovementController::getState() const
   return last_state_;
 }
 
+void BaseMovementController::setLinearVelocity(double lin_vel)
+{
+  linear_velocity_ = lin_vel;
+}
+
+double BaseMovementController::getLinearVelocity() const
+{
+  return linear_velocity_;
+}
+
+void BaseMovementController::setAngularVelocity(double ang_vel)
+{
+  angular_velocity_ = ang_vel;
+}
+
+double BaseMovementController::getAngularVelocity() const
+{
+  return angular_velocity_;
+}
+
 geometry_msgs::Twist BaseMovementController::rotateToGoalPosition(double current_angle,
 								  double angle_to_goal)
 {
@@ -85,7 +106,7 @@ geometry_msgs::Twist BaseMovementController::rotateToGoalPosition(double current
   geometry_msgs::Twist vel;
   // Pure rotation.
   vel.linear.x = vel.linear.y = 0.0;
-  vel.angular.z = 0.2;
+  vel.angular.z = angular_velocity_;
 
   if(angle_to_goal - current_angle < 0) // Rotate counter-clockwise.
   {
@@ -104,7 +125,7 @@ geometry_msgs::Twist BaseMovementController::translateToGoalPosition(double dist
   vel.angular.z = vel.linear.y = 0.0;
 
   // Move straight towards the goal.
-  vel.linear.x = 0.2;
+  vel.linear.x = linear_velocity_;
 
   return vel;
 }
@@ -121,7 +142,7 @@ geometry_msgs::Twist BaseMovementController::rotateToGoalOrientation(
 
   geometry_msgs::Twist vel;
   vel.linear.x = vel.linear.y = 0.0;
-  vel.angular.z = 0.2;
+  vel.angular.z = angular_velocity_;
 
   if(goal_angle - current_angle < 0) // Rotate counter-clockwise.
   {

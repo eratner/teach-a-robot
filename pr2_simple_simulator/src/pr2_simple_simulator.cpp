@@ -50,6 +50,15 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
 
+  // Users can change the velocity (linear and angular) at which the robot moves.
+  set_vel_service_ = nh.advertiseService("set_vel",
+					 &PR2SimpleSimulator::setVelocity,
+					 this);
+  // Users can reset the robot (useful for replay).
+  reset_robot_service_ = nh.advertiseService("reset_robot",
+					     &PR2SimpleSimulator::resetRobot,
+					     this);
+
   // Attach an interactive marker to the base of the robot.
   updateRobotMarkers();
 
@@ -69,7 +78,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_marker.scale.x = 1.2;
   base_marker.scale.y = 1.2;
   base_marker.scale.z = 1.2;
-  control.markers.push_back(base_marker/*robot_markers_.markers.at(0)*/);
+  control.markers.push_back(base_marker);
   control.always_visible = true;
   int_marker.controls.push_back(control);
 
@@ -131,6 +140,8 @@ void PR2SimpleSimulator::moveRobot()
   base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(
 				  tf::getYaw(base_pose_.pose.orientation) + (0.1)*vel_cmd_.angular.z
 				);
+
+  base_pose_pub_.publish(base_pose_);
 }
 
 void PR2SimpleSimulator::updateRobotMarkers()
@@ -164,12 +175,10 @@ void PR2SimpleSimulator::baseMarkerFeedback(
   switch(feedback->event_type)
   {
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
-    has_new_goal_ = true;
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
       base_movement_controller_.setState(BaseMovementController::READY);
-      has_new_goal_ = false;
       goal_pose_.pose = feedback->pose;
       double yaw = std::atan2(goal_pose_.pose.position.y - base_pose_.pose.position.y,
 			      goal_pose_.pose.position.x - base_pose_.pose.position.x);
@@ -183,4 +192,53 @@ void PR2SimpleSimulator::baseMarkerFeedback(
   default:
     break;
   }
+}
+
+bool PR2SimpleSimulator::setVelocity(pr2_simple_simulator::SetVelocity::Request  &req,
+				     pr2_simple_simulator::SetVelocity::Response &res)
+{
+  if(req.linear > 0)
+  {
+    ROS_INFO("[PR2SimpleSim] Setting linear velocity to %f.", req.linear);
+    base_movement_controller_.setLinearVelocity(req.linear);
+  }
+
+  if(req.angular > 0)
+  {
+    ROS_INFO("[PR2SimpleSim] Setting angular velocity to %f.", req.angular);
+    base_movement_controller_.setAngularVelocity(req.angular);
+  }
+
+  return true;
+}
+
+bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
+				    std_srvs::Empty::Response &res)
+{
+  ROS_INFO("[PR2SimpleSim] Resetting robot...");
+
+  // Reset the base pose.
+  base_pose_.pose.position.x = 0;
+  base_pose_.pose.position.y = 0;
+  base_pose_.pose.position.z = 0;
+  base_pose_.pose.orientation.x = 0;
+  base_pose_.pose.orientation.y = 0;
+  base_pose_.pose.orientation.z = 0;
+  base_pose_.pose.orientation.w = 1;
+
+  // Reset the goal pose.
+  goal_pose_ = base_pose_;
+  
+  // Reset the base pose interactive marker.
+  int_marker_server_.setPose("base_marker", base_pose_.pose);
+  int_marker_server_.applyChanges();
+
+  // Reset the joints.
+  for(int i = 0; i < joint_states_.position.size(); ++i)
+    joint_states_.position[i] = 0;
+
+  // Reset the base movement controller.
+  base_movement_controller_.setState(BaseMovementController::INITIAL);
+
+  return true;
 }

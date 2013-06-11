@@ -6,6 +6,8 @@
 #include <QPushButton>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QDoubleSpinBox>
+#include <QLabel>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -71,6 +73,23 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QPushButton *save_scene = new QPushButton("Save Scene");
   scene_controls->addWidget(save_scene);
 
+  // Change robot velocity control panel.
+  QHBoxLayout *linear_velocity_panel = new QHBoxLayout();
+  QLabel *linear_velocity_label = new QLabel("Linear Velocity (m/s): ");
+  linear_velocity_panel->addWidget(linear_velocity_label);
+  QDoubleSpinBox *linear_velocity_control = new QDoubleSpinBox();
+  linear_velocity_panel->addWidget(linear_velocity_control);
+  linear_velocity_control->setSingleStep(0.1);
+  linear_velocity_control->setValue(0.2);
+
+  QHBoxLayout *angular_velocity_panel = new QHBoxLayout();
+  QLabel *angular_velocity_label = new QLabel("Angular Velocity (rad/s): ");
+  angular_velocity_panel->addWidget(angular_velocity_label);
+  QDoubleSpinBox *angular_velocity_control = new QDoubleSpinBox();
+  angular_velocity_panel->addWidget(angular_velocity_control);
+  angular_velocity_control->setSingleStep(0.1);
+  angular_velocity_control->setValue(0.2);
+
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
   controls_layout->addLayout(recording_controls);
@@ -79,6 +98,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(scene_controls);
   controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
+  controls_layout->addLayout(linear_velocity_panel);
+  controls_layout->addLayout(angular_velocity_panel);
 
   QGridLayout *window_layout = new QGridLayout();
   window_layout->addLayout(controls_layout, 0, 0, 1, 1);
@@ -128,13 +149,15 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SIGNAL(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
 	  this,
 	  SLOT(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
-  
+  connect(linear_velocity_control, SIGNAL(valueChanged(double)), this, SLOT(setLinearVelocity(double)));
+  connect(angular_velocity_control, SIGNAL(valueChanged(double)), this, SLOT(setAngularVelocity(double)));
+
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
 
   setLayout(window_layout);
 
-
+  node_.resetRobot();
 }
 
 DemonstrationVisualizer::~DemonstrationVisualizer()
@@ -446,4 +469,14 @@ void DemonstrationVisualizer::interactiveMarkerFeedback(
   {
     ROS_ERROR("Demonstration scene manager failed to update pose!");
   }
+}
+
+void DemonstrationVisualizer::setLinearVelocity(double lin_vel)
+{
+  node_.setRobotVelocity(lin_vel, 0);
+}
+
+void DemonstrationVisualizer::setAngularVelocity(double ang_vel)
+{
+  node_.setRobotVelocity(0, ang_vel);
 }

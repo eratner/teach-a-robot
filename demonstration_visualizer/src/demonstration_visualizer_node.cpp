@@ -41,7 +41,9 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
 
   // Service for resetting the state of the robot and environment. @todo change this
-  reset_world_client_ = nh.serviceClient<std_srvs::Empty>("/gazebo/reset_world");
+  reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
+  // Service for setting the velocity of the robot.
+  set_robot_velocity_client_ = nh.serviceClient<pr2_simple_simulator::SetVelocity>("/set_vel");
 
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
@@ -189,4 +191,26 @@ void DemonstrationVisualizerNode::processInteractiveMarkerFeedback(
   )
 {
   Q_EMIT interactiveMarkerFeedback(feedback);
+}
+
+void DemonstrationVisualizerNode::setRobotVelocity(double lin_vel, double ang_vel)
+{
+  pr2_simple_simulator::SetVelocity vel;
+  vel.request.linear = lin_vel;
+  vel.request.angular = ang_vel;
+
+  if(!set_robot_velocity_client_.call(vel))
+  {
+    ROS_ERROR("[DVizNode] Error setting the robot velocity!");
+  }
+}
+
+void DemonstrationVisualizerNode::resetRobot()
+{
+  std_srvs::Empty empty;
+  
+  if(!reset_robot_client_.call(empty))
+  {
+    ROS_ERROR("[DVizNode] Failed to reset the robot!");
+  }
 }

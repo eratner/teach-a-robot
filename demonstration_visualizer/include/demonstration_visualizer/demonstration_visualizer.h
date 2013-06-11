@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <pr2_motion_recorder/FilePath.h>
+#include <pr2_simple_simulator/SetVelocity.h>
 #include <visualization_msgs/Marker.h>
 
 #include <map>
@@ -40,7 +41,7 @@ private Q_SLOTS:
   void beginRecording();
   void endRecording(); 
 
-  // For replaying PR2 motion from a bag file.
+  // For replaying PR2 motion.
   void beginReplay();
   void endReplay();
 
@@ -56,6 +57,9 @@ private Q_SLOTS:
 
   // Called whenever an interactive marker attached to a mesh is moved. 
   void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
+  void setLinearVelocity(double lin_vel);
+  void setAngularVelocity(double ang_vel);
 
 private:
   DemonstrationVisualizerNode node_;

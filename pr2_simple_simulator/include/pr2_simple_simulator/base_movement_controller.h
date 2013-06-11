@@ -36,9 +36,19 @@ public:
 
   State getState() const;
 
+  void setLinearVelocity(double lin_vel);
+
+  double getLinearVelocity() const;
+
+  void setAngularVelocity(double ang_vel);
+  
+  double getAngularVelocity() const;
+
 private:
   State last_state_;
   int frames_;
+  double linear_velocity_;
+  double angular_velocity_;
   
   // States.
   geometry_msgs::Twist rotateToGoalPosition(double current_angle,
