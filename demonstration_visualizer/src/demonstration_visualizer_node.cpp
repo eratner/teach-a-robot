@@ -1,4 +1,4 @@
-#include "demonstration_visualizer_node.h"
+#include "demonstration_visualizer/demonstration_visualizer_node.h"
 
 DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 {
@@ -6,68 +6,11 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
     ROS_ERROR("Unable to connect to master!");
 
   interactive_marker_server_ = new interactive_markers::InteractiveMarkerServer("mesh_marker");
-  
-  // Create an interactive marker at the base of the PR2, so that the user can move it.
-  base_marker_server_ = new interactive_markers::InteractiveMarkerServer("base_marker");
-  
-  visualization_msgs::InteractiveMarker int_marker;
-  int_marker.header.frame_id = global_frame_;
-  int_marker.header.stamp = ros::Time();
-  int_marker.name = "base_marker";
-  int_marker.description = "Move Base";
-
-  geometry_msgs::PoseStamped base_marker_pose;
-  base_marker_pose.header.stamp = ros::Time();
-  geometry_msgs::Vector3 scale;
-  scale.x = 1.2;
-  scale.y = 1.2;
-  scale.z = 1.2;
-
-  std_msgs::ColorRGBA color;
-  color.r = 0.0;
-  color.g = 0.0;
-  color.b = 0.0;
-  color.a = 0.5;
-
-  visualization_msgs::Marker base_marker = makeMeshMarker("package://pr2_description/meshes/base_v0/base.dae",
-  							  "demonstration_visualizer",
-  							  0, // Reserved id = 0 for base marker.
-  							  geometry_msgs::PoseStamped(),
-  							  scale,
-  							  0.5,
-  							  true);
-
-  visualization_msgs::InteractiveMarkerControl control;
-  
-  // Add a control to move the base in the xy-plane.
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 1;
-  control.orientation.z = 0;
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
-  control.markers.push_back(base_marker);
-  control.always_visible = true;
-  int_marker.controls.push_back(control);
-
-  // Add a control to rotate the base in the xy-plane.
-  control. markers.clear();
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
-  
-  base_marker_server_->insert(int_marker,
-			      boost::bind(&DemonstrationVisualizerNode::processBaseMarkerFeedback,
-					  this,
-					  _1)
-			      );
-  base_marker_server_->applyChanges();
-
-  setting_new_goal_ = false;
 }
 
 DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 {
   delete interactive_marker_server_;
-  delete base_marker_server_;
 
   if(ros::isStarted())
   {
@@ -97,22 +40,11 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   begin_replay_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/motion_recorder/begin_replay");
   end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
 
-  // Service for resetting the state of the robot and environment.
+  // Service for resetting the state of the robot and environment. @todo change this
   reset_world_client_ = nh.serviceClient<std_srvs::Empty>("/gazebo/reset_world");
 
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
-
-  // Subscribe to the base pose ground truth.
-  base_pose_sub_ = nh.subscribe("/amcl_pose", 
-				100,
-				&DemonstrationVisualizerNode::updateLatestBasePose,
-				this);
-
-  // Advertise topic for driving the base of the robot.
-  base_cmd_vel_pub_ = nh.advertise<geometry_msgs::Twist>("/base_controller/command", 1);
-
-  base_goal_pose_.pose = latest_base_pose_.pose;
 
   // Start the thread.
   start();
@@ -245,8 +177,6 @@ void DemonstrationVisualizerNode::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
-    moveBaseToGoal();
-
     ros::spinOnce();
     rate.sleep();
   }
@@ -254,86 +184,9 @@ void DemonstrationVisualizerNode::run()
   Q_EMIT rosShutdown();
 }
 
-void DemonstrationVisualizerNode::updateLatestBasePose(const geometry_msgs::PoseWithCovarianceStamped &msg)
-{
-  geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.header = msg.header;
-  pose_stamped.pose = msg.pose.pose;
-  latest_base_pose_ = pose_stamped;
-  updateBaseMarker();
-}
-
-void DemonstrationVisualizerNode::processBaseMarkerFeedback(
-  const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
-)
-{
-  switch(feedback->event_type)
-  {
-  case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
-    setting_new_goal_ = true;
-    break;
-  case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
-    {
-      setting_new_goal_ = false;
-      base_movement_controller_.setState(BaseMovementController::READY);
-      base_goal_pose_.pose = feedback->pose;
-      double yaw = std::atan2(base_goal_pose_.pose.position.y - latest_base_pose_.pose.position.y,
-			      base_goal_pose_.pose.position.x - latest_base_pose_.pose.position.x);
-      ROS_INFO("New goal set at (x, y, yaw) = (%f, %f, %f).", 
-      	       base_goal_pose_.pose.position.x,
-      	       base_goal_pose_.pose.position.y,
-      	       yaw * (180.0/M_PI));
-      // geometry_msgs::PoseStamped base_pose_stamped;
-      // base_pose_stamped.header.frame_id = global_frame_;
-      // base_pose_stamped.header.stamp = ros::Time();
-      // base_pose_stamped.pose = base_goal_pose_.pose;
-      // geometry_msgs::Vector3 scale;
-      // scale.x = scale.y = scale.z = 0.8;
-      // std_msgs::ColorRGBA color;
-      // color.r = 0.0;
-      // color.g = 1.0;
-      // color.b = 0.0;
-      // color.a = 0.5;
-      // visualization_msgs::Marker goal_marker = makeShapeMarker(visualization_msgs::Marker::ARROW,
-      // 							       "demonstration_visualizer",
-      // 							       1, // Reserved for the goal marker.
-      // 							       base_pose_stamped,
-      // 							       scale,
-      // 							       color);
-
-      // marker_pub_.publish(goal_marker);
-    }
-  default:
-    break;
-  }
-}
-
 void DemonstrationVisualizerNode::processInteractiveMarkerFeedback(
     const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
   )
 {
   Q_EMIT interactiveMarkerFeedback(feedback);
-}
-
-void DemonstrationVisualizerNode::updateBaseMarker()
-{ 
-  // After the robot has completed moving to the goal pose, snap the marker back to the
-  // base pose of the robot.
-  if(base_movement_controller_.getState() == BaseMovementController::DONE && !setting_new_goal_)
-  {
-    base_marker_server_->setPose("base_marker", latest_base_pose_.pose, latest_base_pose_.header);
-    base_marker_server_->applyChanges();
-  }
-}
-
-void DemonstrationVisualizerNode::moveBaseToGoal()
-{
-  if(base_movement_controller_.getState() != BaseMovementController::DONE)
-  {
-    geometry_msgs::Twist base_cmd;
-
-    base_cmd = base_movement_controller_.getNextVelocities(latest_base_pose_.pose, base_goal_pose_.pose);
-
-    base_cmd_vel_pub_.publish(base_cmd);
-  }
 }

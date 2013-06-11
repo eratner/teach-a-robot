@@ -10,8 +10,8 @@ find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
 
 qt4_wrap_cpp(MOC_FILES 
-  include/demonstration_visualizer.h 
-  include/demonstration_visualizer_node.h
+  include/demonstration_visualizer/demonstration_visualizer.h 
+  include/demonstration_visualizer/demonstration_visualizer_node.h
 )
 
 rosbuild_add_executable(dviz
@@ -19,7 +19,6 @@ rosbuild_add_executable(dviz
   src/demonstration_visualizer.cpp
   src/demonstration_visualizer_node.cpp
   src/visualization_helpers.cpp
-  src/base_movement_controller.cpp
   src/demonstration_scene_manager.cpp
   ${MOC_FILES}
 )

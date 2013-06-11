@@ -1,7 +1,7 @@
-#include "base_movement_controller.h"
+#include "pr2_simple_simulator/base_movement_controller.h"
 
 BaseMovementController::BaseMovementController()
-  : last_state_(DONE), frames_(0)
+  : last_state_(INITIAL), frames_(0)
 {
 
 }
@@ -57,6 +57,8 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
     }
   case DONE:
     return done();
+  case INITIAL:
+    return initial();
   default:
     ROS_ERROR("BaseMovementController error!");
     break;
@@ -135,6 +137,17 @@ geometry_msgs::Twist BaseMovementController::done()
 
   geometry_msgs::Twist vel;
   
+  vel.linear.x = vel.linear.y = vel.angular.z = 0.0;
+
+  return vel;
+}
+
+geometry_msgs::Twist BaseMovementController::initial()
+{
+  printStateTransition(INITIAL);
+
+  geometry_msgs::Twist vel;
+
   vel.linear.x = vel.linear.y = vel.angular.z = 0.0;
 
   return vel;

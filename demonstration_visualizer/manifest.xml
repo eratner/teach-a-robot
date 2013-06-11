@@ -18,8 +18,6 @@
   <depend package="visualization_msgs" />
   <depend package="interactive_markers" />
   <depend package="tf" />
-  <depend package="pviz" />
-
   <rosdep name="tinyxml" />
 
   <versioncontrol type="git" url="https://sbpl.pc.cs.cmu.edu/redmine/egraph-user-demos.git" />

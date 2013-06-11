@@ -3,13 +3,13 @@
 
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
-#include "pr2_motion_recorder/FilePath.h"
+#include <pr2_motion_recorder/FilePath.h>
 #include <visualization_msgs/Marker.h>
 
 #include <map>
 
-#include "demonstration_visualizer_node.h"
-#include "demonstration_scene_manager.h"
+#include "demonstration_visualizer/demonstration_visualizer_node.h"
+#include "demonstration_visualizer/demonstration_scene_manager.h"
 
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
@@ -65,11 +65,9 @@ private:
   rviz::VisualizationManager *visualization_manager_;
   rviz::Display              *grid_;
   rviz::Display              *robot_model_;
-  rviz::Display              *interactive_markers_;
+  rviz::Display              *robot_interactive_markers_;
   rviz::Display              *visualization_marker_;
   rviz::Display              *mesh_interactive_markers_;
-
-  rviz::Display              *base_movement_marker_;
 
   QComboBox                  *select_mesh_;
   std::map<int, std::string> mesh_names_;

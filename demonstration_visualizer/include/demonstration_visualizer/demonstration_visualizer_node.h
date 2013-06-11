@@ -11,8 +11,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <interactive_markers/tools.h>
 
-#include "visualization_helpers.h"
-#include "base_movement_controller.h"
+#include "demonstration_visualizer/visualization_helpers.h"
 #include <cmath>
 
 #include <QThread>
@@ -48,14 +47,6 @@ public:
 
   void processInteractiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  void updateLatestBasePose(const geometry_msgs::PoseWithCovarianceStamped &);
-
-  void processBaseMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
-
-  void updateBaseMarker();
-
-  void moveBaseToGoal();
-
 Q_SIGNALS:
   void rosShutdown();
   void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -73,15 +64,6 @@ private:
   ros::Publisher marker_pub_;
 
   interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
-  interactive_markers::InteractiveMarkerServer *base_marker_server_;
-  ros::Subscriber base_pose_sub_;
-  geometry_msgs::PoseStamped latest_base_pose_;
-  geometry_msgs::PoseStamped base_goal_pose_;
-
-  ros::Publisher base_cmd_vel_pub_;
-  bool setting_new_goal_;
-
-  BaseMovementController base_movement_controller_;
 
 };
 

@@ -1,4 +1,4 @@
-#include "demonstration_scene_manager.h"
+#include "demonstration_visualizer/demonstration_scene_manager.h"
 
 DemonstrationSceneManager::DemonstrationSceneManager()
 {

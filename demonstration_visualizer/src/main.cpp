@@ -1,4 +1,4 @@
-#include "demonstration_visualizer.h"
+#include "demonstration_visualizer/demonstration_visualizer.h"
 
 #include <QApplication>
 

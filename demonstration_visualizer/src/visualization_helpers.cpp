@@ -1,4 +1,4 @@
-#include "visualization_helpers.h"
+#include "demonstration_visualizer/visualization_helpers.h"
 
 visualization_msgs::Marker makeMeshMarker(std::string mesh_resource,
 					  std::string ns,

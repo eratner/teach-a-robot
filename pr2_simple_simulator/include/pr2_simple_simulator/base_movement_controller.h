@@ -8,7 +8,8 @@
 #include <tf/transform_datatypes.h>
 #include <cmath>
 
-static const char *STATE_NAMES[] = { "READY",
+static const char *STATE_NAMES[] = { "INITIAL",
+                                     "READY",
 				     "ROTATE_TO_POSITION",
 				     "TRANSLATE_TO_POSITION",
 				     "ROTATE_TO_ORIENTATION",
@@ -17,7 +18,8 @@ static const char *STATE_NAMES[] = { "READY",
 class BaseMovementController
 {
 public:
-  enum State { READY = 0,
+  enum State { INITIAL = 0,
+	       READY,
                ROTATE_TO_POSITION,
 	       TRANSLATE_TO_POSITION,
 	       ROTATE_TO_ORIENTATION,
@@ -48,6 +50,8 @@ private:
 					       const geometry_msgs::Quaternion &goal_orientation);
 
   geometry_msgs::Twist done();
+
+  geometry_msgs::Twist initial();
 
   void printStateTransition(State next_state);
 

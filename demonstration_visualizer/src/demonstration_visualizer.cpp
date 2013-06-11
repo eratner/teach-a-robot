@@ -1,4 +1,4 @@
-#include "demonstration_visualizer.h"
+#include "demonstration_visualizer/demonstration_visualizer.h"
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -89,18 +89,16 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   ROS_ASSERT(grid_ != NULL);
 
   // Create a robot model display.
-  robot_model_ = visualization_manager_->createDisplay("rviz/RobotModel", "Robot Model", true);
+  robot_model_ = visualization_manager_->createDisplay("rviz/MarkerArray", "Robot", true);
   ROS_ASSERT(robot_model_ != NULL);
-  ROS_INFO("Robot description: %s", 
-	   robot_model_->subProp("Robot Description")->getValue().toString().toLocal8Bit().data());
-  visualization_manager_->setFixedFrame("/map");
-  ROS_INFO("Fixed frame: %s", 
-	   visualization_manager_->getFixedFrame().toLocal8Bit().data());
+  robot_model_->subProp("Marker Topic")->setValue("/visualization_marker_array");
   
   // Create an interactive markers display for controlling the robot. 
-  interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers", "PR2 Interactive Markers", true);
-  ROS_ASSERT(interactive_markers_ != NULL);
-  interactive_markers_->subProp("Update Topic")->setValue("/pr2_marker_control_transparent/update");
+  robot_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers", 
+								     "PR2 Interactive Markers", 
+								     true);
+  ROS_ASSERT(robot_interactive_markers_ != NULL);
+  robot_interactive_markers_->subProp("Update Topic")->setValue("/simple_sim_marker/update");
 
   // Create a visualization marker for loading meshes of environments.
   visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
@@ -113,13 +111,6 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 								    true);
   ROS_ASSERT(mesh_interactive_markers_ != NULL);
   mesh_interactive_markers_->subProp("Update Topic")->setValue("/mesh_marker/update");
-
-  // Create an interactive marker to allow the user to interact with the base of the robot.
-  base_movement_marker_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
-								"Move Base Marker",
-								true);
-  ROS_ASSERT(base_movement_marker_ != NULL);
-  base_movement_marker_->subProp("Update Topic")->setValue("/base_marker/update");
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
@@ -138,10 +129,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  this,
 	  SLOT(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
   
-  next_mesh_id_ = 2;
+  next_mesh_id_ = 3;
   selected_mesh_ = -1;
 
   setLayout(window_layout);
+
+
 }
 
 DemonstrationVisualizer::~DemonstrationVisualizer()
