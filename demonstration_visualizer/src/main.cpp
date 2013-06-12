@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 
   DemonstrationVisualizer *viz = new DemonstrationVisualizer(argc, argv);
   viz->show();
-
+  
   a.exec();
 
   delete viz;

@@ -108,7 +108,8 @@ bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req
 bool PR2MotionRecorder::endReplay(std_srvs::Empty::Request  &,
 				  std_srvs::Empty::Response &)
 {
-  // @todo
+  is_replaying_ = false;
+
   return true;
 }
 

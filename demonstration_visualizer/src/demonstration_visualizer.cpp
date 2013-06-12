@@ -152,6 +152,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(linear_velocity_control, SIGNAL(valueChanged(double)), this, SLOT(setLinearVelocity(double)));
   connect(angular_velocity_control, SIGNAL(valueChanged(double)), this, SLOT(setAngularVelocity(double)));
 
+  // Close window when ROS shuts down.
+  connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
+
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
 
@@ -263,7 +266,11 @@ void DemonstrationVisualizer::beginReplay()
 
 void DemonstrationVisualizer::endReplay()
 {
-  //@todo node_.endReplay(srv); ...
+  std_srvs::Empty empty;
+  if(!node_.endReplay(empty))
+  {
+    ROS_ERROR("[DViz] Failed to end replay!");
+  }
 }
 
 void DemonstrationVisualizer::loadMesh()

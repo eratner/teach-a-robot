@@ -8,7 +8,7 @@
 
   <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" />
 
-  <!-- TODO: launch the pr2_motion_recorder node -->
+  <node name="pr2_motion_rec" pkg="pr2_motion_recorder" type="pr2_motion_rec" />
 
   <node name="dviz" pkg="demonstration_visualizer" type="dviz" />
 

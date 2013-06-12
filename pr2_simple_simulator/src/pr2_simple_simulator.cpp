@@ -163,7 +163,7 @@ void PR2SimpleSimulator::updateRobotMarkers()
   body_pos[1] = base_pose_.pose.position.y;
   body_pos[2] = tf::getYaw(base_pose_.pose.orientation);
 
-  pviz_.visualizeRobot(l_joints_pos, r_joints_pos, body_pos, 0, 0.3, "simple_sim", 0);
+  pviz_.visualizeRobot(l_joints_pos, r_joints_pos, body_pos, 0, 0.3, "simple_sim", 0, true);
 
   BodyPose body;
   body.x = body_pos[0];
