@@ -10,6 +10,7 @@
 #include <interactive_markers/interactive_marker_server.h>
 #include "pr2_simple_simulator/base_movement_controller.h"
 #include <pr2_simple_simulator/SetVelocity.h>
+#include <pr2_simple_simulator/SetPose.h>
 
 #include <vector>
 #include <cmath>
@@ -37,6 +38,12 @@ public:
   bool resetRobot(std_srvs::Empty::Request  &,
 		  std_srvs::Empty::Response &);
 
+  bool setRobotPose(pr2_simple_simulator::SetPose::Request  &,
+		    pr2_simple_simulator::SetPose::Response &);
+
+  // @todo
+  // bool setJointPositions(...);
+
 private:
   PViz pviz_;
   interactive_markers::InteractiveMarkerServer int_marker_server_;
@@ -53,6 +60,7 @@ private:
 
   ros::ServiceServer set_vel_service_;
   ros::ServiceServer reset_robot_service_;
+  ros::ServiceServer set_robot_pose_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 

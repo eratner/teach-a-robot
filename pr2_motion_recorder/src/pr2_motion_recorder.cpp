@@ -31,27 +31,18 @@ PR2MotionRecorder::PR2MotionRecorder()
 					    &PR2MotionRecorder::recordJoints,
 					    this);
 
-  // Listen to the ground truth pose of the base.
-  base_pose_subscription_ = nh.subscribe("/amcl_pose",
+  base_pose_subscription_ = nh.subscribe("/base_pose",
 					 100,
 					 &PR2MotionRecorder::recordBasePose,
 					 this);
 
-  nh.param("write_bag_path", write_bag_path_, std::string(""));
+  set_pose_client_ = nh.serviceClient<pr2_simple_simulator::SetPose>("/set_robot_pose");
 
-  // For replaying the arm motions, use joint trajectory actions.
-  r_arm_traj_client_ = new TrajectoryClient("r_arm_controller/joint_trajectory_action", true);
-
-  while(!r_arm_traj_client_->waitForServer(ros::Duration(5.0)))
-  {
-    ROS_INFO("Waiting for joint_trajectory_action server (r_arm_controller).");
-  }
 }
 
 PR2MotionRecorder::~PR2MotionRecorder()
 {
-  delete r_arm_traj_client_;
-  r_arm_traj_client_ = 0;
+
 }
 
 bool PR2MotionRecorder::beginRecording(pr2_motion_recorder::FilePath::Request  &req,
@@ -88,57 +79,28 @@ bool PR2MotionRecorder::endRecording(std_srvs::Empty::Request  &req,
 bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req,
 				    pr2_motion_recorder::FilePath::Response &res)
 {
-  // Load appropriate bag file, populate a JointTrajectoryGoal for each controller
-  // and pass the to appropriate trajectory action client. 
+  // Load appropriate bag file, and populate a vector of PoseStamped messages to 
+  // send to the robot simulator.
   read_bag_.open(req.file_path, rosbag::bagmode::Read);
 
-  rosbag::View joints_view(read_bag_, rosbag::TopicQuery("/joint_states"));
+  rosbag::View poses_view(read_bag_, rosbag::TopicQuery("/base_pose"));
+  poses_.clear();
+  pose_count_ = 0;
 
-  // RIGHT ARM JOINTS.
-  pr2_controllers_msgs::JointTrajectoryGoal r_arm_goal;
-
-  // Set the joint names.
-  sensor_msgs::JointState::ConstPtr first_joint_state = 
-    joints_view.begin()->instantiate<sensor_msgs::JointState>();
-  for(int i = 17; i < 24; ++i)
+  foreach(rosbag::MessageInstance const m, poses_view)
   {
-    ROS_INFO("Joint %d: %s", i, first_joint_state->name[i].c_str());
-    r_arm_goal.trajectory.joint_names.push_back(first_joint_state->name[i]);
-  }
-
-  // Get the number of messages recorded.
-  ROS_INFO("Constructing a joint trajectory with %d waypoints.", joints_view.size());
-  r_arm_goal.trajectory.points.resize(joints_view.size());
-
-  int index = 0;
-  foreach(rosbag::MessageInstance const m, joints_view)
-  {
-    sensor_msgs::JointState::ConstPtr joint_state = m.instantiate<sensor_msgs::JointState>();
-    if(joint_state != NULL)
+    geometry_msgs::PoseStamped::ConstPtr base_pose = m.instantiate<geometry_msgs::PoseStamped>();
+    if(base_pose != NULL)
     {
-      // Insert the position and velocities of the joints as a waypoint.
-      r_arm_goal.trajectory.points[index].positions.resize(7);
-      r_arm_goal.trajectory.points[index].velocities.resize(7);
-      for(int i = 0; i < 7; ++i)
-      {
-	ROS_INFO_STREAM("joint " << i << " = " << joint_state->position[17+i]);
-	r_arm_goal.trajectory.points[index].positions[i] = joint_state->position[17+i];
-	r_arm_goal.trajectory.points[index].velocities[i] = 0; /*joint_state->velocity[17+i];*/
-      }
-      // To be reached index*0.1 seconds after beginning the trajectory.
-      r_arm_goal.trajectory.points[index].time_from_start = ros::Duration(index*0.1);  
-      ROS_INFO_STREAM(index*0.1 << " seconds.");
-      index++;
+      poses_.push_back(*base_pose);
     }
   }
-  ROS_INFO("Added %d waypoints.", index);
+  ROS_INFO("Added %d poses.", poses_.size());
 
   read_bag_.close();
 
   if(!is_replaying_)
     is_replaying_ = true;
-
-  startJointTrajectory(r_arm_goal, r_arm_traj_client_);
 
   return true;
 }
@@ -158,11 +120,11 @@ void PR2MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)
   }
 }
 
-void PR2MotionRecorder::recordBasePose(const geometry_msgs::PoseWithCovarianceStamped &msg)
+void PR2MotionRecorder::recordBasePose(const geometry_msgs::PoseStamped &msg)
 {
   if(is_recording_)
   {
-    write_bag_.write("/amcl_pose", ros::Time::now(), msg);
+    write_bag_.write("/base_pose", ros::Time::now(), msg);
   }
 }
 
@@ -172,22 +134,27 @@ void PR2MotionRecorder::run()
 
   while(ros::ok())
   {
-    // Check if replaying is done.
-    if(is_replaying_ && r_arm_traj_client_->getState().isDone())
+    if(pose_count_ == poses_.size() /*&& joint_position_count_ = joint_positions_.size()*/)
     {
-      ROS_INFO("Replay is ending.");
       is_replaying_ = false;
+      ROS_INFO("[PR2MotionRec] Done replaying.");
     }
+
+    // Replay the next pose.
+    if(is_replaying_ && pose_count_ < poses_.size())
+    {
+      pr2_simple_simulator::SetPose set_pose;
+      set_pose.request.pose = poses_.at(pose_count_);
+      pose_count_++;
+      if(!set_pose_client_.call(set_pose))
+	ROS_ERROR("[PR2MotionRec] Error replaying pose %d!", pose_count_-1);
+    }
+
+    // @todo Replay the next joint positions.
+    // if(is_replaying_ && joint_position_count_ < joint_positions_.size())
+    // { ... }
 
     ros::spinOnce();
     loop_rate.sleep();
   }
-}
-
-void PR2MotionRecorder::startJointTrajectory(pr2_controllers_msgs::JointTrajectoryGoal goal,
-					     TrajectoryClient *trajectory_client)
-{
-  // Start in 1 s from now.
-  goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
-  trajectory_client->sendGoal(goal);
 }

@@ -8,18 +8,14 @@
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/JointState.h>
 #include <pr2_motion_recorder/FilePath.h>
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <nav_msgs/Odometry.h>
-#include <pr2_controllers_msgs/JointTrajectoryAction.h>
-#include <actionlib/client/simple_action_client.h>
+#include <pr2_simple_simulator/SetPose.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <string>
 #include <sstream>
 #include <boost/foreach.hpp>
 
 #define foreach BOOST_FOREACH
-
-typedef actionlib::SimpleActionClient<pr2_controllers_msgs::JointTrajectoryAction> TrajectoryClient;
 
 class PR2MotionRecorder
 {
@@ -42,14 +38,11 @@ public:
 
   void recordJoints(const sensor_msgs::JointState &msg);
 
-  void recordBasePose(const geometry_msgs::PoseWithCovarianceStamped &msg);
+  void recordBasePose(const geometry_msgs::PoseStamped &msg);
 
   void run();
 
 private:
-  void startJointTrajectory(pr2_controllers_msgs::JointTrajectoryGoal goal,
-			    TrajectoryClient *trajectory_client);
-
   bool is_recording_;
   bool is_replaying_;
   int bag_count_;
@@ -65,7 +58,10 @@ private:
   ros::Subscriber joint_states_subscription_;
   ros::Subscriber base_pose_subscription_;
 
-  TrajectoryClient *r_arm_traj_client_;
+  ros::ServiceClient set_pose_client_;
+
+  std::vector<geometry_msgs::PoseStamped> poses_;
+  int pose_count_;
 
 };
 

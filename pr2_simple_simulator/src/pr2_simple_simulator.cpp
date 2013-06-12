@@ -50,14 +50,18 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
 
-  // Users can change the velocity (linear and angular) at which the robot moves.
+  // Clients can change the velocity (linear and angular) at which the robot moves.
   set_vel_service_ = nh.advertiseService("set_vel",
 					 &PR2SimpleSimulator::setVelocity,
 					 this);
-  // Users can reset the robot (useful for replay).
+  // Clients can reset the robot (useful for replay).
   reset_robot_service_ = nh.advertiseService("reset_robot",
 					     &PR2SimpleSimulator::resetRobot,
 					     this);
+  // Clients can set the pose of the robot (also useful for replay).
+  set_robot_pose_service_ = nh.advertiseService("set_robot_pose",
+						&PR2SimpleSimulator::setRobotPose,
+						this);
 
   // Attach an interactive marker to the base of the robot.
   updateRobotMarkers();
@@ -239,6 +243,14 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
 
   // Reset the base movement controller.
   base_movement_controller_.setState(BaseMovementController::INITIAL);
+
+  return true;
+}
+
+bool PR2SimpleSimulator::setRobotPose(pr2_simple_simulator::SetPose::Request  &req,
+				      pr2_simple_simulator::SetPose::Response &res)
+{
+  base_pose_ = req.pose;
 
   return true;
 }

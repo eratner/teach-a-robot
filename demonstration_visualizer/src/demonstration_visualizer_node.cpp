@@ -3,7 +3,7 @@
 DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 {
   if(!init(argc, argv))
-    ROS_ERROR("Unable to connect to master!");
+    ROS_ERROR("[DVizNode] Unable to connect to master!");
 
   interactive_marker_server_ = new interactive_markers::InteractiveMarkerServer("mesh_marker");
 }
@@ -72,9 +72,9 @@ bool DemonstrationVisualizerNode::endRecording(std_srvs::Empty &srv)
 bool DemonstrationVisualizerNode::beginReplay(pr2_motion_recorder::FilePath &srv)
 {
   std_srvs::Empty empty;
-  if(!reset_world_client_.call(empty))
+  if(!reset_robot_client_.call(empty))
   {
-    ROS_ERROR("Error resetting the world!");
+    ROS_ERROR("[DVizNode] Error resetting the world!");
     return false;
   }
 
@@ -91,7 +91,7 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
 {
   if(attach_interactive_marker)
   {
-    ROS_INFO("Attaching an interactive marker to visual marker %d.", msg.id);
+    ROS_INFO("[DVizNode] Attaching an interactive marker to visual marker %d.", msg.id);
 
     // Attach an interactive marker to control this marker.
     visualization_msgs::InteractiveMarker int_marker;
@@ -182,7 +182,7 @@ void DemonstrationVisualizerNode::run()
     ros::spinOnce();
     rate.sleep();
   }
-  ROS_INFO("Shutting down ROS...");
+  ROS_INFO("[DVizNode] Shutting down ROS...");
   Q_EMIT rosShutdown();
 }
 
