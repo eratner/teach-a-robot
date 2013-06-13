@@ -8,11 +8,13 @@
 #include <tf/transform_datatypes.h>
 #include <pviz/pviz.h>
 #include <interactive_markers/interactive_marker_server.h>
-#include "pr2_simple_simulator/base_movement_controller.h"
-#include <pr2_simple_simulator/SetVelocity.h>
+#include <pr2_simple_simulator/base_movement_controller.h>
+#include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
+#include <sbpl_manipulation_components/kdl_robot_model.h>
 
 #include <vector>
+#include <string>
 #include <cmath>
 
 class PR2SimpleSimulator
@@ -32,8 +34,10 @@ public:
 
   void baseMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  bool setVelocity(pr2_simple_simulator::SetVelocity::Request  &,
-		   pr2_simple_simulator::SetVelocity::Response &);
+  void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
+  bool setSpeed(pr2_simple_simulator::SetSpeed::Request  &,
+		   pr2_simple_simulator::SetSpeed::Response &);
 
   bool resetRobot(std_srvs::Empty::Request  &,
 		  std_srvs::Empty::Response &);
@@ -45,6 +49,8 @@ public:
   // bool setJointPositions(...);
 
 private:
+  void updateTransforms();
+
   PViz pviz_;
   interactive_markers::InteractiveMarkerServer int_marker_server_;
   BaseMovementController base_movement_controller_;
@@ -58,13 +64,16 @@ private:
   geometry_msgs::PoseStamped base_pose_;
   sensor_msgs::JointState joint_states_;
 
-  ros::ServiceServer set_vel_service_;
+  ros::ServiceServer set_speed_service_;
   ros::ServiceServer reset_robot_service_;
   ros::ServiceServer set_robot_pose_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 
   geometry_msgs::PoseStamped goal_pose_;
+
+  sbpl_arm_planner::KDLRobotModel kdl_robot_model_;
+  KDL::Frame map_to_torso_lift_link_;
 
 };
 

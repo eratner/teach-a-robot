@@ -6,7 +6,7 @@
   <!-- The corresponding semantic description -->
   <param name="robot_description_semantic" textfile="$(find pr2_description)/robots/pr2.srdf" />
 
-  <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" />
+  <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" output="screen" />
 
   <node name="pr2_motion_rec" pkg="pr2_motion_recorder" type="pr2_motion_rec" />
 

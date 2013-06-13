@@ -73,22 +73,22 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QPushButton *save_scene = new QPushButton("Save Scene");
   scene_controls->addWidget(save_scene);
 
-  // Change robot velocity control panel.
-  QHBoxLayout *linear_velocity_panel = new QHBoxLayout();
-  QLabel *linear_velocity_label = new QLabel("Linear Velocity (m/s): ");
-  linear_velocity_panel->addWidget(linear_velocity_label);
-  QDoubleSpinBox *linear_velocity_control = new QDoubleSpinBox();
-  linear_velocity_panel->addWidget(linear_velocity_control);
-  linear_velocity_control->setSingleStep(0.1);
-  linear_velocity_control->setValue(0.2);
+  // Change robot speed control panel.
+  QHBoxLayout *linear_speed_panel = new QHBoxLayout();
+  QLabel *linear_speed_label = new QLabel("Linear Speed (m/s): ");
+  linear_speed_panel->addWidget(linear_speed_label);
+  QDoubleSpinBox *linear_speed_control = new QDoubleSpinBox();
+  linear_speed_panel->addWidget(linear_speed_control);
+  linear_speed_control->setSingleStep(0.1);
+  linear_speed_control->setValue(0.2);
 
-  QHBoxLayout *angular_velocity_panel = new QHBoxLayout();
-  QLabel *angular_velocity_label = new QLabel("Angular Velocity (rad/s): ");
-  angular_velocity_panel->addWidget(angular_velocity_label);
-  QDoubleSpinBox *angular_velocity_control = new QDoubleSpinBox();
-  angular_velocity_panel->addWidget(angular_velocity_control);
-  angular_velocity_control->setSingleStep(0.1);
-  angular_velocity_control->setValue(0.2);
+  QHBoxLayout *angular_speed_panel = new QHBoxLayout();
+  QLabel *angular_speed_label = new QLabel("Angular Speed (rad/s): ");
+  angular_speed_panel->addWidget(angular_speed_label);
+  QDoubleSpinBox *angular_speed_control = new QDoubleSpinBox();
+  angular_speed_panel->addWidget(angular_speed_control);
+  angular_speed_control->setSingleStep(0.1);
+  angular_speed_control->setValue(0.2);
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
@@ -98,8 +98,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(scene_controls);
   controls_layout->addWidget(select_mesh_);
   controls_layout->addWidget(select_tool);
-  controls_layout->addLayout(linear_velocity_panel);
-  controls_layout->addLayout(angular_velocity_panel);
+  controls_layout->addLayout(linear_speed_panel);
+  controls_layout->addLayout(angular_speed_panel);
 
   QGridLayout *window_layout = new QGridLayout();
   window_layout->addLayout(controls_layout, 0, 0, 1, 1);
@@ -149,8 +149,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SIGNAL(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
 	  this,
 	  SLOT(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
-  connect(linear_velocity_control, SIGNAL(valueChanged(double)), this, SLOT(setLinearVelocity(double)));
-  connect(angular_velocity_control, SIGNAL(valueChanged(double)), this, SLOT(setAngularVelocity(double)));
+  connect(linear_speed_control, SIGNAL(valueChanged(double)), this, SLOT(setLinearSpeed(double)));
+  connect(angular_speed_control, SIGNAL(valueChanged(double)), this, SLOT(setAngularSpeed(double)));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -478,12 +478,12 @@ void DemonstrationVisualizer::interactiveMarkerFeedback(
   }
 }
 
-void DemonstrationVisualizer::setLinearVelocity(double lin_vel)
+void DemonstrationVisualizer::setLinearSpeed(double linear)
 {
-  node_.setRobotVelocity(lin_vel, 0);
+  node_.setRobotSpeed(linear, 0);
 }
 
-void DemonstrationVisualizer::setAngularVelocity(double ang_vel)
+void DemonstrationVisualizer::setAngularSpeed(double angular)
 {
-  node_.setRobotVelocity(0, ang_vel);
+  node_.setRobotSpeed(0, angular);
 }

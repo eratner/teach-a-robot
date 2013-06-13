@@ -5,7 +5,7 @@
 #include <tf/transform_listener.h>
 
 #include <pr2_motion_recorder/FilePath.h>
-#include <pr2_simple_simulator/SetVelocity.h>
+#include <pr2_simple_simulator/SetSpeed.h>
 #include <std_srvs/Empty.h>
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
@@ -48,7 +48,7 @@ public:
 
   void processInteractiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  void setRobotVelocity(double, double);
+  void setRobotSpeed(double, double);
 
   void resetRobot();
 
@@ -65,7 +65,7 @@ private:
   ros::ServiceClient end_replay_client_;
 
   ros::ServiceClient reset_robot_client_;
-  ros::ServiceClient set_robot_velocity_client_;
+  ros::ServiceClient set_robot_speed_client_;
 
   ros::Publisher marker_pub_;
 

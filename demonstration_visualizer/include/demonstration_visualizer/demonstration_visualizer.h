@@ -4,7 +4,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <pr2_motion_recorder/FilePath.h>
-#include <pr2_simple_simulator/SetVelocity.h>
+#include <pr2_simple_simulator/SetSpeed.h>
 #include <visualization_msgs/Marker.h>
 
 #include <map>
@@ -58,8 +58,8 @@ private Q_SLOTS:
   // Called whenever an interactive marker attached to a mesh is moved. 
   void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  void setLinearVelocity(double lin_vel);
-  void setAngularVelocity(double ang_vel);
+  void setLinearSpeed(double linear);
+  void setAngularSpeed(double angular);
 
 private:
   DemonstrationVisualizerNode node_;

@@ -20,4 +20,6 @@ rosbuild_add_executable(pr2_simple_sim
   src/pr2_simple_simulator_node.cpp
   src/pr2_simple_simulator.cpp
   src/base_movement_controller.cpp
-)               
+  src/robot_model.cpp
+  src/kdl_robot_model.cpp
+)

@@ -50,10 +50,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
 
-  // Clients can change the velocity (linear and angular) at which the robot moves.
-  set_vel_service_ = nh.advertiseService("set_vel",
-					 &PR2SimpleSimulator::setVelocity,
-					 this);
+  // Clients can change the speed (linear and angular) at which the robot moves.
+  set_speed_service_ = nh.advertiseService("set_speed",
+					   &PR2SimpleSimulator::setSpeed,
+					   this);
   // Clients can reset the robot (useful for replay).
   reset_robot_service_ = nh.advertiseService("reset_robot",
 					     &PR2SimpleSimulator::resetRobot,
@@ -69,7 +69,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = "/map";
   int_marker.name = "base_marker";
-  int_marker.description = "Base Marker";
+  int_marker.description = "";
 
   visualization_msgs::InteractiveMarkerControl control;
   control.orientation.w = 1;
@@ -96,6 +96,55 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 					_1)
 			    );
   int_marker_server_.applyChanges();
+
+  // Attach an interactive marker to the end effectors of the robot.
+  visualization_msgs::Marker r_ee_marker = robot_markers_.markers.at(11);
+
+  int_marker.header.frame_id = "/map";
+  int_marker.pose = r_ee_marker.pose;
+  int_marker.name = "r_ee_marker";
+  int_marker.description = "";
+
+  r_ee_marker.scale.x = 1.2;
+  r_ee_marker.scale.y = 1.2;
+  r_ee_marker.scale.z = 1.2;
+
+  control.always_visible = true;
+  control.markers.clear();
+  control.markers.push_back(r_ee_marker);
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D;
+  int_marker.controls.clear();
+  int_marker.controls.push_back(control);
+  
+  int_marker_server_.insert(int_marker,
+			    boost::bind(&PR2SimpleSimulator::gripperMarkerFeedback,
+					this,
+					_1)
+			    );
+  int_marker_server_.applyChanges();
+
+  std::string robot_description;
+  std::string robot_param = "";
+  if(!nh.searchParam("robot_description", robot_param))
+  {
+    ROS_ERROR("[PR2SimpleSim] Failed to find the robot_description on the parameter server.");
+  }
+  nh.param<std::string>(robot_param, robot_description, "");
+  std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end());
+  for(std::vector<string>::iterator it = planning_joints.begin();
+      it != planning_joints.end();
+      ++it)
+  {
+    ROS_INFO("[PR2SimpleSim] planning joint %s", it->c_str());
+  }
+  kdl_robot_model_.init(robot_description, planning_joints);
+  kdl_robot_model_.setPlanningLink("r_wrist_roll_link");
+
+  ROS_INFO("[PR2SimpleSim] Torso pose: (%f, %f, %f)", robot_markers_.markers.at(1).pose.position.x,
+	   robot_markers_.markers.at(1).pose.position.y, robot_markers_.markers.at(1).pose.position.z);
+
+  // Set the map to torso_lift_link transform.
+  updateTransforms();
 }
 
 PR2SimpleSimulator::~PR2SimpleSimulator()
@@ -111,6 +160,8 @@ void PR2SimpleSimulator::run()
     moveRobot();
 
     updateRobotMarkers();
+
+    updateTransforms();
   
     ros::spinOnce();
     loop.sleep();
@@ -198,19 +249,44 @@ void PR2SimpleSimulator::baseMarkerFeedback(
   }
 }
 
-bool PR2SimpleSimulator::setVelocity(pr2_simple_simulator::SetVelocity::Request  &req,
-				     pr2_simple_simulator::SetVelocity::Response &res)
+void PR2SimpleSimulator::gripperMarkerFeedback(
+  const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+)
+{
+  // Attempt to find joint angles for the arm using the arm IK solver.
+  std::vector<double> l_arm_joints(7, 0);
+  std::vector<double> end_effector_pose(6, 0);
+  ROS_INFO("[PR2SimpleSim] Computing FK with current arm joint angles:");
+  for(int i = 7; i < 14; ++i)
+  {
+    ROS_INFO("%s : %f", joint_states_.name[i].c_str(), joint_states_.position[i]);
+    l_arm_joints[i-7] = joint_states_.position[i];
+  }
+  
+  // Find the pose of the end-effector in the map frame.
+  if(!kdl_robot_model_.computePlanningLinkFK(l_arm_joints, end_effector_pose))
+  {
+    ROS_ERROR("[PR2SimpleSim] FK failed!");
+  }
+  
+  ROS_INFO("[PR2SimpleSim] Initial end-effector pose: position (%f, %f, %f) orientation (RPY): (%f, %f, %f)",
+	   end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
+	   end_effector_pose[3], end_effector_pose[4], end_effector_pose[5]);
+}
+
+bool PR2SimpleSimulator::setSpeed(pr2_simple_simulator::SetSpeed::Request  &req,
+				     pr2_simple_simulator::SetSpeed::Response &res)
 {
   if(req.linear > 0)
   {
-    ROS_INFO("[PR2SimpleSim] Setting linear velocity to %f.", req.linear);
-    base_movement_controller_.setLinearVelocity(req.linear);
+    ROS_INFO("[PR2SimpleSim] Setting linear speed to %f.", req.linear);
+    base_movement_controller_.setLinearSpeed(req.linear);
   }
 
   if(req.angular > 0)
   {
-    ROS_INFO("[PR2SimpleSim] Setting angular velocity to %f.", req.angular);
-    base_movement_controller_.setAngularVelocity(req.angular);
+    ROS_INFO("[PR2SimpleSim] Setting angular speed to %f.", req.angular);
+    base_movement_controller_.setAngularSpeed(req.angular);
   }
 
   return true;
@@ -253,4 +329,36 @@ bool PR2SimpleSimulator::setRobotPose(pr2_simple_simulator::SetPose::Request  &r
   base_pose_ = req.pose;
 
   return true;
+}
+
+void PR2SimpleSimulator::updateTransforms()
+{
+  // @todo clean this up and figure out better names!!
+  // Get the map -> base_footprint transform.
+  KDL::Frame map_to_base_footprint;
+  map_to_base_footprint.p.x(base_pose_.pose.position.x);
+  map_to_base_footprint.p.y(base_pose_.pose.position.y);
+  map_to_base_footprint.p.z(base_pose_.pose.position.z);
+  map_to_base_footprint.M = KDL::Rotation::Quaternion(base_pose_.pose.orientation.x,
+						      base_pose_.pose.orientation.y,
+						      base_pose_.pose.orientation.z,
+						      base_pose_.pose.orientation.w);
+  map_to_base_footprint = map_to_base_footprint.Inverse();
+
+  // Get the base_footprint -> torso_lift_link transform (hack, from gazebo).
+  KDL::Frame base_to_torso_lift_link;
+  base_to_torso_lift_link.p.x(0.050);
+  base_to_torso_lift_link.p.y(0.0);
+  base_to_torso_lift_link.p.z(-0.803); // @todo if raising the robot, add to this offest.
+  base_to_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
+
+  map_to_torso_lift_link_ = base_to_torso_lift_link * map_to_base_footprint;
+
+  double r, p, y;
+  map_to_torso_lift_link_.M.GetRPY(r, p, y);
+  // ROS_INFO("[PR2SimpleSim] map -> torso_lift_link: translation: (%f, %f, %f); rotation (RPY): (%f, %f, %f)",
+  // 	   map_to_torso_lift_link_.p.x(), map_to_torso_lift_link_.p.y(), map_to_torso_lift_link_.p.z(),
+  // 	   r, p, y);
+
+  kdl_robot_model_.setKinematicsToPlanningTransform(map_to_torso_lift_link_.Inverse(), "map");
 }

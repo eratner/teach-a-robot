@@ -42,8 +42,8 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 
   // Service for resetting the state of the robot and environment.
   reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
-  // Service for setting the velocity of the robot.
-  set_robot_velocity_client_ = nh.serviceClient<pr2_simple_simulator::SetVelocity>("/set_vel");
+  // Service for setting the speed of the robot.
+  set_robot_speed_client_ = nh.serviceClient<pr2_simple_simulator::SetSpeed>("/set_speed");
 
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
@@ -193,15 +193,15 @@ void DemonstrationVisualizerNode::processInteractiveMarkerFeedback(
   Q_EMIT interactiveMarkerFeedback(feedback);
 }
 
-void DemonstrationVisualizerNode::setRobotVelocity(double lin_vel, double ang_vel)
+void DemonstrationVisualizerNode::setRobotSpeed(double linear, double angular)
 {
-  pr2_simple_simulator::SetVelocity vel;
-  vel.request.linear = lin_vel;
-  vel.request.angular = ang_vel;
+  pr2_simple_simulator::SetSpeed speed;
+  speed.request.linear = linear;
+  speed.request.angular = angular;
 
-  if(!set_robot_velocity_client_.call(vel))
+  if(!set_robot_speed_client_.call(speed))
   {
-    ROS_ERROR("[DVizNode] Error setting the robot velocity!");
+    ROS_ERROR("[DVizNode] Error setting the robot speed!");
   }
 }
 

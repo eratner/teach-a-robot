@@ -2,7 +2,7 @@
 
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0),
-    linear_velocity_(0.2), angular_velocity_(0.2)
+    linear_speed_(0.2), angular_speed_(0.2)
 {
 
 }
@@ -78,24 +78,24 @@ BaseMovementController::State BaseMovementController::getState() const
   return last_state_;
 }
 
-void BaseMovementController::setLinearVelocity(double lin_vel)
+void BaseMovementController::setLinearSpeed(double linear)
 {
-  linear_velocity_ = lin_vel;
+  linear_speed_ = linear;
 }
 
-double BaseMovementController::getLinearVelocity() const
+double BaseMovementController::getLinearSpeed() const
 {
-  return linear_velocity_;
+  return linear_speed_;
 }
 
-void BaseMovementController::setAngularVelocity(double ang_vel)
+void BaseMovementController::setAngularSpeed(double angular)
 {
-  angular_velocity_ = ang_vel;
+  angular_speed_ = angular;
 }
 
-double BaseMovementController::getAngularVelocity() const
+double BaseMovementController::getAngularSpeed() const
 {
-  return angular_velocity_;
+  return angular_speed_;
 }
 
 geometry_msgs::Twist BaseMovementController::rotateToGoalPosition(double current_angle,
@@ -106,7 +106,7 @@ geometry_msgs::Twist BaseMovementController::rotateToGoalPosition(double current
   geometry_msgs::Twist vel;
   // Pure rotation.
   vel.linear.x = vel.linear.y = 0.0;
-  vel.angular.z = angular_velocity_;
+  vel.angular.z = angular_speed_;
 
   if(angle_to_goal - current_angle < 0) // Rotate counter-clockwise.
   {
@@ -125,7 +125,7 @@ geometry_msgs::Twist BaseMovementController::translateToGoalPosition(double dist
   vel.angular.z = vel.linear.y = 0.0;
 
   // Move straight towards the goal.
-  vel.linear.x = linear_velocity_;
+  vel.linear.x = linear_speed_;
 
   return vel;
 }
@@ -142,7 +142,7 @@ geometry_msgs::Twist BaseMovementController::rotateToGoalOrientation(
 
   geometry_msgs::Twist vel;
   vel.linear.x = vel.linear.y = 0.0;
-  vel.angular.z = angular_velocity_;
+  vel.angular.z = angular_speed_;
 
   if(goal_angle - current_angle < 0) // Rotate counter-clockwise.
   {
