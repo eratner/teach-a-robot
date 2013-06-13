@@ -38,6 +38,8 @@ PR2MotionRecorder::PR2MotionRecorder()
 
   set_pose_client_ = nh.serviceClient<pr2_simple_simulator::SetPose>("/set_robot_pose");
 
+  set_joint_positions_client_ = nh.serviceClient<pr2_simple_simulator::SetJoints>("/set_joints");
+
 }
 
 PR2MotionRecorder::~PR2MotionRecorder()
@@ -95,7 +97,28 @@ bool PR2MotionRecorder::beginReplay(pr2_motion_recorder::FilePath::Request  &req
       poses_.push_back(*base_pose);
     }
   }
-  ROS_INFO("Added %d poses.", poses_.size());
+  ROS_INFO("[PR2MotionRec] Added %d poses.", poses_.size());
+
+  // Populate a vector of joint positions to send to the robot simulator.
+  rosbag::View joints_view(read_bag_, rosbag::TopicQuery("/joint_states"));
+  joint_positions_.clear();
+  joint_position_count_ = 0;
+  
+  foreach(rosbag::MessageInstance const m, joints_view)
+  {
+    sensor_msgs::JointState::ConstPtr joint_state = m.instantiate<sensor_msgs::JointState>();
+    if(joint_state != NULL)
+    {
+      pr2_simple_simulator::SetJoints joints;
+      for(int i = 0; i < joint_state->name.size(); ++i)
+      {
+	joints.request.name.push_back(joint_state->name[i]);
+	joints.request.position.push_back(joint_state->position[i]);
+      }
+      joint_positions_.push_back(joints);
+    }
+  }
+  ROS_INFO("[PR2MotionRec] Added %d joints positions.", joint_positions_.size());
 
   read_bag_.close();
 
@@ -135,7 +158,9 @@ void PR2MotionRecorder::run()
 
   while(ros::ok())
   {
-    if(pose_count_ == poses_.size() /*&& joint_position_count_ = joint_positions_.size()*/)
+    if(pose_count_ == poses_.size() && 
+       joint_position_count_ == joint_positions_.size() && 
+       is_replaying_)
     {
       is_replaying_ = false;
       ROS_INFO("[PR2MotionRec] Done replaying.");
@@ -151,9 +176,13 @@ void PR2MotionRecorder::run()
 	ROS_ERROR("[PR2MotionRec] Error replaying pose %d!", pose_count_-1);
     }
 
-    // @todo Replay the next joint positions.
-    // if(is_replaying_ && joint_position_count_ < joint_positions_.size())
-    // { ... }
+    // Replay the next joint positions.
+    if(is_replaying_ && joint_position_count_ < joint_positions_.size())
+    {
+      if(!set_joint_positions_client_.call(joint_positions_.at(joint_position_count_)))
+	ROS_ERROR("[PR2MotionRec] Error replaying joints positions %d!", joint_position_count_);
+      joint_position_count_++;
+    }
 
     ros::spinOnce();
     loop_rate.sleep();

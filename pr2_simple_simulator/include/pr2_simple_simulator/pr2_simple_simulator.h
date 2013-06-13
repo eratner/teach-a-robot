@@ -11,11 +11,13 @@
 #include <pr2_simple_simulator/base_movement_controller.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
+#include <pr2_simple_simulator/SetJoints.h>
 #include <sbpl_manipulation_components/kdl_robot_model.h>
 
 #include <vector>
 #include <string>
 #include <cmath>
+#include <map>
 
 class PR2SimpleSimulator
 {
@@ -45,8 +47,8 @@ public:
   bool setRobotPose(pr2_simple_simulator::SetPose::Request  &,
 		    pr2_simple_simulator::SetPose::Response &);
 
-  // @todo
-  // bool setJointPositions(...);
+  bool setJointPositions(pr2_simple_simulator::SetJoints::Request  &,
+			 pr2_simple_simulator::SetJoints::Response &);
 
 private:
   void updateTransforms();
@@ -67,6 +69,7 @@ private:
   ros::ServiceServer set_speed_service_;
   ros::ServiceServer reset_robot_service_;
   ros::ServiceServer set_robot_pose_service_;
+  ros::ServiceServer set_joint_states_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 
@@ -74,6 +77,7 @@ private:
 
   sbpl_arm_planner::KDLRobotModel kdl_robot_model_;
   KDL::Frame map_to_torso_lift_link_;
+  std::map<std::string, int> joints_map_;
 
 };
 

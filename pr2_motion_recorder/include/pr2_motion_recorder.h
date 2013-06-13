@@ -9,6 +9,7 @@
 #include <sensor_msgs/JointState.h>
 #include <pr2_motion_recorder/FilePath.h>
 #include <pr2_simple_simulator/SetPose.h>
+#include <pr2_simple_simulator/SetJoints.h>
 #include <geometry_msgs/PoseStamped.h>
 
 #include <string>
@@ -59,9 +60,13 @@ private:
   ros::Subscriber base_pose_subscription_;
 
   ros::ServiceClient set_pose_client_;
+  ros::ServiceClient set_joint_positions_client_;
 
   std::vector<geometry_msgs::PoseStamped> poses_;
   int pose_count_;
+
+  std::vector<pr2_simple_simulator::SetJoints> joint_positions_;
+  int joint_position_count_;
 
 };
 

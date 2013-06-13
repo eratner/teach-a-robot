@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "motion_recorder");
+  ros::init(argc, argv, "pr2_motion_rec");
 
   PR2MotionRecorder recorder;
 
