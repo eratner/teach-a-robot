@@ -55,6 +55,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
+  end_effector_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("end_effector_pose", 20);
 
   // Clients can change the speed (linear and angular) at which the robot moves.
   set_speed_service_ = nh.advertiseService("set_speed",
@@ -245,6 +246,13 @@ void PR2SimpleSimulator::updateRobotMarkers()
     int_marker_server_.setPose("r_gripper_marker", robot_markers_.markers.at(11).pose);
     int_marker_server_.applyChanges();
   }
+
+  // Publish the pose of the right end effector marker.
+  geometry_msgs::PoseStamped end_effector_pose;
+  end_effector_pose.header.frame_id = "/map";
+  end_effector_pose.header.stamp = ros::Time();
+  end_effector_pose.pose = robot_markers_.markers.at(11).pose;
+  end_effector_pose_pub_.publish(end_effector_pose);
 
   // Publish the state of the joints as they are being visualized.
   joint_states_pub_.publish(joint_states_);

@@ -7,6 +7,7 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 
   demonstration_scene_manager_ = new DemonstrationSceneManager();
   edit_goals_mode_ = true;
+  current_goal_ = 0;
 
   interactive_marker_server_ = new interactive_markers::InteractiveMarkerServer("mesh_marker");
 }
@@ -197,6 +198,12 @@ void DemonstrationVisualizerNode::updateTaskGoals()
   if(getSceneManager()->getNumGoals() == 0)
     return;
 
+  if(current_goal_ >= getSceneManager()->getNumGoals())
+  {
+    ROS_INFO("[DVizNode] All goals complete!");
+    return;
+  }
+
   if(edit_goals_mode_ && !getSceneManager()->goalsChanged())
     return;
 
@@ -241,8 +248,25 @@ void DemonstrationVisualizerNode::updateTaskGoals()
   }
   else // Otherwise, just draw the current goal.
   {
+    // Clear the existing goal markers.
+    std::vector<visualization_msgs::Marker> goals = getSceneManager()->getGoals();
+    std::vector<visualization_msgs::Marker>::iterator it;
+    for(it = goals.begin(); it != goals.end(); ++it)
+    {
+      // Get the name of this marker according to its id.
+      std::stringstream marker_name;
+      marker_name << "goal_marker_" << it->id;
+
+      interactive_marker_server_->erase(marker_name.str());
+    }
+    interactive_marker_server_->applyChanges();
+
+    // Draw the current goal.
     if(getSceneManager()->getNumGoals() > 0)
-      marker_pub_.publish(getSceneManager()->getGoal(0));
+    {
+      //ROS_INFO("Getting goal %d.", current_goal_);
+      marker_pub_.publish(getSceneManager()->getGoal(current_goal_));
+    }
   }
 
   getSceneManager()->setGoalsChanged(false);
@@ -258,9 +282,6 @@ void DemonstrationVisualizerNode::processGoalFeedback(
     if(feedback->marker_name.at(i) == '_')
       break;
   }
-  
-  ROS_INFO("goals %d, goal number %d.", getSceneManager()->getNumGoals(),
-	   atoi(feedback->marker_name.substr(i+1).c_str()));
 
   if(!getSceneManager()->moveGoal(atoi(feedback->marker_name.substr(i+1).c_str()),
 				  feedback->pose))
@@ -292,4 +313,20 @@ void DemonstrationVisualizerNode::interactiveMarkerFeedback(
   {
     ROS_ERROR("[DVizNode] Demonstration scene manager failed to update pose of mesh!");
   }
+}
+
+void DemonstrationVisualizerNode::setEditGoalsMode(bool mode)
+{
+  edit_goals_mode_ = mode;
+}
+
+void DemonstrationVisualizerNode::setCurrentGoal(int goal_number)
+{
+  if(goal_number < 0 || goal_number >= getSceneManager()->getNumGoals())
+  {
+    ROS_ERROR("[DVizNode] Invalid goal number!");
+    return;
+  }
+
+  current_goal_ = goal_number;
 }

@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QDoubleSpinBox>
 #include <QPixmap>
+#include <QCheckBox>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -98,6 +99,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   task_panel->addWidget(load_task);
   QPushButton *save_task = new QPushButton("Save Task");
   task_panel->addWidget(save_task);
+  QCheckBox *edit_goals = new QCheckBox("Edit Goals Mode");
+  edit_goals->setCheckState(Qt::Checked);
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
@@ -112,6 +115,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(angular_speed_panel);
   controls_layout->addWidget(add_goal);
   controls_layout->addLayout(task_panel);
+  controls_layout->addWidget(edit_goals);
 
   recording_icon_ = new QLabel();
   //recording_icon_->setPixmap(QPixmap("/home/eratner/Desktop/recording.png"));
@@ -141,7 +145,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // Create a visualization marker for loading meshes of environments.
   visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
-  visualization_marker_->subProp("Marker Topic")->setValue("/demonstration_visualizer/visualization_marker");
+  visualization_marker_->subProp("Marker Topic")->setValue("/dviz/visualization_marker");
   ROS_ASSERT(visualization_marker_ != NULL);
 
   // Create an interactive markers display for moving meshes around the scene.
@@ -169,6 +173,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(add_goal, SIGNAL(clicked()), this, SLOT(addTaskGoal()));
   connect(load_task, SIGNAL(clicked()), this, SLOT(loadTask()));
   connect(save_task, SIGNAL(clicked()), this, SLOT(saveTask()));
+  connect(edit_goals, SIGNAL(stateChanged(int)), this, SLOT(setEditGoalsMode(int)));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -524,6 +529,24 @@ void DemonstrationVisualizer::saveTask()
   }
 
   node_.getSceneManager()->saveTask(filename.toStdString());
+}
+
+void DemonstrationVisualizer::setEditGoalsMode(int mode)
+{
+  switch(mode)
+  {
+  case Qt::Unchecked:
+    node_.setEditGoalsMode(false);
+    node_.getSceneManager()->setGoalsChanged(true);
+    break;
+  case Qt::Checked:
+    node_.setEditGoalsMode(true);
+    node_.getSceneManager()->setGoalsChanged(true);
+    break;
+  default:
+    ROS_ERROR("[DViz] Invalid edit goals mode!");
+    break;
+  }
 }
 
 void DemonstrationVisualizer::selectMesh(int mesh_index)

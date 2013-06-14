@@ -58,6 +58,8 @@ private Q_SLOTS:
   void loadTask();
   void saveTask();
 
+  void setEditGoalsMode(int);
+
   void selectMesh(int mesh_index);
 
   void setLinearSpeed(double linear);

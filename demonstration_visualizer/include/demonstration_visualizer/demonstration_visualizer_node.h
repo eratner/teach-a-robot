@@ -61,12 +61,17 @@ public:
 
   void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
+  void setEditGoalsMode(bool mode);
+  
+  void setCurrentGoal(int goal_number);
+
 Q_SIGNALS:
   void rosShutdown();
 
 private:
   DemonstrationSceneManager *demonstration_scene_manager_;
   bool edit_goals_mode_;
+  int current_goal_;
 
   std::string global_frame_;
 
