@@ -34,6 +34,16 @@ public:
 
   void updateRobotMarkers();
 
+  /**
+   * @brief Finds and sets the appropriate positions of the
+   *        (right) arm joints using IK so that the end-effector 
+   *        is at the desired pose.
+   * @param the desired pose of the (right) end-effector.
+   * @return true on success, otherwise false.
+   */
+  bool setEndEffectorPose(pr2_simple_simulator::SetPose::Request  &,
+			  pr2_simple_simulator::SetPose::Response &);
+
   void baseMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
   void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -71,6 +81,7 @@ private:
   ros::ServiceServer reset_robot_service_;
   ros::ServiceServer set_robot_pose_service_;
   ros::ServiceServer set_joint_states_service_;
+  ros::ServiceServer set_end_effector_pose_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 

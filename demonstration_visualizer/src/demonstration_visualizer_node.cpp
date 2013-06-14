@@ -49,6 +49,8 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
   // Service for setting the speed of the robot.
   set_robot_speed_client_ = nh.serviceClient<pr2_simple_simulator::SetSpeed>("/set_speed");
+  // Service for setting the pose of the (right) end-effector.
+  set_end_effector_pose_client_ = nh.serviceClient<pr2_simple_simulator::SetPose>("/set_end_effector_pose");
 
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
@@ -271,13 +273,6 @@ void DemonstrationVisualizerNode::updateTaskGoals()
       marker_pub_.publish(*it);
     }
     interactive_marker_server_->applyChanges();
-
-    // Draw the current goal.
-    // if(getSceneManager()->getNumGoals() > 0)
-    // {
-    //   //ROS_INFO("Getting goal %d.", current_goal_);
-    //   marker_pub_.publish(getSceneManager()->getGoal(current_goal_));
-    // }
   }
 
   getSceneManager()->setGoalsChanged(false);
@@ -344,6 +339,8 @@ void DemonstrationVisualizerNode::setCurrentGoal(int goal_number)
 
 void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::PoseStamped &pose)
 {
+  end_effector_pose_ = pose.pose;
+
   if(edit_goals_mode_ || current_goal_ >= getSceneManager()->getNumGoals())
     return;
 
@@ -354,5 +351,37 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
     getSceneManager()->setGoalsChanged(true);
 
     Q_EMIT goalComplete(current_goal_-1);
+  }
+}
+
+void DemonstrationVisualizerNode::processKeyEvent(int key)
+{
+  switch(key)
+  {
+  case Qt::Key_Up:
+    {
+      // Move the end-effector in the positive z-direction.
+      pr2_simple_simulator::SetPose set_pose;
+      geometry_msgs::Pose goal_pose = end_effector_pose_;
+      goal_pose.position.z += 0.02;
+      set_pose.request.pose.pose = goal_pose;
+      if(!set_end_effector_pose_client_.call(set_pose))
+	ROS_ERROR("[DVizNode] Failed to raise the end-effector!");
+      break;
+    }
+  case Qt::Key_Down:
+    {
+      // Move the end-effector in the negative z-direction.
+      pr2_simple_simulator::SetPose set_pose;
+      geometry_msgs::Pose goal_pose = end_effector_pose_;
+      goal_pose.position.z -= 0.02;
+      set_pose.request.pose.pose = goal_pose;
+      if(!set_end_effector_pose_client_.call(set_pose))
+	ROS_ERROR("[DVizNode] Failed to lower the end-effector!");
+      break;
+      break;
+    }
+  default:
+    break;
   }
 }

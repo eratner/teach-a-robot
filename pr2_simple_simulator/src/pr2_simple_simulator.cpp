@@ -73,6 +73,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   set_joint_states_service_ = nh.advertiseService("set_joints",
 						  &PR2SimpleSimulator::setJointPositions,
 						  this);
+  // Clienst can set the pose of the (right) end-effector.
+  set_end_effector_pose_service_ = nh.advertiseService("set_end_effector_pose",
+						       &PR2SimpleSimulator::setEndEffectorPose,
+						       this);
 
   // Attach an interactive marker to the base of the robot.
   updateRobotMarkers();
@@ -129,7 +133,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   control.always_visible = true;
   control.markers.clear();
   control.markers.push_back(r_gripper_marker);
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D;
+  //control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
   
@@ -258,6 +263,42 @@ void PR2SimpleSimulator::updateRobotMarkers()
   joint_states_pub_.publish(joint_states_);
 }
 
+bool PR2SimpleSimulator::setEndEffectorPose(pr2_simple_simulator::SetPose::Request  &req,
+					    pr2_simple_simulator::SetPose::Response &res)
+{
+  geometry_msgs::Pose goal_pose = req.pose.pose;
+
+  // Attempt to find joint angles for the arm using the arm IK solver.
+  std::vector<double> r_arm_joints(7, 0);
+  for(int i = 7; i < 14; ++i)
+  {
+    r_arm_joints[i-7] = joint_states_.position[i];
+  }
+
+  std::vector<double> goal_end_effector_pose(7, 0);
+  goal_end_effector_pose[0] = goal_pose.position.x;
+  goal_end_effector_pose[1] = goal_pose.position.y;
+  goal_end_effector_pose[2] = goal_pose.position.z;
+  goal_end_effector_pose[3] = goal_pose.orientation.x;
+  goal_end_effector_pose[4] = goal_pose.orientation.y;
+  goal_end_effector_pose[5] = goal_pose.orientation.z;
+  goal_end_effector_pose[6] = goal_pose.orientation.w;
+  
+  // Use IK to find the required joint angles for the arm.
+  std::vector<double> solution(7, 0);
+  if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
+  {
+    ROS_ERROR("[PR2SimpleSim] IK failed!");
+    return false;
+  }
+
+  // Set the new joint angles.
+  for(int i = 7; i < joint_states_.position.size(); ++i)
+    joint_states_.position[i] = solution[i-7];
+
+  return true;
+}
+
 void PR2SimpleSimulator::baseMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
 )
@@ -300,57 +341,11 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
     break;
   }
 
-  // Attempt to find joint angles for the arm using the arm IK solver.
-  std::vector<double> r_arm_joints(7, 0);
-  std::vector<double> end_effector_pose(6, 0);
-  // ROS_INFO("[PR2SimpleSim] Computing FK with current arm joint angles:");
-  for(int i = 7; i < 14; ++i)
+  pr2_simple_simulator::SetPose pose;
+  pose.request.pose.pose = feedback->pose;
+  if(!setEndEffectorPose(pose.request, pose.response))
   {
-    // ROS_INFO("%s : %f", joint_states_.name[i].c_str(), joint_states_.position[i]);
-    r_arm_joints[i-7] = joint_states_.position[i];
-  }
-  
-  // Find the pose of the end-effector in the map frame.
-  if(!kdl_robot_model_.computePlanningLinkFK(r_arm_joints, end_effector_pose))
-  {
-    ROS_ERROR("[PR2SimpleSim] FK failed!");
-  }
-  
-  // ROS_INFO("[PR2SimpleSim] Initial end-effector pose: position (%f, %f, %f) orientation (RPY): (%f, %f, %f)",
-  // 	   end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
-  // 	   end_effector_pose[3], end_effector_pose[4], end_effector_pose[5]);
-
-  std::vector<double> goal_end_effector_pose(7, 0);
-  goal_end_effector_pose[0] = feedback->pose.position.x;
-  goal_end_effector_pose[1] = feedback->pose.position.y;
-  goal_end_effector_pose[2] = feedback->pose.position.z;
-  goal_end_effector_pose[3] = feedback->pose.orientation.x;
-  goal_end_effector_pose[4] = feedback->pose.orientation.y;
-  goal_end_effector_pose[5] = feedback->pose.orientation.z;
-  goal_end_effector_pose[6] = feedback->pose.orientation.w;
-
-  // ROS_INFO("[PR2SimpleSim] Goal end-effector pose: position (%f, %f, %f) orientation: (%f, %f, %f, %f)",
-  // 	   goal_end_effector_pose[0], goal_end_effector_pose[1], goal_end_effector_pose[2],
-  // 	   goal_end_effector_pose[3], goal_end_effector_pose[4], goal_end_effector_pose[5],
-  // 	   goal_end_effector_pose[6]);
-
-  // Use IK to find the required joint angles for the arm.
-  std::vector<double> solution(7, 0);
-  if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
-  {
-    ROS_ERROR("[PR2SimpleSim] IK failed!");
-    // @todo change the gripper marker to red. How do we do this cleanly?
-  }
-  else
-  {
-    // Set the new joint angles.
-    for(int i = 7; i < joint_states_.position.size(); ++i)
-      joint_states_.position[i] = solution[i-7];
-
-    // ROS_INFO("[PR2SimpleSim] IK found the following joint angles for this end-effector pose:");
-    // std::vector<double>::iterator it;
-    // for(it = solution.begin(); it != solution.end(); ++it)
-    //   ROS_INFO("%f", *it);
+    ROS_ERROR("[PR2SimpleSim] Failed to set the end-effector to specified pose!");
   }
 }
 

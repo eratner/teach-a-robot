@@ -6,6 +6,7 @@
 
 #include <pr2_motion_recorder/FilePath.h>
 #include <pr2_simple_simulator/SetSpeed.h>
+#include <pr2_simple_simulator/SetPose.h>
 #include <std_srvs/Empty.h>
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
@@ -67,6 +68,8 @@ public:
 
   void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
 
+  void processKeyEvent(int key);
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
@@ -75,6 +78,7 @@ private:
   DemonstrationSceneManager *demonstration_scene_manager_;
   bool edit_goals_mode_;
   int current_goal_;
+  geometry_msgs::Pose end_effector_pose_;
 
   std::string global_frame_;
 
@@ -85,6 +89,7 @@ private:
 
   ros::ServiceClient reset_robot_client_;
   ros::ServiceClient set_robot_speed_client_;
+  ros::ServiceClient set_end_effector_pose_client_;
 
   ros::Publisher marker_pub_;
   

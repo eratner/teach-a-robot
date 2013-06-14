@@ -19,8 +19,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   resize(800, 600);
 
+  setFocusPolicy(Qt::StrongFocus);
+
   // Initialize Rviz visualization manager and render panel.
   render_panel_ = new rviz::RenderPanel();
+  render_panel_->installEventFilter(this);
   visualization_manager_ = new rviz::VisualizationManager(render_panel_);
 
   render_panel_->initialize(visualization_manager_->getSceneManager(), visualization_manager_);
@@ -176,6 +179,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(load_task, SIGNAL(clicked()), this, SLOT(loadTask()));
   connect(save_task, SIGNAL(clicked()), this, SLOT(saveTask()));
   connect(edit_goals, SIGNAL(stateChanged(int)), this, SLOT(setEditGoalsMode(int)));
+  connect(&node_, SIGNAL(goalComplete(int)), this, SLOT(notifyGoalComplete(int)));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -200,6 +204,36 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
 
   delete visualization_manager_;
   visualization_manager_ = 0;
+}
+
+void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
+{
+  switch(event->key())
+  {
+  case Qt::Key_Up:
+    node_.processKeyEvent(Qt::Key_Up);
+    break;
+  case Qt::Key_Down:
+    node_.processKeyEvent(Qt::Key_Down);
+    break;
+  default:
+    QWidget::keyPressEvent(event);
+    break;
+  }
+}
+
+bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
+{
+  if(event->type() == QEvent::KeyPress)
+  {
+    QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
+    keyPressEvent(key_event);
+    return true;
+  }
+  else
+  {
+    return QObject::eventFilter(obj, event);
+  }
 }
 
 void DemonstrationVisualizer::toggleGrid()
@@ -586,4 +620,25 @@ void DemonstrationVisualizer::addTaskGoal()
     desc = description.toStdString();
 
   node_.getSceneManager()->addGoal(geometry_msgs::Pose(), desc);
+}
+
+void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
+{
+  QMessageBox box;
+
+  std::stringstream text;
+  text << "Goal " << goal_number << " complete!";
+
+  if(goal_number+1 >= node_.getSceneManager()->getNumGoals())
+  {
+    text << " All goals complete!";
+  }
+  else
+  {
+    text << "Next goal:\n" << node_.getSceneManager()->getGoalDescription(goal_number+1);
+  }
+  
+  box.setText(QString(text.str().c_str()));
+
+  box.exec();
 }

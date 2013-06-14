@@ -20,6 +20,7 @@
 #include <QWidget>
 #include <QComboBox>
 #include <QLabel>
+#include <QKeyEvent>
 
 /* \brief A Qt-based application that provides a user interface for capturing 
           and replaying user demonstrations and creating demonstration scenes
@@ -32,6 +33,11 @@ public:
   DemonstrationVisualizer(int argc, char **argv, QWidget *parent = 0);
 
   virtual ~DemonstrationVisualizer();
+
+protected:
+  void keyPressEvent(QKeyEvent *event);
+
+  bool eventFilter(QObject *obj, QEvent *event);
 
 private Q_SLOTS:
   void toggleGrid();
@@ -66,6 +72,8 @@ private Q_SLOTS:
   void setAngularSpeed(double angular);
 
   void addTaskGoal();
+
+  void notifyGoalComplete(int);
 
 private:
   DemonstrationVisualizerNode node_;
