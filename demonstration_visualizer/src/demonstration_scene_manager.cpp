@@ -288,10 +288,10 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number, const geometry_m
   double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
 			      std::pow(goal_pose.position.y - pose.position.y, 2) +
 			      std::pow(goal_pose.position.z - pose.position.z, 2));
-  // @todo add angle.
+  // @todo add angle?
 
-  // Tolerance of 5cm.
-  if(distance < 0.05)
+  // Tolerance of 8cm.
+  if(distance < 0.08)
     return true;
 
   return false;
