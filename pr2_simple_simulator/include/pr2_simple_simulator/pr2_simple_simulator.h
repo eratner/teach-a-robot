@@ -79,6 +79,8 @@ private:
   KDL::Frame map_to_torso_lift_link_;
   std::map<std::string, int> joints_map_;
 
+  bool is_moving_r_gripper_;
+
 };
 
 #endif // PR2_SIMPLE_SIMULATOR_H

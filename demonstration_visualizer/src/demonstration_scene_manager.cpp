@@ -1,6 +1,7 @@
 #include "demonstration_visualizer/demonstration_scene_manager.h"
 
 DemonstrationSceneManager::DemonstrationSceneManager()
+  : goals_changed_(false)
 {
 
 }
@@ -89,6 +90,99 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
   doc.SaveFile(filename.c_str());
 }
 
+void DemonstrationSceneManager::loadTask(const std::string &filename)
+{
+  // Clear existing meshes.
+  goals_.clear();
+  setGoalsChanged(true);
+
+  // Load the demonstration scene from the specified file.
+  TiXmlDocument doc(filename.c_str());
+  if(!doc.LoadFile())
+  {
+    ROS_ERROR("Demonstration scene manager failed to load file %s!", filename.c_str());
+    return;
+  }
+
+  TiXmlHandle doc_handle(&doc);
+  TiXmlElement *element;
+  TiXmlHandle root_handle(0);
+
+  element = doc_handle.FirstChildElement().Element();
+  if(!element)
+  {
+    // @todo error
+    return;
+  }
+
+  root_handle = TiXmlHandle(element);
+
+  ROS_INFO("Reading %s...", element->Value());
+
+  // Read each goal.
+  element = root_handle.FirstChild().Element();
+  visualization_msgs::Marker goal_marker;
+  goal_marker.header.frame_id = "/map";
+
+  for(element; element; element = element->NextSiblingElement())
+  {
+    element->QueryIntAttribute("number", &goal_marker.id);
+    goal_marker.ns = std::string(element->Attribute("ns"));
+    element->QueryDoubleAttribute("position_x", &goal_marker.pose.position.x);
+    element->QueryDoubleAttribute("position_y", &goal_marker.pose.position.y);
+    element->QueryDoubleAttribute("position_z", &goal_marker.pose.position.z);
+    element->QueryDoubleAttribute("orientation_x", &goal_marker.pose.orientation.x);
+    element->QueryDoubleAttribute("orientation_y", &goal_marker.pose.orientation.y);
+    element->QueryDoubleAttribute("orientation_z", &goal_marker.pose.orientation.z);
+    element->QueryDoubleAttribute("orientation_w", &goal_marker.pose.orientation.w);
+
+    goal_marker.type = visualization_msgs::Marker::CUBE;
+    goal_marker.action = visualization_msgs::Marker::ADD;
+
+    // Cube with 20cm sides.
+    goal_marker.scale.x = 0.2;
+    goal_marker.scale.y = 0.2;
+    goal_marker.scale.z = 0.2;
+
+    goal_marker.color.r = 0;
+    goal_marker.color.g = 0;
+    goal_marker.color.b = 1;
+    goal_marker.color.a = 0.4;
+
+    goals_.push_back(goal_marker);
+  }
+
+  ROS_INFO("Read %d goals.", (int)goals_.size());
+}
+
+void DemonstrationSceneManager::saveTask(const std::string &filename)
+{
+  TiXmlDocument doc;
+  TiXmlElement *root = new TiXmlElement("task");
+  doc.LinkEndChild(root);
+
+  // Add each goal to the task description.
+  std::vector<visualization_msgs::Marker>::iterator it;
+  for(it = goals_.begin(); it != goals_.end(); ++it)
+  {
+    TiXmlElement *goal = new TiXmlElement("goal");
+
+    goal->SetAttribute("number", it->id);
+    goal->SetAttribute("ns", it->ns);
+    goal->SetDoubleAttribute("position_x", it->pose.position.x);
+    goal->SetDoubleAttribute("position_y", it->pose.position.y);
+    goal->SetDoubleAttribute("position_z", it->pose.position.z);
+    goal->SetDoubleAttribute("orientation_x", it->pose.orientation.x);
+    goal->SetDoubleAttribute("orientation_y", it->pose.orientation.y);
+    goal->SetDoubleAttribute("orientation_z", it->pose.orientation.z);
+    goal->SetDoubleAttribute("orientation_w", it->pose.orientation.w);
+  
+    root->LinkEndChild(goal);
+  }
+
+  doc.SaveFile(filename.c_str());
+}
+
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker)
 {
   meshes_.push_back(marker);
@@ -129,7 +223,80 @@ bool DemonstrationSceneManager::removeMesh(int mesh_id)
   return true;
 }
 
+void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, const std::string &frame)
+{
+  setGoalsChanged(true);
+
+  visualization_msgs::Marker goal;
+  goal.header.frame_id = frame;
+  goal.header.stamp = ros::Time();
+  goal.ns = "demonstration_visualizer_goal";
+  goal.id = goals_.size();
+  goal.type = visualization_msgs::Marker::CUBE;
+  goal.action = visualization_msgs::Marker::ADD;
+
+  goal.pose = pose;
+
+  // Cube with 20cm sides.
+  goal.scale.x = 0.2;
+  goal.scale.y = 0.2;
+  goal.scale.z = 0.2;
+
+  goal.color.r = 0;
+  goal.color.g = 0;
+  goal.color.b = 1;
+  goal.color.a = 0.4;
+
+  goals_.push_back(goal);
+}
+
+bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::Pose &pose)
+{
+  if(goal_number < 0 || goal_number >= goals_.size())
+  {
+    ROS_ERROR("Invalid goal number!");
+    return false;
+  }
+
+  setGoalsChanged(true);
+
+  goals_[goal_number].pose = pose;
+
+  return true;
+}
+
+visualization_msgs::Marker DemonstrationSceneManager::getGoal(int goal_number)
+{
+  if(goal_number < 0 || goal_number >= goals_.size())
+  {
+    ROS_ERROR("Invalid goal number!");
+    return visualization_msgs::Marker();
+  }
+
+  return goals_[goal_number];
+}
+
 std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getMeshes() const
 {
   return meshes_;
+}
+
+std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getGoals() const
+{
+  return goals_;
+}
+
+int DemonstrationSceneManager::getNumGoals() const
+{
+  return goals_.size();
+}
+
+bool DemonstrationSceneManager::goalsChanged() const
+{
+  return goals_changed_;
+}
+
+void DemonstrationSceneManager::setGoalsChanged(bool changed)
+{
+  goals_changed_ = changed;
 }

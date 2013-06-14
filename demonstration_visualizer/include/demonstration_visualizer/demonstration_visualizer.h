@@ -10,7 +10,6 @@
 #include <map>
 
 #include "demonstration_visualizer/demonstration_visualizer_node.h"
-#include "demonstration_visualizer/demonstration_scene_manager.h"
 
 #include "rviz/render_panel.h"
 #include "rviz/visualization_manager.h"
@@ -20,6 +19,7 @@
 
 #include <QWidget>
 #include <QComboBox>
+#include <QLabel>
 
 /* \brief A Qt-based application that provides a user interface for capturing 
           and replaying user demonstrations and creating demonstration scenes
@@ -35,6 +35,7 @@ public:
 
 private Q_SLOTS:
   void toggleGrid();
+  void resetRobot();
   void changeTool(int tool_index);
 
   // For recording PR2 motion.
@@ -53,17 +54,19 @@ private Q_SLOTS:
   void loadScene();
   void saveScene();
 
-  void selectMesh(int mesh_index);
+  // Load/save a demonstration task from file.
+  void loadTask();
+  void saveTask();
 
-  // Called whenever an interactive marker attached to a mesh is moved. 
-  void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+  void selectMesh(int mesh_index);
 
   void setLinearSpeed(double linear);
   void setAngularSpeed(double angular);
 
+  void addTaskGoal();
+
 private:
   DemonstrationVisualizerNode node_;
-  DemonstrationSceneManager   demonstration_scene_manager_;
 
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;
@@ -77,6 +80,9 @@ private:
   std::map<int, std::string> mesh_names_;
   int                        next_mesh_id_;
   int                        selected_mesh_;
+
+  QLabel                     *recording_icon_;
+  //QLabel                     *replaying_icon_;
 
 };
 

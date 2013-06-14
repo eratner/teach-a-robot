@@ -5,11 +5,15 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
   if(!init(argc, argv))
     ROS_ERROR("[DVizNode] Unable to connect to master!");
 
+  demonstration_scene_manager_ = new DemonstrationSceneManager();
+  edit_goals_mode_ = true;
+
   interactive_marker_server_ = new interactive_markers::InteractiveMarkerServer("mesh_marker");
 }
 
 DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 {
+  delete demonstration_scene_manager_;
   delete interactive_marker_server_;
 
   if(ros::isStarted())
@@ -96,6 +100,7 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
     // Attach an interactive marker to control this marker.
     visualization_msgs::InteractiveMarker int_marker;
     int_marker.header.frame_id = global_frame_;
+    int_marker.pose = msg.pose;
 
     // Give each interactive marker a unique name according to each mesh's unique id.
     std::stringstream marker_name;
@@ -104,45 +109,15 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
     int_marker.name = marker_name.str();
     int_marker.description = "Move Mesh";
 
-    visualization_msgs::InteractiveMarkerControl marker_control;
-    marker_control.always_visible = true;
-    marker_control.markers.push_back(msg);
-
-    int_marker.controls.push_back(marker_control);
-
+    // Add a non-interactive control for the mesh.
     visualization_msgs::InteractiveMarkerControl control;
-    control.orientation.w = 1;
-    control.orientation.x = 1;
-    control.orientation.y = 0;
-    control.orientation.z = 0;
-    control.name = "rotate_x";
-    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_x";
-    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+    control.always_visible = true;
+    control.markers.push_back(msg);
+
     int_marker.controls.push_back(control);
 
-    control.orientation.w = 1;
-    control.orientation.x = 0;
-    control.orientation.y = 1;
-    control.orientation.z = 0;
-    control.name = "rotate_z";
-    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_z";
-    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
-
-    control.orientation.w = 1;
-    control.orientation.x = 0;
-    control.orientation.y = 0;
-    control.orientation.z = 1;
-    control.name = "rotate_y";
-    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-    int_marker.controls.push_back(control);
-    control.name = "move_y";
-    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-    int_marker.controls.push_back(control);
+    // Attach a 6-DOF control for moving the mesh around.
+    attach6DOFControl(int_marker);
 
     interactive_marker_server_->insert(int_marker,
 				       boost::bind(
@@ -179,6 +154,8 @@ void DemonstrationVisualizerNode::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
+    updateTaskGoals();
+
     ros::spinOnce();
     rate.sleep();
   }
@@ -212,5 +189,107 @@ void DemonstrationVisualizerNode::resetRobot()
   if(!reset_robot_client_.call(empty))
   {
     ROS_ERROR("[DVizNode] Failed to reset the robot!");
+  }
+}
+
+void DemonstrationVisualizerNode::updateTaskGoals()
+{
+  if(getSceneManager()->getNumGoals() == 0)
+    return;
+
+  if(edit_goals_mode_ && !getSceneManager()->goalsChanged())
+    return;
+
+  // Draw each of the goals in the current task. 
+  if(edit_goals_mode_)
+  {
+    std::vector<visualization_msgs::Marker> goals = getSceneManager()->getGoals();
+    std::vector<visualization_msgs::Marker>::iterator it;
+    for(it = goals.begin(); it != goals.end(); ++it)
+    {
+      // Attach an interactive marker to control this marker.
+      visualization_msgs::InteractiveMarker int_marker;
+      int_marker.header.frame_id = global_frame_;
+      int_marker.pose = it->pose;
+
+      // Give each interactive marker a unique name according to each mesh's unique id.
+      std::stringstream marker_name;
+      marker_name << "goal_marker_" << it->id;
+
+      int_marker.name = marker_name.str();
+
+      std::stringstream marker_desc;
+      marker_desc << "Goal " << it->id;
+      int_marker.description = marker_desc.str();
+
+      // Add a non-interactive control for the mesh.
+      visualization_msgs::InteractiveMarkerControl control;
+      control.always_visible = true;
+      control.markers.push_back(*it);
+
+      int_marker.controls.push_back(control);
+
+      // Attach a 6-DOF control for moving the mesh around.
+      attach6DOFControl(int_marker);
+
+      interactive_marker_server_->insert(int_marker,
+					 boost::bind(&DemonstrationVisualizerNode::processGoalFeedback,
+						     this,
+						     _1));
+      interactive_marker_server_->applyChanges();
+    }
+  }
+  else // Otherwise, just draw the current goal.
+  {
+    if(getSceneManager()->getNumGoals() > 0)
+      marker_pub_.publish(getSceneManager()->getGoal(0));
+  }
+
+  getSceneManager()->setGoalsChanged(false);
+}
+
+void DemonstrationVisualizerNode::processGoalFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  int i;
+  for(i = feedback->marker_name.size()-1; i >= 0; --i)
+  {
+    if(feedback->marker_name.at(i) == '_')
+      break;
+  }
+  
+  ROS_INFO("goals %d, goal number %d.", getSceneManager()->getNumGoals(),
+	   atoi(feedback->marker_name.substr(i+1).c_str()));
+
+  if(!getSceneManager()->moveGoal(atoi(feedback->marker_name.substr(i+1).c_str()),
+				  feedback->pose))
+  {
+    ROS_ERROR("[DVizNode] Demonstration scene manager failed to update task goal pose!");
+  }  
+
+  getSceneManager()->setGoalsChanged(true);
+}
+
+DemonstrationSceneManager *DemonstrationVisualizerNode::getSceneManager()
+{
+  return demonstration_scene_manager_;
+}
+
+void DemonstrationVisualizerNode::interactiveMarkerFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  int i;
+  for(i = feedback->marker_name.size()-1; i >= 0; --i)
+  {
+    if(feedback->marker_name.at(i) == '_')
+      break;
+  }
+
+  if(!getSceneManager()->updateMeshPose(atoi(feedback->marker_name.substr(i+1).c_str()),
+					feedback->pose))
+  {
+    ROS_ERROR("[DVizNode] Demonstration scene manager failed to update pose of mesh!");
   }
 }

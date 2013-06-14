@@ -7,7 +7,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QDoubleSpinBox>
-#include <QLabel>
+#include <QPixmap>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -26,6 +26,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // Initialize the window layout.
   QPushButton *toggle_grid = new QPushButton("Toggle Grid", this);
+  QPushButton *reset_robot = new QPushButton("Reset Robot", this);
 
   // Recording control panel.
   QHBoxLayout *recording_controls = new QHBoxLayout();
@@ -90,8 +91,17 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   angular_speed_control->setSingleStep(0.1);
   angular_speed_control->setValue(0.2);
 
+  // Controls for managing the current task.
+  QPushButton *add_goal = new QPushButton("Add Goal to Task");
+  QHBoxLayout *task_panel = new QHBoxLayout();
+  QPushButton *load_task = new QPushButton("Load Task");
+  task_panel->addWidget(load_task);
+  QPushButton *save_task = new QPushButton("Save Task");
+  task_panel->addWidget(save_task);
+
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
+  controls_layout->addWidget(reset_robot);
   controls_layout->addLayout(recording_controls);
   controls_layout->addLayout(replay_controls);
   controls_layout->addLayout(mesh_controls);
@@ -100,10 +110,18 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addWidget(select_tool);
   controls_layout->addLayout(linear_speed_panel);
   controls_layout->addLayout(angular_speed_panel);
+  controls_layout->addWidget(add_goal);
+  controls_layout->addLayout(task_panel);
+
+  recording_icon_ = new QLabel();
+  //recording_icon_->setPixmap(QPixmap("/home/eratner/Desktop/recording.png"));
+  recording_icon_->setAlignment(Qt::AlignLeft);
+  recording_icon_->hide();
 
   QGridLayout *window_layout = new QGridLayout();
   window_layout->addLayout(controls_layout, 0, 0, 1, 1);
   window_layout->addWidget(render_panel_, 0, 1, 2, 3);
+  window_layout->addWidget(recording_icon_, 1, 0, 1, 1, Qt::AlignBottom);
 
   // Create and display a grid.
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
@@ -135,6 +153,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
+  connect(reset_robot, SIGNAL(clicked()), this, SLOT(resetRobot()));
   connect(begin_recording, SIGNAL(clicked()), this, SLOT(beginRecording()));
   connect(end_recording, SIGNAL(clicked()), this, SLOT(endRecording()));
   connect(select_tool, SIGNAL(currentIndexChanged(int)), this, SLOT(changeTool(int)));
@@ -145,12 +164,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(delete_mesh, SIGNAL(clicked()), this, SLOT(deleteMesh()));
   connect(load_scene, SIGNAL(clicked()), this, SLOT(loadScene()));
   connect(save_scene, SIGNAL(clicked()), this, SLOT(saveScene()));
-  connect(&node_, 
-	  SIGNAL(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)),
-	  this,
-	  SLOT(interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &)));
   connect(linear_speed_control, SIGNAL(valueChanged(double)), this, SLOT(setLinearSpeed(double)));
   connect(angular_speed_control, SIGNAL(valueChanged(double)), this, SLOT(setAngularSpeed(double)));
+  connect(add_goal, SIGNAL(clicked()), this, SLOT(addTaskGoal()));
+  connect(load_task, SIGNAL(clicked()), this, SLOT(loadTask()));
+  connect(save_task, SIGNAL(clicked()), this, SLOT(saveTask()));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -191,6 +209,11 @@ void DemonstrationVisualizer::toggleGrid()
   }
 }
 
+void DemonstrationVisualizer::resetRobot()
+{
+  node_.resetRobot();
+}
+
 void DemonstrationVisualizer::changeTool(int tool_index)
 {
   if(tool_index == 0)
@@ -225,6 +248,8 @@ void DemonstrationVisualizer::beginRecording()
     return;
   }
 
+  recording_icon_->show();
+
   ROS_INFO("Recording to %s", directory.toLocal8Bit().data());
 }
 
@@ -236,6 +261,8 @@ void DemonstrationVisualizer::endRecording()
     ROS_ERROR("Failed to call service /motion_recorder/end_recording.");
     return;
   }
+
+  recording_icon_->hide();
 
   ROS_INFO("Recording has ended.");
 }
@@ -325,7 +352,7 @@ void DemonstrationVisualizer::loadMesh()
 						     0.0,
 						     true);
 
-  demonstration_scene_manager_.addMesh(marker);
+  node_.getSceneManager()->addMesh(marker);
  
   node_.publishVisualizationMarker(marker, true);
 }
@@ -348,7 +375,7 @@ void DemonstrationVisualizer::deleteMesh()
     ROS_ERROR("Failed to remove interactive marker!");
   }
 
-  demonstration_scene_manager_.removeMesh(selected_mesh_);
+  node_.getSceneManager()->removeMesh(selected_mesh_);
 
   // @todo it would be cleaner to let the demonstration scene manager handle this.
   select_mesh_->removeItem(select_mesh_->findData(QVariant(selected_mesh_)));
@@ -382,11 +409,11 @@ void DemonstrationVisualizer::loadScene()
   case QMessageBox::Yes:
     {
       // Load the scene into the demonstration scene manager.
-      demonstration_scene_manager_.loadScene(filename.toStdString());
+      node_.getSceneManager()->loadScene(filename.toStdString());
       
       // Re-publish each mesh marker.
       node_.clearInteractiveMarkers();
-      std::vector<visualization_msgs::Marker> meshes = demonstration_scene_manager_.getMeshes();
+      std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
       std::vector<visualization_msgs::Marker>::iterator it;
       int max_mesh_id = -1;
       for(it = meshes.begin(); it != meshes.end(); ++it)
@@ -447,7 +474,56 @@ void DemonstrationVisualizer::saveScene()
     return;
   }
 
-  demonstration_scene_manager_.saveScene(filename.toStdString());
+  node_.getSceneManager()->saveScene(filename.toStdString());
+}
+
+void DemonstrationVisualizer::loadTask()
+{
+  QString filename = QFileDialog::getOpenFileName(this, 
+						  tr("Open Demonstration Task File"),
+						  "/home",
+						  tr("Demonstration Task Files (*.xml)"));
+
+  if(filename.isEmpty())
+  {
+    ROS_INFO("No file selected.");
+    return;
+  }  
+
+  switch(QMessageBox::warning(this,
+			      "Clear Current Demonstration Task?",
+			      "Loading a new scene will clear the current demonstration task."
+			      " Are you sure you wish to do this?",
+			      QMessageBox::Yes, QMessageBox::No))
+  {
+  case QMessageBox::Yes:
+    {
+      // Load the task into the demonstration scene manager.
+      node_.getSceneManager()->loadTask(filename.toStdString());
+      break;
+    }
+  case QMessageBox::No:
+    break;
+  default:
+    ROS_ERROR("[DViz] An error has occured in loading the task!");
+    break;
+  }
+}
+
+void DemonstrationVisualizer::saveTask()
+{
+  QString filename = QFileDialog::getSaveFileName(this, 
+						  tr("Save Demonstration Task File"),
+						  "/home",
+						  tr("Demonstration Task Files (*.xml)"));
+
+  if(filename.isEmpty())
+  {
+    ROS_INFO("No file selected.");
+    return;
+  }
+
+  node_.getSceneManager()->saveTask(filename.toStdString());
 }
 
 void DemonstrationVisualizer::selectMesh(int mesh_index)
@@ -460,24 +536,6 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
   }
 }
 
-void DemonstrationVisualizer::interactiveMarkerFeedback(
-    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
-  )
-{
-  int i;
-  for(i = feedback->marker_name.size()-1; i >= 0; --i)
-  {
-    if(feedback->marker_name.at(i) == '_')
-      break;
-  }
-
-  if(!demonstration_scene_manager_.updateMeshPose(atoi(feedback->marker_name.substr(i+1).c_str()),
-						  feedback->pose))
-  {
-    ROS_ERROR("Demonstration scene manager failed to update pose!");
-  }
-}
-
 void DemonstrationVisualizer::setLinearSpeed(double linear)
 {
   node_.setRobotSpeed(linear, 0);
@@ -486,4 +544,9 @@ void DemonstrationVisualizer::setLinearSpeed(double linear)
 void DemonstrationVisualizer::setAngularSpeed(double angular)
 {
   node_.setRobotSpeed(0, angular);
+}
+
+void DemonstrationVisualizer::addTaskGoal()
+{
+  node_.getSceneManager()->addGoal();
 }

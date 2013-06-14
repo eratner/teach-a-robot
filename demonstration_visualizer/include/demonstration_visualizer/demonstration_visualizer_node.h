@@ -13,6 +13,7 @@
 #include <interactive_markers/tools.h>
 
 #include "demonstration_visualizer/visualization_helpers.h"
+#include "demonstration_visualizer/demonstration_scene_manager.h"
 #include <cmath>
 
 #include <QThread>
@@ -52,11 +53,21 @@ public:
 
   void resetRobot();
 
-Q_SIGNALS:
-  void rosShutdown();
+  void updateTaskGoals();
+
+  void processGoalFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
+  DemonstrationSceneManager *getSceneManager();
+
   void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
+Q_SIGNALS:
+  void rosShutdown();
+
 private:
+  DemonstrationSceneManager *demonstration_scene_manager_;
+  bool edit_goals_mode_;
+
   std::string global_frame_;
 
   ros::ServiceClient begin_recording_client_;

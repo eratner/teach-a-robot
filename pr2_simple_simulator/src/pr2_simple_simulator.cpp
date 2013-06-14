@@ -20,6 +20,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_pose_.pose.orientation.z = 0;
   base_pose_.pose.orientation.w = 1;
 
+  goal_pose_ = base_pose_;
+
   // Initialize the joint states.
   joint_states_.name.resize(14);
   joint_states_.name[0] = "l_shoulder_pan_joint";
@@ -90,6 +92,9 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_marker.scale.x = 1.2;
   base_marker.scale.y = 1.2;
   base_marker.scale.z = 1.2;
+  base_marker.color.r = 0;
+  base_marker.color.g = 1;
+  base_marker.color.b = 0;
   control.markers.push_back(base_marker);
   control.always_visible = true;
   int_marker.controls.push_back(control);
@@ -106,20 +111,23 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   int_marker_server_.applyChanges();
 
   // Attach an interactive marker to the end effectors of the robot.
-  visualization_msgs::Marker r_ee_marker = robot_markers_.markers.at(11);
+  visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
 
   int_marker.header.frame_id = "/map";
-  int_marker.pose = r_ee_marker.pose;
-  int_marker.name = "r_ee_marker";
+  int_marker.pose = r_gripper_marker.pose;
+  int_marker.name = "r_gripper_marker";
   int_marker.description = "";
 
-  r_ee_marker.scale.x = 1.2;
-  r_ee_marker.scale.y = 1.2;
-  r_ee_marker.scale.z = 1.2;
+  r_gripper_marker.scale.x = 1.2;
+  r_gripper_marker.scale.y = 1.2;
+  r_gripper_marker.scale.z = 1.2;
+  r_gripper_marker.color.r = 0;
+  r_gripper_marker.color.g = 1;
+  r_gripper_marker.color.b = 0;
 
   control.always_visible = true;
   control.markers.clear();
-  control.markers.push_back(r_ee_marker);
+  control.markers.push_back(r_gripper_marker);
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
@@ -153,6 +161,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 
   // Set the map to torso_lift_link transform.
   updateTransforms();
+
+  is_moving_r_gripper_ = false;
 }
 
 PR2SimpleSimulator::~PR2SimpleSimulator()
@@ -230,6 +240,12 @@ void PR2SimpleSimulator::updateRobotMarkers()
   body.theta = body_pos[2];
   robot_markers_ = pviz_.getRobotMarkerMsg(r_joints_pos, l_joints_pos, body, 0.3, "simple_sim", 0);
 
+  if(!is_moving_r_gripper_)
+  {
+    int_marker_server_.setPose("r_gripper_marker", robot_markers_.markers.at(11).pose);
+    int_marker_server_.applyChanges();
+  }
+
   // Publish the state of the joints as they are being visualized.
   joint_states_pub_.publish(joint_states_);
 }
@@ -264,6 +280,18 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
 )
 {
+  switch(feedback->event_type)
+  {
+  case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
+    is_moving_r_gripper_ = true;
+    break;
+  case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
+    is_moving_r_gripper_ = false;
+    break;
+  default:
+    break;
+  }
+
   // Attempt to find joint angles for the arm using the arm IK solver.
   std::vector<double> r_arm_joints(7, 0);
   std::vector<double> end_effector_pose(6, 0);
@@ -303,6 +331,7 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
   if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
   {
     ROS_ERROR("[PR2SimpleSim] IK failed!");
+    // @todo change the gripper marker to red. How do we do this cleanly?
   }
   else
   {
@@ -370,6 +399,13 @@ bool PR2SimpleSimulator::setRobotPose(pr2_simple_simulator::SetPose::Request  &r
 				      pr2_simple_simulator::SetPose::Response &res)
 {
   base_pose_ = req.pose;
+
+  if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
+     base_movement_controller_.getState() == BaseMovementController::DONE)
+  {
+    int_marker_server_.setPose("base_marker", base_pose_.pose);
+    int_marker_server_.applyChanges();
+  }
 
   return true;
 }
