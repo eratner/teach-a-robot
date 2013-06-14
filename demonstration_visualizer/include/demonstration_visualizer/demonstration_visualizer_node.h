@@ -65,8 +65,11 @@ public:
   
   void setCurrentGoal(int goal_number);
 
+  void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
+
 Q_SIGNALS:
   void rosShutdown();
+  void goalComplete(int);
 
 private:
   DemonstrationSceneManager *demonstration_scene_manager_;
@@ -84,6 +87,8 @@ private:
   ros::ServiceClient set_robot_speed_client_;
 
   ros::Publisher marker_pub_;
+  
+  ros::Subscriber end_effector_pose_sub_;
 
   interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
 

@@ -7,6 +7,7 @@
 #include <tinyxml.h>
 #include <string>
 #include <vector>
+#include <cmath>
 
 class DemonstrationSceneManager
 {
@@ -30,11 +31,15 @@ public:
   bool removeMesh(int mesh_id);
 
   // Adds an additional goal to the current task, at the end. 
-  void addGoal(const geometry_msgs::Pose &pose = geometry_msgs::Pose(), const std::string &frame = "/map");
+  void addGoal(const geometry_msgs::Pose &pose = geometry_msgs::Pose(), 
+	       const std::string &desc = "",
+	       const std::string &frame = "/map");
 
   bool moveGoal(int goal_number, const geometry_msgs::Pose &pose);
 
   visualization_msgs::Marker getGoal(int goal_number);
+
+  bool hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose);
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 
@@ -46,11 +51,16 @@ public:
 
   void setGoalsChanged(bool);
 
+  void setGoalDescription(int goal_number, const std::string &desc);
+
+  std::string getGoalDescription(int goal_number) const;
+
 private:
   bool goals_changed_;
 
   std::vector<visualization_msgs::Marker> meshes_;
   std::vector<visualization_msgs::Marker> goals_;
+  std::vector<std::string> goal_descriptions_;
 
 };
 

@@ -9,6 +9,8 @@
 #include <QDoubleSpinBox>
 #include <QPixmap>
 #include <QCheckBox>
+#include <QInputDialog>
+#include <QLineEdit>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -571,5 +573,17 @@ void DemonstrationVisualizer::setAngularSpeed(double angular)
 
 void DemonstrationVisualizer::addTaskGoal()
 {
-  node_.getSceneManager()->addGoal();
+  bool ok;
+  QString description = QInputDialog::getText(this,
+					      tr("Add a Goal Description"),
+					      tr("Description:"),
+					      QLineEdit::Normal,
+					      "",
+					      &ok);
+
+  std::string desc = "";
+  if(ok)
+    desc = description.toStdString();
+
+  node_.getSceneManager()->addGoal(geometry_msgs::Pose(), desc);
 }

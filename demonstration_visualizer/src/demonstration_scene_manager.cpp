@@ -128,6 +128,7 @@ void DemonstrationSceneManager::loadTask(const std::string &filename)
   {
     element->QueryIntAttribute("number", &goal_marker.id);
     goal_marker.ns = std::string(element->Attribute("ns"));
+    std::string goal_desc = std::string(element->Attribute("desc"));
     element->QueryDoubleAttribute("position_x", &goal_marker.pose.position.x);
     element->QueryDoubleAttribute("position_y", &goal_marker.pose.position.y);
     element->QueryDoubleAttribute("position_z", &goal_marker.pose.position.z);
@@ -139,10 +140,10 @@ void DemonstrationSceneManager::loadTask(const std::string &filename)
     goal_marker.type = visualization_msgs::Marker::CUBE;
     goal_marker.action = visualization_msgs::Marker::ADD;
 
-    // Cube with 20cm sides.
-    goal_marker.scale.x = 0.2;
-    goal_marker.scale.y = 0.2;
-    goal_marker.scale.z = 0.2;
+    // Cube with 10cm sides.
+    goal_marker.scale.x = 0.1;
+    goal_marker.scale.y = 0.1;
+    goal_marker.scale.z = 0.1;
 
     goal_marker.color.r = 0;
     goal_marker.color.g = 0;
@@ -150,6 +151,7 @@ void DemonstrationSceneManager::loadTask(const std::string &filename)
     goal_marker.color.a = 0.4;
 
     goals_.push_back(goal_marker);
+    goal_descriptions_.push_back(goal_desc);
   }
 
   ROS_INFO("Read %d goals.", (int)goals_.size());
@@ -169,6 +171,7 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
 
     goal->SetAttribute("number", it->id);
     goal->SetAttribute("ns", it->ns);
+    goal->SetAttribute("desc", goal_descriptions_[it->id]);
     goal->SetDoubleAttribute("position_x", it->pose.position.x);
     goal->SetDoubleAttribute("position_y", it->pose.position.y);
     goal->SetDoubleAttribute("position_z", it->pose.position.z);
@@ -223,7 +226,9 @@ bool DemonstrationSceneManager::removeMesh(int mesh_id)
   return true;
 }
 
-void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, const std::string &frame)
+void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, 
+					const std::string &desc,
+					const std::string &frame)
 {
   setGoalsChanged(true);
 
@@ -237,10 +242,10 @@ void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, const s
 
   goal.pose = pose;
 
-  // Cube with 20cm sides.
-  goal.scale.x = 0.2;
-  goal.scale.y = 0.2;
-  goal.scale.z = 0.2;
+  // Cube with 10cm sides.
+  goal.scale.x = 0.1;
+  goal.scale.y = 0.1;
+  goal.scale.z = 0.1;
 
   goal.color.r = 0;
   goal.color.g = 0;
@@ -248,6 +253,7 @@ void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, const s
   goal.color.a = 0.4;
 
   goals_.push_back(goal);
+  goal_descriptions_.push_back(desc);
 }
 
 bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::Pose &pose)
@@ -276,6 +282,21 @@ visualization_msgs::Marker DemonstrationSceneManager::getGoal(int goal_number)
   return goals_[goal_number];
 }
 
+bool DemonstrationSceneManager::hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose)
+{
+  geometry_msgs::Pose goal_pose = getGoal(goal_number).pose;
+  double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
+			      std::pow(goal_pose.position.y - pose.position.y, 2) +
+			      std::pow(goal_pose.position.z - pose.position.z, 2));
+  // @todo add angle.
+
+  // Tolerance of 5cm.
+  if(distance < 0.05)
+    return true;
+
+  return false;
+}
+
 std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getMeshes() const
 {
   return meshes_;
@@ -299,4 +320,26 @@ bool DemonstrationSceneManager::goalsChanged() const
 void DemonstrationSceneManager::setGoalsChanged(bool changed)
 {
   goals_changed_ = changed;
+}
+
+void DemonstrationSceneManager::setGoalDescription(int goal_number, const std::string &desc)
+{
+  if(goal_number < 0 || goal_number >= getNumGoals())
+  {
+    ROS_ERROR("Invalid goal number!");
+    return;
+  }
+
+  goal_descriptions_[goal_number] = desc;
+}
+
+std::string DemonstrationSceneManager::getGoalDescription(int goal_number) const
+{
+  if(goal_number < 0 || goal_number >= getNumGoals())
+  {
+    ROS_ERROR("Invalid goal number!");
+    return "";
+  }
+
+  return goal_descriptions_[goal_number];
 }

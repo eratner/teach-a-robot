@@ -53,6 +53,11 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
 
+  // Subscribe to the pose of the (right) end effector.
+  end_effector_pose_sub_ = nh.subscribe("/end_effector_pose", 10, 
+					&DemonstrationVisualizerNode::updateEndEffectorPose,
+					this);
+
   // Start the thread.
   start();
 
@@ -248,7 +253,8 @@ void DemonstrationVisualizerNode::updateTaskGoals()
   }
   else // Otherwise, just draw the current goal.
   {
-    // Clear the existing goal markers.
+    // Clear the existing goal markers and interactive markers, and just draw the 
+    // current goal.
     std::vector<visualization_msgs::Marker> goals = getSceneManager()->getGoals();
     std::vector<visualization_msgs::Marker>::iterator it;
     for(it = goals.begin(); it != goals.end(); ++it)
@@ -258,15 +264,20 @@ void DemonstrationVisualizerNode::updateTaskGoals()
       marker_name << "goal_marker_" << it->id;
 
       interactive_marker_server_->erase(marker_name.str());
+
+      if(it->id != current_goal_)
+	it->action = visualization_msgs::Marker::DELETE;
+
+      marker_pub_.publish(*it);
     }
     interactive_marker_server_->applyChanges();
 
     // Draw the current goal.
-    if(getSceneManager()->getNumGoals() > 0)
-    {
-      //ROS_INFO("Getting goal %d.", current_goal_);
-      marker_pub_.publish(getSceneManager()->getGoal(current_goal_));
-    }
+    // if(getSceneManager()->getNumGoals() > 0)
+    // {
+    //   //ROS_INFO("Getting goal %d.", current_goal_);
+    //   marker_pub_.publish(getSceneManager()->getGoal(current_goal_));
+    // }
   }
 
   getSceneManager()->setGoalsChanged(false);
@@ -329,4 +340,19 @@ void DemonstrationVisualizerNode::setCurrentGoal(int goal_number)
   }
 
   current_goal_ = goal_number;
+}
+
+void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::PoseStamped &pose)
+{
+  if(edit_goals_mode_ || current_goal_ >= getSceneManager()->getNumGoals())
+    return;
+
+  if(getSceneManager()->hasReachedGoal(current_goal_, pose.pose))
+  {
+    ROS_INFO("[DVizNode] Reached goal %d!", current_goal_);
+    current_goal_++;
+    getSceneManager()->setGoalsChanged(true);
+
+    Q_EMIT goalComplete(current_goal_-1);
+  }
 }
