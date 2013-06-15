@@ -1,3 +1,7 @@
+/**
+ * @author Ellis Ratner
+ * @date June 2013
+ */
 #ifndef DEMONSTRATION_SCENE_MANAGER_H
 #define DEMONSTRATION_SCENE_MANAGER_H
 
@@ -9,6 +13,12 @@
 #include <vector>
 #include <cmath>
 
+/**
+ * @brief This manages the demonstration scene and current task. Demonstration
+ *        scenes are comprised of a collection of meshes, and tasks are 
+ *        essentially ordered lists of goals. Both scenes and tasks can be 
+ *        saved to/loaded from scene and task XML files, respectively.
+ */
 class DemonstrationSceneManager
 {
 public:

@@ -1,3 +1,7 @@
+/**
+ * @author Ellis Ratner
+ * @date June 2013
+ */
 #ifndef DEMONSTRATION_VISUALIZER
 #define DEMONSTRATION_VISUALIZER
 
@@ -22,10 +26,12 @@
 #include <QLabel>
 #include <QKeyEvent>
 
-/* \brief A Qt-based application that provides a user interface for capturing 
-          and replaying user demonstrations and creating demonstration scenes
-	  from a collection of meshes.
-*/
+/**
+ *  @brief A Qt-based application that provides a user interface for capturing 
+ *         and replaying user demonstrations and creating demonstration scenes
+ *	   from a collection of meshes. This class primarily handles the user 
+ *         interface.
+ */
 class DemonstrationVisualizer : public QWidget
 {
 Q_OBJECT
@@ -37,11 +43,21 @@ public:
 protected:
   void keyPressEvent(QKeyEvent *event);
 
+  void keyReleaseEvent(QKeyEvent *event);
+
   bool eventFilter(QObject *obj, QEvent *event);
 
 private Q_SLOTS:
+  /**
+   * @brief Toggles the visibility of the grid.
+   */
   void toggleGrid();
+
+  /**
+   * @brief Resets the state of the robot.
+   */
   void resetRobot();
+
   void changeTool(int tool_index);
 
   // For recording PR2 motion.

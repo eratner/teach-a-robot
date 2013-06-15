@@ -49,11 +49,11 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
   // Service for setting the speed of the robot.
   set_robot_speed_client_ = nh.serviceClient<pr2_simple_simulator::SetSpeed>("/set_speed");
-  // Service for setting the pose of the (right) end-effector.
-  set_end_effector_pose_client_ = nh.serviceClient<pr2_simple_simulator::SetPose>("/set_end_effector_pose");
 
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
+  // Advertise topic for publishing end-effector velocity commands.
+  end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 0);
 
   // Subscribe to the pose of the (right) end effector.
   end_effector_pose_sub_ = nh.subscribe("/end_effector_pose", 10, 
@@ -354,31 +354,46 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
   }
 }
 
-void DemonstrationVisualizerNode::processKeyEvent(int key)
+void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
 {
   switch(key)
   {
   case Qt::Key_Up:
     {
+      ROS_INFO("UP");
       // Move the end-effector in the positive z-direction.
-      pr2_simple_simulator::SetPose set_pose;
-      geometry_msgs::Pose goal_pose = end_effector_pose_;
-      goal_pose.position.z += 0.02;
-      set_pose.request.pose.pose = goal_pose;
-      if(!set_end_effector_pose_client_.call(set_pose))
-	ROS_ERROR("[DVizNode] Failed to raise the end-effector!");
+      if(type == QEvent::KeyPress)
+      {
+	geometry_msgs::Twist vel;
+	vel.linear.x = vel.linear.y = 0;
+	vel.linear.z = 0.2; // @todo (hack) weird? why does it have to be so high?
+	end_effector_vel_cmd_pub_.publish(vel);
+      }
+      else if(type == QEvent::KeyRelease)
+      {
+	geometry_msgs::Twist vel;
+	vel.linear.x = vel.linear.y = vel.linear.z = 0;
+	end_effector_vel_cmd_pub_.publish(vel);
+      }
       break;
     }
   case Qt::Key_Down:
     {
+      ROS_INFO("DOWN");
       // Move the end-effector in the negative z-direction.
-      pr2_simple_simulator::SetPose set_pose;
-      geometry_msgs::Pose goal_pose = end_effector_pose_;
-      goal_pose.position.z -= 0.02;
-      set_pose.request.pose.pose = goal_pose;
-      if(!set_end_effector_pose_client_.call(set_pose))
-	ROS_ERROR("[DVizNode] Failed to lower the end-effector!");
-      break;
+      if(type == QEvent::KeyPress)
+      {
+	geometry_msgs::Twist vel;
+	vel.linear.x = vel.linear.y = 0;
+	vel.linear.z = -0.02; // 2 cm/s.
+	end_effector_vel_cmd_pub_.publish(vel);
+      }
+      else if(type == QEvent::KeyRelease)
+      {
+	geometry_msgs::Twist vel;
+	vel.linear.x = vel.linear.y = vel.linear.z = 0;
+	end_effector_vel_cmd_pub_.publish(vel);
+      }
       break;
     }
   default:

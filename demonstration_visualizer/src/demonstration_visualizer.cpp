@@ -211,13 +211,29 @@ void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
   switch(event->key())
   {
   case Qt::Key_Up:
-    node_.processKeyEvent(Qt::Key_Up);
+    node_.processKeyEvent(Qt::Key_Up, QEvent::KeyPress);
     break;
   case Qt::Key_Down:
-    node_.processKeyEvent(Qt::Key_Down);
+    node_.processKeyEvent(Qt::Key_Down, QEvent::KeyPress);
     break;
   default:
     QWidget::keyPressEvent(event);
+    break;
+  }
+}
+
+void DemonstrationVisualizer::keyReleaseEvent(QKeyEvent *event)
+{
+  switch(event->key())
+  {
+  case Qt::Key_Up:
+    node_.processKeyEvent(Qt::Key_Up, QEvent::KeyRelease);
+    break;
+  case Qt::Key_Down:
+    node_.processKeyEvent(Qt::Key_Down, QEvent::KeyRelease);
+    break;
+  default:
+    QWidget::keyReleaseEvent(event);
     break;
   }
 }
@@ -228,6 +244,12 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   {
     QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
     keyPressEvent(key_event);
+    return true;
+  }
+  else if(event->type() == QEvent::KeyRelease)
+  {
+    QKeyEvent *key_event = static_cast<QKeyEvent *>(event);
+    keyReleaseEvent(key_event);
     return true;
   }
   else

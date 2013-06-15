@@ -9,6 +9,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.linear.z = 0;
   vel_cmd_.angular.x = vel_cmd_.angular.y = vel_cmd_.angular.z = 0;
 
+  // Initialize the velocity command for the end-effector (initially at rest).
+  end_effector_vel_cmd_.linear.x = end_effector_vel_cmd_.linear.y = end_effector_vel_cmd_.linear.z = 0;
+  end_effector_vel_cmd_.angular.x = end_effector_vel_cmd_.angular.y = end_effector_vel_cmd_.angular.z = 0;
+
   // Initialize the base pose.
   base_pose_.header.stamp = ros::Time();
   base_pose_.header.frame_id = "/map";
@@ -53,6 +57,11 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 			      &PR2SimpleSimulator::updateVelocity,
 			      this);
 
+  end_effector_vel_cmd_sub_ = nh.subscribe("end_effector_vel_cmd",
+					   100,
+					   &PR2SimpleSimulator::updateEndEffectorVelocity,
+					   this);
+
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
   end_effector_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("end_effector_pose", 20);
@@ -73,13 +82,14 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   set_joint_states_service_ = nh.advertiseService("set_joints",
 						  &PR2SimpleSimulator::setJointPositions,
 						  this);
-  // Clienst can set the pose of the (right) end-effector.
-  set_end_effector_pose_service_ = nh.advertiseService("set_end_effector_pose",
-						       &PR2SimpleSimulator::setEndEffectorPose,
-						       this);
 
   // Attach an interactive marker to the base of the robot.
-  updateRobotMarkers();
+  visualizeRobot();
+  
+  // Initialize the end-effector pose.
+  end_effector_pose_.header.frame_id = "/map";
+  end_effector_pose_.header.stamp = ros::Time();
+  end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
 
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = "/map";
@@ -133,7 +143,6 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   control.always_visible = true;
   control.markers.clear();
   control.markers.push_back(r_gripper_marker);
-  //control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_ROTATE_3D;
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
@@ -153,17 +162,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   }
   nh.param<std::string>(robot_param, robot_description, "");
   std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end());
-  // for(std::vector<string>::iterator it = planning_joints.begin();
-  //     it != planning_joints.end();
-  //     ++it)
-  // {
-  //   ROS_INFO("[PR2SimpleSim] planning joint %s", it->c_str());
-  // }
   kdl_robot_model_.init(robot_description, planning_joints);
   kdl_robot_model_.setPlanningLink("r_wrist_roll_link");
-
-  // ROS_INFO("[PR2SimpleSim] Torso pose: (%f, %f, %f)", robot_markers_.markers.at(1).pose.position.x,
-  // 	   robot_markers_.markers.at(1).pose.position.y, robot_markers_.markers.at(1).pose.position.z);
 
   // Set the map to torso_lift_link transform.
   updateTransforms();
@@ -182,8 +182,10 @@ void PR2SimpleSimulator::run()
   while(ros::ok())
   {
     moveRobot();
+    
+    moveEndEffectors();
 
-    updateRobotMarkers();
+    visualizeRobot();
 
     updateTransforms();
   
@@ -223,7 +225,26 @@ void PR2SimpleSimulator::moveRobot()
   base_pose_pub_.publish(base_pose_);
 }
 
-void PR2SimpleSimulator::updateRobotMarkers()
+void PR2SimpleSimulator::moveEndEffectors()
+{
+  if(end_effector_vel_cmd_.linear.z == 0)
+    return;
+
+  // Apply the next end-effector velocity commands (in the robot's base frame.)
+  geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
+  // next_end_effector_pose.position.x += (0.1)*end_effector_vel_cmd_.linear.x*std::cos(theta)
+  //   - (0.1)*end_effector_vel_cmd_.linear.y*std::sin(theta);
+  // next_end_effector_pose.position.y += (0.1)*end_effector_vel_cmd_.linear.y*std::cos(theta)
+  //   + (0.1)*end_effector_vel_cmd_.linear.x*std::sin(theta);
+  next_end_effector_pose.position.z += (0.1)*end_effector_vel_cmd_.linear.z;
+  
+  if(!setEndEffectorPose(next_end_effector_pose))
+  {
+    ROS_ERROR("[PR2SimpleSim] Failed to set the end-effector to specified pose!");
+  }
+}
+
+void PR2SimpleSimulator::visualizeRobot()
 {
   std::vector<double> l_joints_pos(7, 0);
   std::vector<double> r_joints_pos(7, 0);
@@ -252,22 +273,16 @@ void PR2SimpleSimulator::updateRobotMarkers()
     int_marker_server_.applyChanges();
   }
 
-  // Publish the pose of the right end effector marker.
-  geometry_msgs::PoseStamped end_effector_pose;
-  end_effector_pose.header.frame_id = "/map";
-  end_effector_pose.header.stamp = ros::Time();
-  end_effector_pose.pose = robot_markers_.markers.at(11).pose;
-  end_effector_pose_pub_.publish(end_effector_pose);
+  // Publish the pose of the right end effector.
+  end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
+  end_effector_pose_pub_.publish(end_effector_pose_);
 
   // Publish the state of the joints as they are being visualized.
   joint_states_pub_.publish(joint_states_);
 }
 
-bool PR2SimpleSimulator::setEndEffectorPose(pr2_simple_simulator::SetPose::Request  &req,
-					    pr2_simple_simulator::SetPose::Response &res)
+bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
 {
-  geometry_msgs::Pose goal_pose = req.pose.pose;
-
   // Attempt to find joint angles for the arm using the arm IK solver.
   std::vector<double> r_arm_joints(7, 0);
   for(int i = 7; i < 14; ++i)
@@ -288,7 +303,6 @@ bool PR2SimpleSimulator::setEndEffectorPose(pr2_simple_simulator::SetPose::Reque
   std::vector<double> solution(7, 0);
   if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
   {
-    ROS_ERROR("[PR2SimpleSim] IK failed!");
     return false;
   }
 
@@ -296,7 +310,14 @@ bool PR2SimpleSimulator::setEndEffectorPose(pr2_simple_simulator::SetPose::Reque
   for(int i = 7; i < joint_states_.position.size(); ++i)
     joint_states_.position[i] = solution[i-7];
 
+  end_effector_pose_.pose = goal_pose;
+
   return true;
+}
+
+void PR2SimpleSimulator::updateEndEffectorVelocity(const geometry_msgs::Twist &vel)
+{
+  end_effector_vel_cmd_ = vel;
 }
 
 void PR2SimpleSimulator::baseMarkerFeedback(
@@ -341,9 +362,7 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
     break;
   }
 
-  pr2_simple_simulator::SetPose pose;
-  pose.request.pose.pose = feedback->pose;
-  if(!setEndEffectorPose(pose.request, pose.response))
+  if(!setEndEffectorPose(feedback->pose))
   {
     ROS_ERROR("[PR2SimpleSim] Failed to set the end-effector to specified pose!");
   }

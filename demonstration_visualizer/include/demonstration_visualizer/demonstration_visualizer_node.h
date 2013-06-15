@@ -1,3 +1,7 @@
+/**
+ * @author Ellis Ratner
+ * @date June 2013
+ */
 #ifndef DEMONSTRATION_VISUALIZER_NODE_H
 #define DEMONSTRATION_VISUALIZER_NODE_H
 
@@ -18,7 +22,13 @@
 #include <cmath>
 
 #include <QThread>
+#include <QEvent>
 
+/**
+ * @brief This runs all the ROS functionality (i.e. publishing to topics, subscribing
+ *        to services, etc.) on a separate thread from the dviz Qt component.
+ *        In this way, the ROS loop and Qt event loop are separated.
+ */
 class DemonstrationVisualizerNode : public QThread
 {
 Q_OBJECT
@@ -68,7 +78,7 @@ public:
 
   void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
 
-  void processKeyEvent(int key);
+  void processKeyEvent(int key, int type);
 
 Q_SIGNALS:
   void rosShutdown();
@@ -89,10 +99,10 @@ private:
 
   ros::ServiceClient reset_robot_client_;
   ros::ServiceClient set_robot_speed_client_;
-  ros::ServiceClient set_end_effector_pose_client_;
 
   ros::Publisher marker_pub_;
-  
+  ros::Publisher end_effector_vel_cmd_pub_;
+
   ros::Subscriber end_effector_pose_sub_;
 
   interactive_markers::InteractiveMarkerServer *interactive_marker_server_;

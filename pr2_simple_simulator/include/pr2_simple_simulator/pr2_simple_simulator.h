@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Twist.h>
 #include <sensor_msgs/JointState.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_datatypes.h>
@@ -30,9 +31,22 @@ public:
 
   void updateVelocity(const geometry_msgs::Twist &);
 
+  /**
+   * @brief Moves the base of the robot towards the current 
+   *        (if any) goal pose.
+   */
   void moveRobot();
 
-  void updateRobotMarkers();
+  /**
+   * @brief Moves the end-effectors according to the current
+   *        end-effector velocity commands.
+   */
+  void moveEndEffectors();
+
+  /**
+   * @brief Visualizes the robot using PViz.
+   */
+  void visualizeRobot();
 
   /**
    * @brief Finds and sets the appropriate positions of the
@@ -41,8 +55,9 @@ public:
    * @param the desired pose of the (right) end-effector.
    * @return true on success, otherwise false.
    */
-  bool setEndEffectorPose(pr2_simple_simulator::SetPose::Request  &,
-			  pr2_simple_simulator::SetPose::Response &);
+  bool setEndEffectorPose(const geometry_msgs::Pose &);
+
+  void updateEndEffectorVelocity(const geometry_msgs::Twist &);
 
   void baseMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
@@ -68,20 +83,22 @@ private:
   BaseMovementController base_movement_controller_;
 
   ros::Subscriber vel_cmd_sub_;
+  ros::Subscriber end_effector_vel_cmd_sub_;
   
   ros::Publisher base_pose_pub_;
   ros::Publisher joint_states_pub_;
   ros::Publisher end_effector_pose_pub_;
 
   geometry_msgs::Twist vel_cmd_;
+  geometry_msgs::Twist end_effector_vel_cmd_;
   geometry_msgs::PoseStamped base_pose_;
+  geometry_msgs::PoseStamped end_effector_pose_;
   sensor_msgs::JointState joint_states_;
 
   ros::ServiceServer set_speed_service_;
   ros::ServiceServer reset_robot_service_;
   ros::ServiceServer set_robot_pose_service_;
   ros::ServiceServer set_joint_states_service_;
-  ros::ServiceServer set_end_effector_pose_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 
