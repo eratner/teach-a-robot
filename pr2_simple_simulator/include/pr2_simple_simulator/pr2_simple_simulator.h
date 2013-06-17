@@ -1,3 +1,7 @@
+/**
+ * @author Ellis Ratner
+ * @date June 2013
+ */
 #ifndef PR2_SIMPLE_SIMULATOR_H
 #define PR2_SIMPLE_SIMULATOR_H
 
@@ -14,6 +18,7 @@
 #include <pr2_simple_simulator/SetPose.h>
 #include <pr2_simple_simulator/SetJoints.h>
 #include <sbpl_manipulation_components/kdl_robot_model.h>
+#include <tf/transform_broadcaster.h>
 
 #include <vector>
 #include <string>
@@ -109,6 +114,8 @@ private:
   std::map<std::string, int> joints_map_;
 
   bool is_moving_r_gripper_;
+
+  tf::TransformBroadcaster tf_broadcaster_;
 
 };
 

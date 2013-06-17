@@ -9,6 +9,10 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
 
+qt4_add_resources(RCC_FILES
+  icons.qrc
+)
+
 qt4_wrap_cpp(MOC_FILES 
   include/demonstration_visualizer/demonstration_visualizer.h 
   include/demonstration_visualizer/demonstration_visualizer_node.h
@@ -20,6 +24,7 @@ rosbuild_add_executable(dviz
   src/demonstration_visualizer_node.cpp
   src/visualization_helpers.cpp
   src/demonstration_scene_manager.cpp
+  ${RCC_FILES}
   ${MOC_FILES}
 )
 

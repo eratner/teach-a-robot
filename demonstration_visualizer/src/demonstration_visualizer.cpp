@@ -68,7 +68,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // Set camera (view) properties.
   rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
-  view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
+  view_manager->getCurrent()->subProp("Target Frame")->setValue("/base_footprint");
 
   // Load/delete mesh control panel.
   QHBoxLayout *mesh_controls = new QHBoxLayout();
@@ -126,15 +126,22 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(task_panel);
   controls_layout->addWidget(edit_goals);
 
+  QHBoxLayout *status_icons = new QHBoxLayout();
   recording_icon_ = new QLabel();
-  //recording_icon_->setPixmap(QPixmap("/home/eratner/Desktop/recording.png"));
+  recording_icon_->setPixmap(QPixmap(":/images/recording.png"));
   recording_icon_->setAlignment(Qt::AlignLeft);
   recording_icon_->hide();
+  status_icons->addWidget(recording_icon_);
+  replaying_icon_ = new QLabel();
+  replaying_icon_->setPixmap(QPixmap(":/images/replaying.png"));
+  replaying_icon_->setAlignment(Qt::AlignLeft);
+  replaying_icon_->hide();
+  status_icons->addWidget(replaying_icon_);
 
   QGridLayout *window_layout = new QGridLayout();
   window_layout->addLayout(controls_layout, 0, 0, 1, 1);
   window_layout->addWidget(render_panel_, 0, 1, 2, 3);
-  window_layout->addWidget(recording_icon_, 1, 0, 1, 1, Qt::AlignBottom);
+  window_layout->addLayout(status_icons, 1, 0, 1, 1, Qt::AlignBottom);
 
   // Create and display a grid.
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
@@ -355,6 +362,8 @@ void DemonstrationVisualizer::beginReplay()
     return;
   }
 
+  replaying_icon_->show();
+
   ROS_INFO("Replaying from file %s", filename.toLocal8Bit().data());
 }
 
@@ -365,6 +374,8 @@ void DemonstrationVisualizer::endReplay()
   {
     ROS_ERROR("[DViz] Failed to end replay!");
   }
+
+  replaying_icon_->hide();
 }
 
 void DemonstrationVisualizer::loadMesh()

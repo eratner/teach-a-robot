@@ -109,7 +109,7 @@ private:
   int                        selected_mesh_;
 
   QLabel                     *recording_icon_;
-  //QLabel                     *replaying_icon_;
+  QLabel                     *replaying_icon_;
 
 };
 

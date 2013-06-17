@@ -452,6 +452,23 @@ bool PR2SimpleSimulator::setJointPositions(pr2_simple_simulator::SetJoints::Requ
 
 void PR2SimpleSimulator::updateTransforms()
 {
+  // Broadcast the coordinate frame of the base footprint.
+  tf::Transform transform;
+  transform.setOrigin(tf::Vector3(base_pose_.pose.position.x,
+				  base_pose_.pose.position.y,
+				  base_pose_.pose.position.z)
+		      );
+  transform.setRotation(tf::Quaternion(base_pose_.pose.orientation.x,
+				       base_pose_.pose.orientation.y,
+				       base_pose_.pose.orientation.z,
+				       base_pose_.pose.orientation.w)
+			);
+  tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
+						     ros::Time::now(),
+						     "map",
+						     "base_footprint")
+				);
+
   // @todo clean this up and figure out better names!!
   // Get the map -> base_footprint transform.
   KDL::Frame map_to_base_footprint;
