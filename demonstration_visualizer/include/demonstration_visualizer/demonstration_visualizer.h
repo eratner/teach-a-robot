@@ -20,6 +20,7 @@
 #include "rviz/display.h"
 #include "rviz/tool_manager.h"
 #include "rviz/tool.h"
+#include "rviz/view_manager.h"
 
 #include <QWidget>
 #include <QComboBox>

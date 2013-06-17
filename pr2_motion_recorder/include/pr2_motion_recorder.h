@@ -1,3 +1,7 @@
+/**
+ * @author Ellis Ratner
+ * @date June 2013
+ */
 #ifndef PR2_MOTION_RECORDER_H
 #define PR2_MOTION_RECORDER_H
 
@@ -11,6 +15,7 @@
 #include <pr2_simple_simulator/SetPose.h>
 #include <pr2_simple_simulator/SetJoints.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <pr2_motion_recorder/BasePath.h>
 
 #include <string>
 #include <sstream>
@@ -37,6 +42,9 @@ public:
   bool endReplay(std_srvs::Empty::Request  &,
 		 std_srvs::Empty::Response &);
 
+  bool getBasePath(pr2_motion_recorder::BasePath::Request  &,
+		   pr2_motion_recorder::BasePath::Response &);
+
   void recordJoints(const sensor_msgs::JointState &msg);
 
   void recordBasePose(const geometry_msgs::PoseStamped &msg);
@@ -55,6 +63,7 @@ private:
   ros::ServiceServer end_rec_service_;
   ros::ServiceServer begin_replay_service_;
   ros::ServiceServer end_replay_service_;
+  ros::ServiceServer get_base_path_service_;
   
   ros::Subscriber joint_states_subscription_;
   ros::Subscriber base_pose_subscription_;
@@ -67,7 +76,7 @@ private:
 
   std::vector<pr2_simple_simulator::SetJoints> joint_positions_;
   int joint_position_count_;
-
+  
 };
 
 #endif // PR2_MOTION_RECORDER_H

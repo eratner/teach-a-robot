@@ -26,6 +26,10 @@ PR2MotionRecorder::PR2MotionRecorder()
 					    &PR2MotionRecorder::endReplay,
 					    this);
 
+  get_base_path_service_ = nh.advertiseService("get_base_path",
+					       &PR2MotionRecorder::getBasePath,
+					       this);
+
   joint_states_subscription_ = nh.subscribe("/joint_states", 
 					    100,
 					    &PR2MotionRecorder::recordJoints,
@@ -132,6 +136,46 @@ bool PR2MotionRecorder::endReplay(std_srvs::Empty::Request  &,
 				  std_srvs::Empty::Response &)
 {
   is_replaying_ = false;
+
+  return true;
+}
+
+bool PR2MotionRecorder::getBasePath(pr2_motion_recorder::BasePath::Request  &req,
+				    pr2_motion_recorder::BasePath::Response &res)
+{
+  visualization_msgs::Marker base_path;
+  base_path.header.frame_id = "/map";
+  base_path.header.stamp = ros::Time::now();
+  base_path.ns = "pr2_motion_rec";
+  base_path.action = visualization_msgs::Marker::ADD;
+  base_path.pose.orientation.w = 1;
+  base_path.id = 0;
+  base_path.type = visualization_msgs::Marker::LINE_STRIP;
+  base_path.scale.x = 0.1;
+  base_path.color.r = 1;
+  base_path.color.a = 1;
+
+  rosbag::Bag bag;
+  bag.open(req.file_path, rosbag::bagmode::Read);
+
+  rosbag::View poses_view(bag, rosbag::TopicQuery("/base_pose"));
+
+  foreach(rosbag::MessageInstance const m, poses_view)
+  {
+    geometry_msgs::PoseStamped::ConstPtr base_pose = m.instantiate<geometry_msgs::PoseStamped>();
+    if(base_pose != NULL)
+    {
+      geometry_msgs::Point p;
+      p.x = base_pose->pose.position.x;
+      p.y = base_pose->pose.position.y;
+      p.z = base_pose->pose.position.z;
+
+      base_path.points.push_back(p);
+    }
+  }
+  ROS_INFO("[PR2MotionRec] Added %d points to the base path.", base_path.points.size());
+
+  res.base_path = base_path;
 
   return true;
 }

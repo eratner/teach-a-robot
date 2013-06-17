@@ -66,6 +66,10 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
     select_tool->addItem(tool_manager->getTool(i)->getClassId());
   }
 
+  // Set camera (view) properties.
+  rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
+  view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
+
   // Load/delete mesh control panel.
   QHBoxLayout *mesh_controls = new QHBoxLayout();
   QPushButton *load_mesh = new QPushButton("Load Mesh");
