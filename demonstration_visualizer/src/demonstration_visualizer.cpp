@@ -314,7 +314,7 @@ void DemonstrationVisualizer::beginRecording()
     return;
   }
 
-  pr2_motion_recorder::FilePath srv;
+  pr2_simple_simulator::FilePath srv;
   srv.request.file_path = directory.toStdString();
   if(!node_.beginRecording(srv))
   {
@@ -354,7 +354,7 @@ void DemonstrationVisualizer::beginReplay()
     return;
   }
 
-  pr2_motion_recorder::FilePath srv;
+  pr2_simple_simulator::FilePath srv;
   srv.request.file_path = filename.toStdString();
   if(!node_.beginReplay(srv))
   {

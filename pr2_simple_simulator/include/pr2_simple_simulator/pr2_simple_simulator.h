@@ -14,9 +14,11 @@
 #include <pviz/pviz.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <pr2_simple_simulator/base_movement_controller.h>
+#include <pr2_simple_simulator/motion_recorder.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
 #include <pr2_simple_simulator/SetJoints.h>
+#include <pr2_simple_simulator/FilePath.h>
 #include <sbpl_manipulation_components/kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
 
@@ -80,12 +82,27 @@ public:
   bool setJointPositions(pr2_simple_simulator::SetJoints::Request  &,
 			 pr2_simple_simulator::SetJoints::Response &);
 
+  // Service-based controls for recording/replaying trajectories.
+  bool beginRecording(pr2_simple_simulator::FilePath::Request  &,
+		      pr2_simple_simulator::FilePath::Response &);
+
+  bool endRecording(std_srvs::Empty::Request  &,
+		    std_srvs::Empty::Response &);
+
+  bool beginReplay(pr2_simple_simulator::FilePath::Request  &,
+		   pr2_simple_simulator::FilePath::Response &);
+
+  bool endReplay(std_srvs::Empty::Request  &,
+		 std_srvs::Empty::Response &);
+
 private:
   void updateTransforms();
 
   PViz pviz_;
   interactive_markers::InteractiveMarkerServer int_marker_server_;
   BaseMovementController base_movement_controller_;
+
+  MotionRecorder recorder_;
 
   ros::Subscriber vel_cmd_sub_;
   ros::Subscriber end_effector_vel_cmd_sub_;
@@ -104,6 +121,10 @@ private:
   ros::ServiceServer reset_robot_service_;
   ros::ServiceServer set_robot_pose_service_;
   ros::ServiceServer set_joint_states_service_;
+  ros::ServiceServer begin_rec_service_;
+  ros::ServiceServer end_rec_service_;
+  ros::ServiceServer begin_replay_service_;
+  ros::ServiceServer end_replay_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 

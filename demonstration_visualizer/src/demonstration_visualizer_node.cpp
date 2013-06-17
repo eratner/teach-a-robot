@@ -40,10 +40,10 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   nh.param("global_frame", global_frame_, std::string("/map"));
 
   // Services for communicating with the motion recording service provider.
-  begin_recording_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/pr2_motion_rec/begin_recording");
-  end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/pr2_motion_rec/end_recording");
-  begin_replay_client_ = nh.serviceClient<pr2_motion_recorder::FilePath>("/pr2_motion_rec/begin_replay");
-  end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/pr2_motion_rec/end_replay");
+  begin_recording_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/motion_recorder/begin_recording");
+  end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_recording");
+  begin_replay_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/motion_recorder/begin_replay");
+  end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
 
   // Service for resetting the state of the robot and environment.
   reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
@@ -71,7 +71,7 @@ std::string DemonstrationVisualizerNode::getGlobalFrame() const
   return global_frame_;
 }
 
-bool DemonstrationVisualizerNode::beginRecording(pr2_motion_recorder::FilePath &srv)
+bool DemonstrationVisualizerNode::beginRecording(pr2_simple_simulator::FilePath &srv)
 {
   return begin_recording_client_.call(srv);
 }
@@ -81,7 +81,7 @@ bool DemonstrationVisualizerNode::endRecording(std_srvs::Empty &srv)
   return end_recording_client_.call(srv);
 }
 
-bool DemonstrationVisualizerNode::beginReplay(pr2_motion_recorder::FilePath &srv)
+bool DemonstrationVisualizerNode::beginReplay(pr2_simple_simulator::FilePath &srv)
 {
   std_srvs::Empty empty;
   if(!reset_robot_client_.call(empty))

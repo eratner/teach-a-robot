@@ -8,7 +8,7 @@
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
 
-#include <pr2_motion_recorder/FilePath.h>
+#include <pr2_simple_simulator/FilePath.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
 #include <std_srvs/Empty.h>
@@ -41,11 +41,11 @@ public:
 
   std::string getGlobalFrame() const;
 
-  bool beginRecording(pr2_motion_recorder::FilePath &srv);
+  bool beginRecording(pr2_simple_simulator::FilePath &srv);
 
   bool endRecording(std_srvs::Empty &srv);
 
-  bool beginReplay(pr2_motion_recorder::FilePath &srv);
+  bool beginReplay(pr2_simple_simulator::FilePath &srv);
 
   bool endReplay(std_srvs::Empty &srv);
 

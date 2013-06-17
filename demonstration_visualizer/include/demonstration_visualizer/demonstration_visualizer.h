@@ -7,7 +7,7 @@
 
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
-#include <pr2_motion_recorder/FilePath.h>
+#include <pr2_simple_simulator/FilePath.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <visualization_msgs/Marker.h>
 

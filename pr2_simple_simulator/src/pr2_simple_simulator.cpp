@@ -83,6 +83,22 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 						  &PR2SimpleSimulator::setJointPositions,
 						  this);
 
+  begin_rec_service_ = nh.advertiseService("/motion_recorder/begin_recording", 
+					   &PR2SimpleSimulator::beginRecording,
+					   this);
+
+  end_rec_service_ = nh.advertiseService("/motion_recorder/end_recording",
+					 &PR2SimpleSimulator::endRecording,
+					 this);
+
+  begin_replay_service_ = nh.advertiseService("/motion_recorder/begin_replay",
+					      &PR2SimpleSimulator::beginReplay,
+					      this);
+
+  end_replay_service_ = nh.advertiseService("/motion_recorder/end_replay",
+					    &PR2SimpleSimulator::endReplay,
+					    this);
+
   // Attach an interactive marker to the base of the robot.
   visualizeRobot();
   
@@ -181,9 +197,34 @@ void PR2SimpleSimulator::run()
   ros::Rate loop(10.0);
   while(ros::ok())
   {
-    moveRobot();
+    // Replay motion.
+    if(recorder_.isReplaying())
+    {
+      if(recorder_.getJointsRemaining() == 0 && recorder_.getPosesRemaining() == 0)
+      {
+	recorder_.endReplay();
+	ROS_INFO("[PR2SimpleSim] Done replaying.");
+      }
+
+      if(recorder_.getJointsRemaining() > 0)
+	joint_states_ = recorder_.getNextJoints();
+
+      if(recorder_.getPosesRemaining() > 0)
+	base_pose_ = recorder_.getNextBasePose();
+    }
+    else
+    {
+      moveRobot();
     
-    moveEndEffectors();
+      moveEndEffectors();
+    }
+
+    // Record motion.
+    if(recorder_.isRecording())
+    {
+      recorder_.recordBasePose(base_pose_);
+      recorder_.recordJoints(joint_states_);
+    }
 
     visualizeRobot();
 
@@ -446,6 +487,42 @@ bool PR2SimpleSimulator::setJointPositions(pr2_simple_simulator::SetJoints::Requ
     else
       ROS_ERROR("[PR2SimpleSim] Failed to find index for joint \"%s\"!", req.name[i].c_str());
   }
+
+  return true;
+}
+
+bool PR2SimpleSimulator::beginRecording(pr2_simple_simulator::FilePath::Request  &req,
+					pr2_simple_simulator::FilePath::Response &res)
+{
+  recorder_.beginRecording(req.file_path);
+
+  return true;
+}
+
+bool PR2SimpleSimulator::endRecording(std_srvs::Empty::Request  &,
+				      std_srvs::Empty::Response &)
+{
+  recorder_.endRecording();
+
+  return true;
+}
+
+bool PR2SimpleSimulator::beginReplay(pr2_simple_simulator::FilePath::Request  &req,
+				     pr2_simple_simulator::FilePath::Response &res)
+{
+  std_srvs::Empty empty;
+  if(!resetRobot(empty.request, empty.response))
+    return false;
+
+  recorder_.beginReplay(req.file_path);
+
+  return true;
+}
+
+bool PR2SimpleSimulator::endReplay(std_srvs::Empty::Request  &,
+				   std_srvs::Empty::Response &)
+{
+  recorder_.endReplay();
 
   return true;
 }
