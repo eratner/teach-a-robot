@@ -11,9 +11,6 @@
   <!-- PR2 Simple Sim -->
   <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" output="$(arg output)" />
 
-  <!-- PR2 Motion Recorder -->
-  <node name="pr2_motion_rec" pkg="pr2_motion_recorder" type="pr2_motion_rec" output="$(arg output)" />
-
   <!-- DViz -->
   <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)" />
 
