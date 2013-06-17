@@ -44,7 +44,7 @@
 #include <kdl/chainiksolvervel_pinv.hpp>
 //#include <sbpl_geometry_utils/interpolation.h>
 #include <sbpl_manipulation_components/robot_model.h>
-
+#include <pr2_arm_kinematics/pr2_arm_ik_solver.h>
 
 using namespace std;
 
@@ -96,6 +96,7 @@ class KDLRobotModel : public RobotModel {
     KDL::ChainFkSolverPos_recursive *fk_solver_;
     KDL::ChainIkSolverVel_pinv *ik_vel_solver_;
     KDL::ChainIkSolverPos_NR *ik_solver_;
+    pr2_arm_kinematics::PR2ArmIKSolver* pr2_ik_solver_;
 
     std::vector<bool> continuous_;
     std::vector<double> min_limits_;
