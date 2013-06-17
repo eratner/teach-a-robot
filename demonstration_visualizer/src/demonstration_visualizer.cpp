@@ -17,7 +17,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 {
   setWindowTitle("Demonstration Visualizer");
 
-  resize(800, 600);
+  resize(1000, 800);
 
   setFocusPolicy(Qt::StrongFocus);
 
@@ -110,6 +110,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   task_panel->addWidget(save_task);
   QCheckBox *edit_goals = new QCheckBox("Edit Goals Mode");
   edit_goals->setCheckState(Qt::Checked);
+  QLabel *goals_label = new QLabel("Goals:");
+  goals_list_ = new QListWidget();
+  goals_list_->setSelectionRectVisible(false);
+  goals_list_->setWrapping(true);
+  goals_list_->addItem("No task loaded.");
 
   QVBoxLayout *controls_layout = new QVBoxLayout();
   controls_layout->addWidget(toggle_grid);
@@ -125,6 +130,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addWidget(add_goal);
   controls_layout->addLayout(task_panel);
   controls_layout->addWidget(edit_goals);
+  controls_layout->addWidget(goals_label);
+  controls_layout->addWidget(goals_list_);
 
   QHBoxLayout *status_icons = new QHBoxLayout();
   recording_icon_ = new QLabel();
@@ -138,10 +145,21 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   replaying_icon_->hide();
   status_icons->addWidget(replaying_icon_);
 
-  QGridLayout *window_layout = new QGridLayout();
-  window_layout->addLayout(controls_layout, 0, 0, 1, 1);
-  window_layout->addWidget(render_panel_, 0, 1, 2, 3);
-  window_layout->addLayout(status_icons, 1, 0, 1, 1, Qt::AlignBottom);
+  QGridLayout *l_window_layout = new QGridLayout();
+  l_window_layout->addLayout(controls_layout, 0, 0, 1, 1);
+  l_window_layout->addLayout(status_icons, 1, 0, 1, 1, Qt::AlignBottom);
+
+  QWidget *basic = new QWidget();
+  QWidget *advanced = new QWidget();
+  advanced->setLayout(l_window_layout);
+
+  QTabWidget *tabs = new QTabWidget();
+  tabs->addTab(basic, tr("Basic"));
+  tabs->addTab(advanced, tr("Advanced"));
+
+  QHBoxLayout *window_layout = new QHBoxLayout();
+  window_layout->addWidget(tabs, 1);
+  window_layout->addWidget(render_panel_, 3);
 
   // Create and display a grid.
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
@@ -161,7 +179,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // Create a visualization marker for loading meshes of environments.
   visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
-  visualization_marker_->subProp("Marker Topic")->setValue("/dviz/visualization_marker");
+  visualization_marker_->subProp("Marker Topic")->setValue("/visualization_marker");
   ROS_ASSERT(visualization_marker_ != NULL);
 
   // Create an interactive markers display for moving meshes around the scene.
@@ -191,6 +209,10 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(save_task, SIGNAL(clicked()), this, SLOT(saveTask()));
   connect(edit_goals, SIGNAL(stateChanged(int)), this, SLOT(setEditGoalsMode(int)));
   connect(&node_, SIGNAL(goalComplete(int)), this, SLOT(notifyGoalComplete(int)));
+  connect(goals_list_, 
+	  SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, 
+	  SLOT(editGoalDescription(QListWidgetItem *))
+	  );
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -578,6 +600,14 @@ void DemonstrationVisualizer::loadTask()
     {
       // Load the task into the demonstration scene manager.
       node_.getSceneManager()->loadTask(filename.toStdString());
+      goals_list_->clear();
+      std::vector<visualization_msgs::Marker> goals = node_.getSceneManager()->getGoals();
+      for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
+      {
+	std::stringstream goal_desc;
+	goal_desc << "Goal " << i+1 << ": " << node_.getSceneManager()->getGoalDescription(i);
+	goals_list_->addItem(QString(goal_desc.str().c_str()));
+      }
       break;
     }
   case QMessageBox::No:
@@ -656,7 +686,34 @@ void DemonstrationVisualizer::addTaskGoal()
   if(ok)
     desc = description.toStdString();
 
+  if(node_.getSceneManager()->getNumGoals() == 0)
+    goals_list_->clear();
+
   node_.getSceneManager()->addGoal(geometry_msgs::Pose(), desc);
+  std::stringstream goal_desc;
+  goal_desc << "Goal " << node_.getSceneManager()->getNumGoals() << ": " << desc;
+  goals_list_->addItem(QString(goal_desc.str().c_str()));
+}
+
+void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
+{
+  int goal_number = goals_list_->row(goal);
+  std::string current_desc = node_.getSceneManager()->getGoalDescription(goal_number);
+
+  bool ok;
+  QString new_desc = QInputDialog::getText(this,
+					   tr("Edit Goal Description:"),
+					   tr("Description:"),
+					   QLineEdit::Normal,
+					   QString(current_desc.c_str()),
+					   &ok);
+  if(ok)
+  {
+    node_.getSceneManager()->setGoalDescription(goal_number, new_desc.toStdString());
+    std::stringstream goal_desc;
+    goal_desc << "Goal " << goal_number+1 << ": " << new_desc.toStdString();
+    goal->setData(Qt::DisplayRole, QString(goal_desc.str().c_str()));
+  }
 }
 
 void DemonstrationVisualizer::notifyGoalComplete(int goal_number)

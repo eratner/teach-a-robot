@@ -45,6 +45,8 @@ void MotionRecorder::endRecording()
 
 void MotionRecorder::beginReplay(const std::string &file)
 {
+  base_path_ = getBasePath(file);
+
   // Load appropriate bag file, and populate a vector of PoseStamped messages to 
   // send to the robot simulator.
   read_bag_.open(file, rosbag::bagmode::Read);
@@ -99,7 +101,7 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
   base_path.pose.orientation.w = 1;
   base_path.id = 0;
   base_path.type = visualization_msgs::Marker::LINE_STRIP;
-  base_path.scale.x = 0.1;
+  base_path.scale.x = 0.2;
   base_path.color.r = 1;
   base_path.color.a = 1;
 
@@ -123,7 +125,14 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
   }
   ROS_INFO("[MotionRec] Added %d points to the base path.", base_path.points.size());
 
+  bag.close();
+
   return base_path;
+}
+
+visualization_msgs::Marker MotionRecorder::getBasePath() const
+{
+  return base_path_;
 }
 
 void MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)

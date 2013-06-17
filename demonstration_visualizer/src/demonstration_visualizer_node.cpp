@@ -51,7 +51,7 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   set_robot_speed_client_ = nh.serviceClient<pr2_simple_simulator::SetSpeed>("/set_speed");
 
   // Advertise topic for publishing markers.
-  marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 0);
+  marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
   // Advertise topic for publishing end-effector velocity commands.
   end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 0);
 

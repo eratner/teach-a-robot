@@ -29,6 +29,7 @@ public:
   /**
    * @brief Creates a bagfile for recording motion at the specified 
    *        file path. 
+   * @param[in] path
    */
   void beginRecording(const std::string &path);
 
@@ -38,7 +39,14 @@ public:
 
   void endReplay();
 
+  /**
+   * @brief Creates a line strip marker to visualize the path that the
+   *        base of the robot took throughout the recorded motion.
+   * @param[in] file Specifies the path to the recorded bag file.
+   */
   visualization_msgs::Marker getBasePath(const std::string &file);
+
+  visualization_msgs::Marker getBasePath() const;
 
   void recordJoints(const sensor_msgs::JointState &msg);
 
@@ -58,6 +66,10 @@ public:
    */
   sensor_msgs::JointState getNextJoints();
 
+  /**
+   * @brief If replaying from a bagfile, this will return the next
+   *        base pose from the recorded trajectory.
+   */
   geometry_msgs::PoseStamped getNextBasePose();
 
 private:
@@ -73,7 +85,9 @@ private:
 
   std::vector<sensor_msgs::JointState> joint_states_;
   int joint_states_count_;
+
+  visualization_msgs::Marker base_path_;
   
 };
 
-#endif // PR2_MOTION_RECORDER_H
+#endif // MOTION_RECORDER_H

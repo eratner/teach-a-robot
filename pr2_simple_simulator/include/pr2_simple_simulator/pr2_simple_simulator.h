@@ -110,6 +110,7 @@ private:
   ros::Publisher base_pose_pub_;
   ros::Publisher joint_states_pub_;
   ros::Publisher end_effector_pose_pub_;
+  ros::Publisher marker_pub_;
 
   geometry_msgs::Twist vel_cmd_;
   geometry_msgs::Twist end_effector_vel_cmd_;

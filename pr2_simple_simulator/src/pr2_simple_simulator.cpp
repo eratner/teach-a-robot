@@ -65,6 +65,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
   end_effector_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("end_effector_pose", 20);
+  marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
 
   // Clients can change the speed (linear and angular) at which the robot moves.
   set_speed_service_ = nh.advertiseService("set_speed",
@@ -203,6 +204,7 @@ void PR2SimpleSimulator::run()
       if(recorder_.getJointsRemaining() == 0 && recorder_.getPosesRemaining() == 0)
       {
 	recorder_.endReplay();
+	marker_pub_.publish(recorder_.getBasePath());
 	ROS_INFO("[PR2SimpleSim] Done replaying.");
       }
 
@@ -210,7 +212,12 @@ void PR2SimpleSimulator::run()
 	joint_states_ = recorder_.getNextJoints();
 
       if(recorder_.getPosesRemaining() > 0)
+      {
 	base_pose_ = recorder_.getNextBasePose();
+
+	int_marker_server_.setPose("base_marker", base_pose_.pose);
+	int_marker_server_.applyChanges();
+      }
     }
     else
     {
@@ -454,6 +461,15 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
 
   // Reset the base movement controller.
   base_movement_controller_.setState(BaseMovementController::INITIAL);
+
+  // Delete the drawn base path.
+  visualization_msgs::Marker base_path;
+  base_path.header.frame_id = "/map";
+  base_path.ns = "motion_rec";
+  base_path.id = 0;
+  base_path.action = visualization_msgs::Marker::DELETE;
+  base_path.type = visualization_msgs::Marker::LINE_STRIP;
+  marker_pub_.publish(base_path);
 
   return true;
 }

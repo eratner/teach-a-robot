@@ -26,6 +26,8 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QKeyEvent>
+#include <QTabWidget>
+#include <QListWidget>
 
 /**
  *  @brief A Qt-based application that provides a user interface for capturing 
@@ -88,7 +90,9 @@ private Q_SLOTS:
   void setLinearSpeed(double linear);
   void setAngularSpeed(double angular);
 
+  // For editing tasks/goals.
   void addTaskGoal();
+  void editGoalDescription(QListWidgetItem *goal);
 
   void notifyGoalComplete(int);
 
@@ -110,6 +114,7 @@ private:
 
   QLabel                     *recording_icon_;
   QLabel                     *replaying_icon_;
+  QListWidget                *goals_list_;
 
 };
 
