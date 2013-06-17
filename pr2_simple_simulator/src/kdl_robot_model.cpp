@@ -35,7 +35,7 @@ using namespace std;
 
 namespace sbpl_arm_planner {
 
-KDLRobotModel::KDLRobotModel()
+KDLRobotModel::KDLRobotModel() : fk_solver_(NULL), ik_vel_solver_(NULL), ik_solver_(NULL), pr2_ik_solver_(NULL) 
 {
   chain_root_name_ = "torso_lift_link";
   chain_tip_name_ = "r_wrist_roll_link";
@@ -43,9 +43,14 @@ KDLRobotModel::KDLRobotModel()
 
 KDLRobotModel::~KDLRobotModel()
 {
-  delete ik_solver_;
-  delete ik_vel_solver_;
-  delete fk_solver_;
+  if(fk_solver_)
+    delete fk_solver_;
+  if(ik_vel_solver_)
+    delete ik_vel_solver_;
+  if(ik_solver_)
+    delete fk_solver_;
+  if(pr2_ik_solver_)
+    delete pr2_ik_solver_;
 }
 
 bool KDLRobotModel::init(std::string robot_description, std::vector<std::string> planning_joints)
@@ -104,6 +109,15 @@ bool KDLRobotModel::init(std::string robot_description, std::vector<std::string>
 
   // for(size_t i = 0; i < planning_joints_.size(); ++i)
   //   joint_map_[planning_joints_[i]] = i;
+
+
+  // PR2 Specific IK Solver
+  pr2_ik_solver_ = new pr2_arm_kinematics::PR2ArmIKSolver(*urdf_, "torso_lift_link", "r_wrist_roll_link", 0.02, 2);
+  if(!pr2_ik_solver_->active_)
+  {
+    ROS_ERROR("The pr2 IK solver is NOT active. Exiting.");
+    return false;
+  }
 
   initialized_ = true;
   return true;
@@ -188,8 +202,8 @@ bool KDLRobotModel::computeFK(const std::vector<double> &angles, std::string nam
     return false;
   }
 
-  f = f1;
-  f.p = T_kinematics_to_planning_ * f1.p;
+  //f = f1;
+  f = T_kinematics_to_planning_ * f1;
   return true;
 }
 
@@ -221,8 +235,8 @@ bool KDLRobotModel::computePlanningLinkFK(const std::vector<double> &angles, std
     return false;
   }
 
-  f = f1;
-  f.p = T_kinematics_to_planning_ * f1.p;
+  //f = f1;
+  f = T_kinematics_to_planning_ * f1;
 
   pose[0] = f.p[0];
   pose[1] = f.p[1];
@@ -233,7 +247,36 @@ bool KDLRobotModel::computePlanningLinkFK(const std::vector<double> &angles, std
 
 bool KDLRobotModel::computeIK(const std::vector<double> &pose, const std::vector<double> &start, std::vector<double> &solution)
 {
-  return computeFastIK(pose, start, solution);
+  //return computeFastIK(pose, start, solution);
+
+  //pose: {x,y,z,r,p,y} or {x,y,z,qx,qy,qz,qw}
+  KDL::Frame frame_des;
+  frame_des.p.x(pose[0]);
+  frame_des.p.y(pose[1]);
+  frame_des.p.z(pose[2]);
+
+  // RPY
+  if(pose.size() == 6)
+    frame_des.M = KDL::Rotation::RPY(pose[3],pose[4],pose[5]);
+  // quaternion
+  else
+    frame_des.M = KDL::Rotation::Quaternion(pose[3],pose[4],pose[5],pose[6]);
+
+  // transform into kinematics frame
+  frame_des = T_planning_to_kinematics_ * frame_des;
+
+  // seed configuration
+  for(size_t i = 0; i < start.size(); i++)
+    jnt_pos_in_(i) = angles::normalize_angle(start[i]); // must be normalized for CartToJntSearch
+
+  if(pr2_ik_solver_->CartToJnt(jnt_pos_in_, frame_des, jnt_pos_out_) < 0)
+    return false;
+
+  solution.resize(start.size());
+  for(size_t i = 0; i < solution.size(); ++i)
+    solution[i] = jnt_pos_out_(i);
+
+  return true;
 }
 
 bool KDLRobotModel::computeFastIK(const std::vector<double> &pose, const std::vector<double> &start, std::vector<double> &solution)
@@ -253,7 +296,7 @@ bool KDLRobotModel::computeFastIK(const std::vector<double> &pose, const std::ve
     frame_des.M = KDL::Rotation::Quaternion(pose[3],pose[4],pose[5],pose[6]);
 
   // transform into kinematics frame
-  frame_des.p = T_planning_to_kinematics_ * frame_des.p;
+  frame_des = T_planning_to_kinematics_ * frame_des;
 
   // seed configuration
   for(size_t i = 0; i < start.size(); i++)
