@@ -1,7 +1,7 @@
 #include "pr2_simple_simulator/pr2_simple_simulator.h"
 
 PR2SimpleSimulator::PR2SimpleSimulator()
-  : pviz_(), int_marker_server_("simple_sim_marker"), base_movement_controller_()
+  : frame_rate_(10.0), pviz_(), int_marker_server_("simple_sim_marker"), base_movement_controller_()
 {
   ros::NodeHandle nh;
 
@@ -193,9 +193,19 @@ PR2SimpleSimulator::~PR2SimpleSimulator()
 
 }
 
+void PR2SimpleSimulator::setFrameRate(double rate)
+{
+  frame_rate_ = rate;
+}
+
+double PR2SimpleSimulator::getFrameRate() const
+{
+  return frame_rate_;
+}
+
 void PR2SimpleSimulator::run()
 {
-  ros::Rate loop(10.0);
+  ros::Rate loop(getFrameRate());
   while(ros::ok())
   {
     // Replay motion.
@@ -261,13 +271,14 @@ void PR2SimpleSimulator::moveRobot()
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
-  base_pose_.pose.position.x += (0.1)*vel_cmd_.linear.x*std::cos(theta) 
-    - (0.1)*vel_cmd_.linear.y*std::sin(theta);
-  base_pose_.pose.position.y += (0.1)*vel_cmd_.linear.y*std::cos(theta)
-    + (0.1)*vel_cmd_.linear.x*std::sin(theta);
+  base_pose_.pose.position.x += (1.0/getFrameRate())*vel_cmd_.linear.x*std::cos(theta) 
+    - (1.0/getFrameRate())*vel_cmd_.linear.y*std::sin(theta);
+  base_pose_.pose.position.y += (1.0/getFrameRate())*vel_cmd_.linear.y*std::cos(theta)
+    + (1.0/getFrameRate())*vel_cmd_.linear.x*std::sin(theta);
 
   base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(
-				  tf::getYaw(base_pose_.pose.orientation) + (0.1)*vel_cmd_.angular.z
+				  tf::getYaw(base_pose_.pose.orientation) 
+				  + (1/getFrameRate())*vel_cmd_.angular.z
 				);
 
   base_pose_pub_.publish(base_pose_);
@@ -284,7 +295,7 @@ void PR2SimpleSimulator::moveEndEffectors()
   //   - (0.1)*end_effector_vel_cmd_.linear.y*std::sin(theta);
   // next_end_effector_pose.position.y += (0.1)*end_effector_vel_cmd_.linear.y*std::cos(theta)
   //   + (0.1)*end_effector_vel_cmd_.linear.x*std::sin(theta);
-  next_end_effector_pose.position.z += (0.1)*end_effector_vel_cmd_.linear.z;
+  next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
   
   if(!setEndEffectorPose(next_end_effector_pose))
   {

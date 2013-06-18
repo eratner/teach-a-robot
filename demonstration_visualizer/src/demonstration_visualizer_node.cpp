@@ -360,7 +360,6 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
   {
   case Qt::Key_Up:
     {
-      ROS_INFO("UP");
       // Move the end-effector in the positive z-direction.
       if(type == QEvent::KeyPress)
       {
@@ -379,7 +378,6 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
     }
   case Qt::Key_Down:
     {
-      ROS_INFO("DOWN");
       // Move the end-effector in the negative z-direction.
       if(type == QEvent::KeyPress)
       {

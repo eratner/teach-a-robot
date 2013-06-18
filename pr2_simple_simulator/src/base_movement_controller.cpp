@@ -30,6 +30,10 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
   switch(last_state_)
   {
   case READY:
+    {
+      if(distance < 1.0)
+	return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);
+    }
   case ROTATE_TO_POSITION:
     {
       if(std::abs(angle_to_goal - current_angle) > 0.1 && distance >= 0.1)
@@ -48,6 +52,15 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
 	else
 	  return translateToGoalPosition(distance);
       }
+    }
+  case TRANSLATE_TO_CLOSE_POSITION:
+    {
+      if(distance < 0.1)
+	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
+      else if(distance < 1.0)
+	return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);
+      else
+	return rotateToGoalPosition(current_angle, angle_to_goal);
     }
   case ROTATE_TO_ORIENTATION:
     {
@@ -126,6 +139,22 @@ geometry_msgs::Twist BaseMovementController::translateToGoalPosition(double dist
 
   // Move straight towards the goal.
   vel.linear.x = linear_speed_;
+
+  return vel;
+}
+
+geometry_msgs::Twist BaseMovementController::translateToCloseGoalPosition(double distance,
+									  double angle_to_goal,
+									  double current_angle)
+{
+  printStateTransition(TRANSLATE_TO_CLOSE_POSITION);
+
+  geometry_msgs::Twist vel;
+
+  // Just translate, no rotational motion.
+  vel.linear.x = linear_speed_ * std::cos(angle_to_goal - current_angle);
+  vel.linear.y = linear_speed_ * std::sin(angle_to_goal - current_angle);
+  vel.angular.z = 0;
 
   return vel;
 }

@@ -13,7 +13,7 @@
 #include <QLineEdit>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
- : QWidget(parent), node_(argc, argv)
+ : QWidget(parent), started_(false), node_(argc, argv)
 {
   setWindowTitle("Demonstration Visualizer");
 
@@ -131,7 +131,6 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(task_panel);
   controls_layout->addWidget(edit_goals);
   controls_layout->addWidget(goals_label);
-  controls_layout->addWidget(goals_list_);
 
   QHBoxLayout *status_icons = new QHBoxLayout();
   recording_icon_ = new QLabel();
@@ -149,13 +148,20 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   l_window_layout->addLayout(controls_layout, 0, 0, 1, 1);
   l_window_layout->addLayout(status_icons, 1, 0, 1, 1, Qt::AlignBottom);
 
-  QWidget *basic = new QWidget();
-  QWidget *advanced = new QWidget();
-  advanced->setLayout(l_window_layout);
+  // The basic control panel.
+  QVBoxLayout *basic_layout = new QVBoxLayout();
+  QPushButton *start = new QPushButton("Start!");
+  basic_layout->addWidget(start);
+  basic_layout->addWidget(goals_list_);
+
+  basic_ = new QWidget();
+  basic_->setLayout(basic_layout);
+  advanced_ = new QWidget();
+  advanced_->setLayout(l_window_layout);
 
   QTabWidget *tabs = new QTabWidget();
-  tabs->addTab(basic, tr("Basic"));
-  tabs->addTab(advanced, tr("Advanced"));
+  tabs->addTab(basic_, tr("Basic"));
+  tabs->addTab(advanced_, tr("Advanced"));
 
   QHBoxLayout *window_layout = new QHBoxLayout();
   window_layout->addWidget(tabs, 1);
@@ -213,6 +219,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, 
 	  SLOT(editGoalDescription(QListWidgetItem *))
 	  );
+  connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
+  connect(start, SIGNAL(clicked()), this, SLOT(startBasicMode()));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -735,4 +743,23 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   box.setText(QString(text.str().c_str()));
 
   box.exec();
+}
+
+void DemonstrationVisualizer::tabChanged(int index)
+{
+  if(index == 0)
+  {
+    advanced_->layout()->removeWidget(goals_list_);
+    basic_->layout()->addWidget(goals_list_);
+  }
+  else if(index == 1)
+  {
+    basic_->layout()->removeWidget(goals_list_);
+    advanced_->layout()->addWidget(goals_list_);
+  }
+}
+
+void DemonstrationVisualizer::startBasicMode()
+{
+  started_ = true;
 }

@@ -96,7 +96,11 @@ private Q_SLOTS:
 
   void notifyGoalComplete(int);
 
+  void tabChanged(int);
+  void startBasicMode();
+
 private:
+  bool started_;
   DemonstrationVisualizerNode node_;
 
   rviz::RenderPanel          *render_panel_;
@@ -115,6 +119,8 @@ private:
   QLabel                     *recording_icon_;
   QLabel                     *replaying_icon_;
   QListWidget                *goals_list_;
+  QWidget                    *basic_;
+  QWidget                    *advanced_;
 
 };
 

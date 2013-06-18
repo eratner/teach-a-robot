@@ -1,3 +1,7 @@
+/**
+ * @author Ellis Ratner
+ * @date June 2013
+ */
 #ifndef BASE_MOVEMENT_CONTROLLER_H
 #define BASE_MOVEMENT_CONTROLLER_H
 
@@ -12,6 +16,7 @@ static const char *STATE_NAMES[] = { "INITIAL",
                                      "READY",
 				     "ROTATE_TO_POSITION",
 				     "TRANSLATE_TO_POSITION",
+				     "TRANSLATE_TO_CLOSE_POSITION",
 				     "ROTATE_TO_ORIENTATION",
 				     "DONE" };
 
@@ -22,6 +27,7 @@ public:
 	       READY,
                ROTATE_TO_POSITION,
 	       TRANSLATE_TO_POSITION,
+	       TRANSLATE_TO_CLOSE_POSITION,
 	       ROTATE_TO_ORIENTATION,
 	       DONE };
 
@@ -55,6 +61,10 @@ private:
 					    double angle_to_goal);
 
   geometry_msgs::Twist translateToGoalPosition(double distance);
+
+  geometry_msgs::Twist translateToCloseGoalPosition(double distance,
+						    double angle_to_goal,
+						    double current_angle);
 
   geometry_msgs::Twist rotateToGoalOrientation(const geometry_msgs::Quaternion &current_orientation,
 					       const geometry_msgs::Quaternion &goal_orientation);

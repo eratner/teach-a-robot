@@ -34,6 +34,10 @@ public:
 
   ~PR2SimpleSimulator();
 
+  void setFrameRate(double);
+
+  double getFrameRate() const;
+
   void run();
 
   void updateVelocity(const geometry_msgs::Twist &);
@@ -97,6 +101,8 @@ public:
 
 private:
   void updateTransforms();
+
+  double frame_rate_;
 
   PViz pviz_;
   interactive_markers::InteractiveMarkerServer int_marker_server_;
