@@ -14,6 +14,7 @@
 #include <pviz/pviz.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <pr2_simple_simulator/base_movement_controller.h>
+#include <pr2_simple_simulator/end_effector_controller.h>
 #include <pr2_simple_simulator/motion_recorder.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
@@ -107,6 +108,7 @@ private:
   PViz pviz_;
   interactive_markers::InteractiveMarkerServer int_marker_server_;
   BaseMovementController base_movement_controller_;
+  EndEffectorController end_effector_controller_;
 
   MotionRecorder recorder_;
 
@@ -122,6 +124,7 @@ private:
   geometry_msgs::Twist end_effector_vel_cmd_;
   geometry_msgs::PoseStamped base_pose_;
   geometry_msgs::PoseStamped end_effector_pose_;
+  geometry_msgs::PoseStamped end_effector_goal_pose_;
   sensor_msgs::JointState joint_states_;
 
   ros::ServiceServer set_speed_service_;
@@ -138,7 +141,8 @@ private:
   geometry_msgs::PoseStamped goal_pose_;
 
   sbpl_arm_planner::KDLRobotModel kdl_robot_model_;
-  KDL::Frame map_to_torso_lift_link_;
+  //KDL::Frame map_to_torso_lift_link_;
+  KDL::Frame map_in_torso_lift_link_;
   std::map<std::string, int> joints_map_;
 
   bool is_moving_r_gripper_;

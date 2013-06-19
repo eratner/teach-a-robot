@@ -108,6 +108,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   end_effector_pose_.header.stamp = ros::Time();
   end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
 
+  end_effector_goal_pose_ = end_effector_pose_;
+
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = "/map";
   int_marker.name = "base_marker";
@@ -208,6 +210,17 @@ void PR2SimpleSimulator::run()
   ros::Rate loop(getFrameRate());
   while(ros::ok())
   {
+    // Record motion.
+    if(recorder_.isRecording())
+    {
+      recorder_.recordBasePose(base_pose_);
+      recorder_.recordJoints(joint_states_);
+    }
+
+    visualizeRobot();
+
+    updateTransforms();
+
     // Replay motion.
     if(recorder_.isReplaying())
     {
@@ -231,21 +244,10 @@ void PR2SimpleSimulator::run()
     }
     else
     {
-      moveRobot();
-    
       moveEndEffectors();
+
+      moveRobot();
     }
-
-    // Record motion.
-    if(recorder_.isRecording())
-    {
-      recorder_.recordBasePose(base_pose_);
-      recorder_.recordJoints(joint_states_);
-    }
-
-    visualizeRobot();
-
-    updateTransforms();
   
     ros::spinOnce();
     loop.sleep();
@@ -286,20 +288,30 @@ void PR2SimpleSimulator::moveRobot()
 
 void PR2SimpleSimulator::moveEndEffectors()
 {
-  if(end_effector_vel_cmd_.linear.z == 0)
+  geometry_msgs::Twist vel = end_effector_controller_.moveTo(end_effector_pose_.pose,
+							     end_effector_goal_pose_.pose);
+
+  end_effector_vel_cmd_.linear.x = vel.linear.x;
+  end_effector_vel_cmd_.linear.y = vel.linear.y;
+
+  if(end_effector_vel_cmd_.linear.x == 0 &&
+     end_effector_vel_cmd_.linear.y == 0 &&
+     end_effector_vel_cmd_.linear.z == 0)
     return;
+
+  double theta = tf::getYaw(end_effector_pose_.pose.orientation);//-tf::getYaw(base_pose_.pose.orientation);
 
   // Apply the next end-effector velocity commands (in the robot's base frame.)
   geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
-  // next_end_effector_pose.position.x += (0.1)*end_effector_vel_cmd_.linear.x*std::cos(theta)
-  //   - (0.1)*end_effector_vel_cmd_.linear.y*std::sin(theta);
-  // next_end_effector_pose.position.y += (0.1)*end_effector_vel_cmd_.linear.y*std::cos(theta)
-  //   + (0.1)*end_effector_vel_cmd_.linear.x*std::sin(theta);
+  next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::cos(theta)
+    - (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::sin(theta);
+  next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::cos(theta)
+    + (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::sin(theta);
   next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
   
   if(!setEndEffectorPose(next_end_effector_pose))
   {
-    ROS_ERROR("[PR2SimpleSim] Failed to set the end-effector to specified pose!");
+    end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
   }
 }
 
@@ -326,7 +338,7 @@ void PR2SimpleSimulator::visualizeRobot()
   body.theta = body_pos[2];
   robot_markers_ = pviz_.getRobotMarkerMsg(r_joints_pos, l_joints_pos, body, 0.3, "simple_sim", 0);
 
-  if(!is_moving_r_gripper_)
+  if(!is_moving_r_gripper_ && end_effector_controller_.getState() == EndEffectorController::DONE)
   {
     int_marker_server_.setPose("r_gripper_marker", robot_markers_.markers.at(11).pose);
     int_marker_server_.applyChanges();
@@ -365,10 +377,22 @@ bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose
     return false;
   }
 
+  std::vector<double> fk_pose;
+  if(!kdl_robot_model_.computeFK(solution, "r_wrist_roll_joint", fk_pose))
+  {
+    ROS_ERROR("Failed to compute FK!");
+  }
+  else
+  {
+    ROS_INFO("FK pose: (%f, %f, %f), (%f, %f, %f), difference in z: %f",
+	     fk_pose[0], fk_pose[1], fk_pose[2],  fk_pose[3], fk_pose[4], fk_pose[5],
+	     fk_pose[0] - goal_pose.position.z);
+  }
+
   // Set the new joint angles.
   for(int i = 7; i < joint_states_.position.size(); ++i)
     joint_states_.position[i] = solution[i-7];
-
+  
   end_effector_pose_.pose = goal_pose;
 
   return true;
@@ -415,20 +439,21 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
     is_moving_r_gripper_ = true;
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
-    is_moving_r_gripper_ = false;
-    break;
+    {
+      end_effector_controller_.setState(EndEffectorController::READY);
+      is_moving_r_gripper_ = false;
+      ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
+	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
+      end_effector_goal_pose_.pose = feedback->pose;
+      break;
+    }
   default:
     break;
-  }
-
-  if(!setEndEffectorPose(feedback->pose))
-  {
-    ROS_ERROR("[PR2SimpleSim] Failed to set the end-effector to specified pose!");
   }
 }
 
 bool PR2SimpleSimulator::setSpeed(pr2_simple_simulator::SetSpeed::Request  &req,
-				     pr2_simple_simulator::SetSpeed::Response &res)
+				  pr2_simple_simulator::SetSpeed::Response &res)
 {
   if(req.linear > 0)
   {
@@ -472,6 +497,9 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
 
   // Reset the base movement controller.
   base_movement_controller_.setState(BaseMovementController::INITIAL);
+
+  // Reset the end effector controller.
+  end_effector_controller_.setState(EndEffectorController::DONE);
 
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
@@ -573,32 +601,30 @@ void PR2SimpleSimulator::updateTransforms()
 						     "base_footprint")
 				);
 
-  // @todo clean this up and figure out better names!!
-  // Get the map -> base_footprint transform.
-  KDL::Frame map_to_base_footprint;
-  map_to_base_footprint.p.x(base_pose_.pose.position.x);
-  map_to_base_footprint.p.y(base_pose_.pose.position.y);
-  map_to_base_footprint.p.z(base_pose_.pose.position.z);
-  map_to_base_footprint.M = KDL::Rotation::Quaternion(base_pose_.pose.orientation.x,
-						      base_pose_.pose.orientation.y,
-						      base_pose_.pose.orientation.z,
+  // Get the pose of the base footprint frame with respect to the map frame.
+  KDL::Frame base_footprint_in_map;
+  base_footprint_in_map.p.x(base_pose_.pose.position.x);
+  base_footprint_in_map.p.y(base_pose_.pose.position.y);
+  base_footprint_in_map.p.z(base_pose_.pose.position.z);
+  base_footprint_in_map.M = KDL::Rotation::Quaternion(base_pose_.pose.orientation.x,
+   						      base_pose_.pose.orientation.y,
+  						      base_pose_.pose.orientation.z,
 						      base_pose_.pose.orientation.w);
-  map_to_base_footprint = map_to_base_footprint.Inverse();
 
-  // Get the base_footprint -> torso_lift_link transform (hack, from gazebo).
-  KDL::Frame base_to_torso_lift_link;
-  base_to_torso_lift_link.p.x(0.050);
-  base_to_torso_lift_link.p.y(0.0);
-  base_to_torso_lift_link.p.z(-0.803); // @todo if raising the robot, add to this offest.
-  base_to_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
+  // Get the pose of the base footprint in the torso lift link frame.
+  KDL::Frame base_in_torso_lift_link;
+  base_in_torso_lift_link.p.x(0.050);
+  base_in_torso_lift_link.p.y(0.0);
+  base_in_torso_lift_link.p.z(-0.803);
+  base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
-  map_to_torso_lift_link_ = base_to_torso_lift_link * map_to_base_footprint;
+  map_in_torso_lift_link_ = base_footprint_in_map.Inverse() * base_in_torso_lift_link;
 
-  double r, p, y;
-  map_to_torso_lift_link_.M.GetRPY(r, p, y);
-  // ROS_INFO("[PR2SimpleSim] map -> torso_lift_link: translation: (%f, %f, %f); rotation (RPY): (%f, %f, %f)",
-  // 	   map_to_torso_lift_link_.p.x(), map_to_torso_lift_link_.p.y(), map_to_torso_lift_link_.p.z(),
-  // 	   r, p, y);
+  // double r, p, y;
+  // map_in_torso_lift_link_.Inverse().M.GetRPY(r, p, y);
+  // ROS_INFO("kinematics to planning origin: (%f, %f, %f), rotation: (%f, %f, %f)",
+  // 	   map_in_torso_lift_link_.Inverse().p.x(), map_in_torso_lift_link_.Inverse().p.y(),
+  // 	   map_in_torso_lift_link_.Inverse().p.z(), r, p, y);
 
-  kdl_robot_model_.setKinematicsToPlanningTransform(map_to_torso_lift_link_.Inverse(), "map");
+  kdl_robot_model_.setKinematicsToPlanningTransform(map_in_torso_lift_link_.Inverse(), "map");
 }

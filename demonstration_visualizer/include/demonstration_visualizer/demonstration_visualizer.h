@@ -29,6 +29,39 @@
 #include <QTabWidget>
 #include <QListWidget>
 
+struct UserDemonstrationInfo
+{
+  UserDemonstrationInfo()
+  : start_time_(), end_time_(), started_(false), goals_completed_(0)
+  {
+
+  }
+
+  void reset()
+  {
+    start_time_ = ros::Time();
+    end_time_ = ros::Time();
+  }
+
+  void start()
+  {
+    start_time_ = ros::Time::now();
+    started_ = true;
+  }
+  
+  ros::Duration stop()
+  {
+    started_ = false;
+    end_time_ = ros::Time::now();
+    return (end_time_ - start_time_);
+  }
+
+  ros::Time start_time_;
+  ros::Time end_time_;
+  bool started_;
+  int goals_completed_;
+};
+
 /**
  *  @brief A Qt-based application that provides a user interface for capturing 
  *         and replaying user demonstrations and creating demonstration scenes
@@ -100,8 +133,8 @@ private Q_SLOTS:
   void startBasicMode();
 
 private:
-  bool started_;
   DemonstrationVisualizerNode node_;
+  UserDemonstrationInfo user_demo_;
 
   rviz::RenderPanel          *render_panel_;
   rviz::VisualizationManager *visualization_manager_;
