@@ -217,6 +217,8 @@ void PR2SimpleSimulator::run()
       recorder_.recordJoints(joint_states_);
     }
 
+    updateEndEffectorPose();
+
     visualizeRobot();
 
     updateTransforms();
@@ -299,7 +301,9 @@ void PR2SimpleSimulator::moveEndEffectors()
      end_effector_vel_cmd_.linear.z == 0)
     return;
 
-  double theta = tf::getYaw(end_effector_pose_.pose.orientation);//-tf::getYaw(base_pose_.pose.orientation);
+  //double theta = tf::getYaw(end_effector_pose_.pose.orientation);//-tf::getYaw(base_pose_.pose.orientation);
+  //double theta = tf::getYaw(base_pose_.pose.orientation);
+  double theta = tf::getYaw(end_effector_pose_.pose.orientation);
 
   // Apply the next end-effector velocity commands (in the robot's base frame.)
   geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
@@ -307,6 +311,15 @@ void PR2SimpleSimulator::moveEndEffectors()
     - (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::sin(theta);
   next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::cos(theta)
     + (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::sin(theta);
+  // ROS_INFO("end-effector yaw = %f, x-vel = %f, y-vel = %f, rotated x-vel = %f, rotated y-vel = %f",
+  // 	   theta, (1/getFrameRate())*end_effector_vel_cmd_.linear.x, (1/getFrameRate())*end_effector_vel_cmd_.linear.y,
+  // 	   (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::cos(theta)
+  // 	   - (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::sin(theta),
+  // 	   (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::cos(theta)
+  // 	   + (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::sin(theta));
+
+  // next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x;
+  // next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y;
   next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
   
   if(!setEndEffectorPose(next_end_effector_pose))
@@ -338,18 +351,36 @@ void PR2SimpleSimulator::visualizeRobot()
   body.theta = body_pos[2];
   robot_markers_ = pviz_.getRobotMarkerMsg(r_joints_pos, l_joints_pos, body, 0.3, "simple_sim", 0);
 
-  if(!is_moving_r_gripper_ && end_effector_controller_.getState() == EndEffectorController::DONE)
-  {
-    int_marker_server_.setPose("r_gripper_marker", robot_markers_.markers.at(11).pose);
-    int_marker_server_.applyChanges();
-  }
-
-  // Publish the pose of the right end effector.
-  end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
-  end_effector_pose_pub_.publish(end_effector_pose_);
-
   // Publish the state of the joints as they are being visualized.
   joint_states_pub_.publish(joint_states_);
+}
+
+void PR2SimpleSimulator::updateEndEffectorPose()
+{
+  std::vector<double> r_arm_joints(7, 0);
+  for(int i = 0; i < 7; ++i)
+    r_arm_joints[i] = joint_states_.position.at(i+7);
+
+  // Publish the pose of the right end effector.
+  std::vector<double> fk_pose;
+  if(!kdl_robot_model_.computePlanningLinkFK(r_arm_joints, fk_pose))
+  {
+    ROS_ERROR("Failed to compute FK!");
+  }
+
+  end_effector_pose_.pose.position.x = fk_pose[0];
+  end_effector_pose_.pose.position.y = fk_pose[1];
+  end_effector_pose_.pose.position.z = fk_pose[2];
+  end_effector_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(fk_pose[3], 
+										fk_pose[4],
+										fk_pose[5]);
+  end_effector_pose_pub_.publish(end_effector_pose_);
+
+  if(!is_moving_r_gripper_ && end_effector_controller_.getState() == EndEffectorController::DONE)
+  {
+    int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_.applyChanges();
+  }
 }
 
 bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
@@ -375,18 +406,6 @@ bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose
   if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
   {
     return false;
-  }
-
-  std::vector<double> fk_pose;
-  if(!kdl_robot_model_.computeFK(solution, "r_wrist_roll_joint", fk_pose))
-  {
-    ROS_ERROR("Failed to compute FK!");
-  }
-  else
-  {
-    ROS_INFO("FK pose: (%f, %f, %f), (%f, %f, %f), difference in z: %f",
-	     fk_pose[0], fk_pose[1], fk_pose[2],  fk_pose[3], fk_pose[4], fk_pose[5],
-	     fk_pose[0] - goal_pose.position.z);
   }
 
   // Set the new joint angles.

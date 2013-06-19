@@ -61,6 +61,12 @@ public:
   void visualizeRobot();
 
   /**
+   * @brief Updates the pose of the end-effector in Cartesian space
+   *        based on the current joint angles, using forward kinematics.
+   */
+  void updateEndEffectorPose();
+
+  /**
    * @brief Finds and sets the appropriate positions of the
    *        (right) arm joints using IK so that the end-effector 
    *        is at the desired pose.

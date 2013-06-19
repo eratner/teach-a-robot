@@ -38,7 +38,7 @@ namespace sbpl_arm_planner {
 KDLRobotModel::KDLRobotModel() : fk_solver_(NULL), ik_vel_solver_(NULL), ik_solver_(NULL), pr2_ik_solver_(NULL) 
 {
   chain_root_name_ = "torso_lift_link";
-  chain_tip_name_ = "r_wrist_roll_link";
+  chain_tip_name_ = "r_gripper_palm_link";
 }
 
 KDLRobotModel::~KDLRobotModel()
@@ -94,25 +94,25 @@ bool KDLRobotModel::init(std::string robot_description, std::vector<std::string>
   }
 
   // joint name -> index mapping
-  for(size_t i = 0, j = 0; i < kchain_.getNrOfSegments(); ++i)
-  {
-    if(kchain_.getSegment(i).getJoint().getName() == planning_joints_[j])
-    {
-      joint_map_[planning_joints_[j]] = i;
-      j++;
-    }
-  }
+  // for(size_t i = 0, j = 0; i < kchain_.getNrOfSegments(); ++i)
+  // {
+  //   if(kchain_.getSegment(i).getJoint().getName() == planning_joints_[j])
+  //   {
+  //     joint_map_[planning_joints_[j]] = i;
+  //     j++;
+  //   }
+  // }
 
-  std::map<std::string, int>::iterator it;
-  for(it = joint_map_.begin(); it != joint_map_.end(); ++it)
-    ROS_INFO("%s --> %d", (it->first).c_str(), it->second);
+  // std::map<std::string, int>::iterator it;
+  // for(it = joint_map_.begin(); it != joint_map_.end(); ++it)
+  //   ROS_INFO("%s --> %d", (it->first).c_str(), it->second);
 
   // for(size_t i = 0; i < planning_joints_.size(); ++i)
   //   joint_map_[planning_joints_[i]] = i;
 
 
   // PR2 Specific IK Solver
-  pr2_ik_solver_ = new pr2_arm_kinematics::PR2ArmIKSolver(*urdf_, "torso_lift_link", "r_wrist_roll_link", 0.02, 2);
+  pr2_ik_solver_ = new pr2_arm_kinematics::PR2ArmIKSolver(*urdf_, "torso_lift_link", /*"r_wrist_roll_link"*/"r_gripper_palm_link", 0.02, 2);
   if(!pr2_ik_solver_->active_)
   {
     ROS_ERROR("The pr2 IK solver is NOT active. Exiting.");
@@ -196,7 +196,7 @@ bool KDLRobotModel::computeFK(const std::vector<double> &angles, std::string nam
     jnt_pos_in_(i) = angles::normalize_angle(angles[i]);
 
   KDL::Frame f1;
-  if(fk_solver_->JntToCart(jnt_pos_in_, f1, joint_map_[name]) < 0)
+  if(fk_solver_->JntToCart(jnt_pos_in_, f1, /*joint_map_[name]*/9) < 0)
   {
     ROS_ERROR("JntToCart returned < 0.");
     return false;
@@ -229,7 +229,7 @@ bool KDLRobotModel::computePlanningLinkFK(const std::vector<double> &angles, std
   for(size_t i = 0; i < angles.size(); ++i)
     jnt_pos_in_(i) = angles::normalize_angle(angles[i]);
 
-  if(fk_solver_->JntToCart(jnt_pos_in_, f1, /*joint_map_[planning_link_]*/8) < 0)
+  if(fk_solver_->JntToCart(jnt_pos_in_, f1, /*joint_map_[planning_link_]*/9) < 0)
   {
     ROS_ERROR("JntToCart returned < 0.");
     return false;

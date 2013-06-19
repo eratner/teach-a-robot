@@ -13,7 +13,7 @@
 #include <QLineEdit>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
- : QWidget(parent), started_(false), node_(argc, argv)
+ : QWidget(parent), node_(argc, argv)
 {
   setWindowTitle("Demonstration Visualizer");
 
@@ -150,8 +150,10 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // The basic control panel.
   QVBoxLayout *basic_layout = new QVBoxLayout();
-  QPushButton *start = new QPushButton("Start!");
-  basic_layout->addWidget(start);
+  start_button_ = new QPushButton("Start!");
+  basic_layout->addWidget(start_button_);
+  end_button_ = new QPushButton("End");
+  basic_layout->addWidget(end_button_);
   basic_layout->addWidget(goals_list_);
 
   basic_ = new QWidget();
@@ -220,7 +222,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SLOT(editGoalDescription(QListWidgetItem *))
 	  );
   connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
-  connect(start, SIGNAL(clicked()), this, SLOT(startBasicMode()));
+  connect(start_button_, SIGNAL(clicked()), this, SLOT(startBasicMode()));
+  connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -761,5 +764,22 @@ void DemonstrationVisualizer::tabChanged(int index)
 
 void DemonstrationVisualizer::startBasicMode()
 {
-  started_ = true;
+  user_demo_.start();
+ 
+  // Select the interaction tool. (@todo make the tools constants somewhere)
+  changeTool(2);
+
+  // Begin recording. @todo
+}
+
+void DemonstrationVisualizer::endBasicMode()
+{
+  ros::Duration d = user_demo_.stop();
+
+  // End recording.
+  std_srvs::Empty empty;
+  node_.endRecording(empty);
+
+  ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %f seconds.",
+	   user_demo_.goals_completed_, d.toSec());
 }

@@ -28,6 +28,7 @@
 #include <QKeyEvent>
 #include <QTabWidget>
 #include <QListWidget>
+#include <QPushButton>
 
 struct UserDemonstrationInfo
 {
@@ -51,9 +52,14 @@ struct UserDemonstrationInfo
   
   ros::Duration stop()
   {
-    started_ = false;
-    end_time_ = ros::Time::now();
-    return (end_time_ - start_time_);
+    if(started_)
+    {
+      started_ = false;
+      end_time_ = ros::Time::now();
+      return (end_time_ - start_time_);
+    }
+
+    return ros::Duration(0.0);
   }
 
   ros::Time start_time_;
@@ -130,8 +136,10 @@ private Q_SLOTS:
   void notifyGoalComplete(int);
 
   void tabChanged(int);
-  void startBasicMode();
 
+  void startBasicMode();
+  void endBasicMode();
+  
 private:
   DemonstrationVisualizerNode node_;
   UserDemonstrationInfo user_demo_;
@@ -154,6 +162,10 @@ private:
   QListWidget                *goals_list_;
   QWidget                    *basic_;
   QWidget                    *advanced_;
+
+  // Basic controls.
+  QPushButton                *start_button_;
+  QPushButton                *end_button_;
 
 };
 
