@@ -125,6 +125,7 @@ private Q_SLOTS:
   void setEditGoalsMode(int);
 
   void selectMesh(int mesh_index);
+  void scaleMesh(int value);
 
   void setLinearSpeed(double linear);
   void setAngularSpeed(double angular);
@@ -139,6 +140,9 @@ private Q_SLOTS:
 
   void startBasicMode();
   void endBasicMode();
+
+  // For controlling the camera.
+  void focusCameraTo(float, float, float);
   
 private:
   DemonstrationVisualizerNode node_;

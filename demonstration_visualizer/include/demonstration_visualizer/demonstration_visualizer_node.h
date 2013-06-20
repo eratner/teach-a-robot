@@ -83,6 +83,7 @@ public:
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
+  void focusCameraTo(float, float, float);
 
 private:
   DemonstrationSceneManager *demonstration_scene_manager_;

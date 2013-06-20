@@ -11,6 +11,7 @@
 #include <QCheckBox>
 #include <QInputDialog>
 #include <QLineEdit>
+#include <QSlider>
 
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
@@ -57,6 +58,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   select_mesh_ = new QComboBox();
   select_mesh_->setInsertPolicy(QComboBox::InsertAtBottom);
   select_mesh_->addItem("Select Mesh...");
+
+  // Scale meshes.
+  QSlider *scale_mesh = new QSlider(Qt::Horizontal);
+  scale_mesh->setMinimum(1);
+  scale_mesh->setMaximum(200);
+  scale_mesh->setValue(100);
 
   rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
   ROS_INFO("There are %d tools loaded:", tool_manager->numTools());
@@ -124,6 +131,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(mesh_controls);
   controls_layout->addLayout(scene_controls);
   controls_layout->addWidget(select_mesh_);
+  controls_layout->addWidget(scale_mesh);
   controls_layout->addWidget(select_tool);
   controls_layout->addLayout(linear_speed_panel);
   controls_layout->addLayout(angular_speed_panel);
@@ -224,6 +232,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   connect(start_button_, SIGNAL(clicked()), this, SLOT(startBasicMode()));
   connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
+  connect(&node_, SIGNAL(focusCameraTo(float, float, float)), this, SLOT(focusCameraTo(float, float, float)));
+  connect(scale_mesh, SIGNAL(valueChanged(int)), this, SLOT(scaleMesh(int)));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -673,6 +683,14 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
   }
 }
 
+void DemonstrationVisualizer::scaleMesh(int value)
+{
+  double scale_factor = value/100.0;
+
+  ROS_INFO("[DViz] Scaling mesh %d by a factor of %f.", select_mesh_->itemData(select_mesh_->currentIndex()).value<int>(),
+	   scale_factor);
+}
+
 void DemonstrationVisualizer::setLinearSpeed(double linear)
 {
   node_.setRobotSpeed(linear, 0);
@@ -732,7 +750,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   QMessageBox box;
 
   std::stringstream text;
-  text << "Goal " << goal_number << " complete!";
+  text << "Goal " << goal_number+1 << " complete! ";
 
   if(goal_number+1 >= node_.getSceneManager()->getNumGoals())
   {
@@ -782,4 +800,11 @@ void DemonstrationVisualizer::endBasicMode()
 
   ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %f seconds.",
 	   user_demo_.goals_completed_, d.toSec());
+}
+
+void DemonstrationVisualizer::focusCameraTo(float x, float y, float z)
+{
+  // Focus the camera to look at the point (x, y, z) relative to the fixed frame.
+  rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
+  view_manager->getCurrent()->lookAt(x, y, z);
 }

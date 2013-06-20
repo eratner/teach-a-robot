@@ -273,6 +273,15 @@ void DemonstrationVisualizerNode::updateTaskGoals()
       marker_pub_.publish(*it);
     }
     interactive_marker_server_->applyChanges();
+
+    // Also, focus the camera to the midpoint between the end-effector and the 
+    // current goal.
+    geometry_msgs::Pose current_goal_pose = getSceneManager()->getGoal(current_goal_).pose;
+    // @todo
+    // float x = ...;
+    // float y = ...;
+    // float z = ...;
+    // Q_EMIT focusCameraAt(x, y, z);
   }
 
   getSceneManager()->setGoalsChanged(false);
@@ -365,7 +374,7 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
       {
 	geometry_msgs::Twist vel;
 	vel.linear.x = vel.linear.y = 0;
-	vel.linear.z = 0.2; // @todo (hack) weird? why does it have to be so high?
+	vel.linear.z = 0.1; 
 	end_effector_vel_cmd_pub_.publish(vel);
       }
       else if(type == QEvent::KeyRelease)
@@ -383,7 +392,7 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
       {
 	geometry_msgs::Twist vel;
 	vel.linear.x = vel.linear.y = 0;
-	vel.linear.z = -0.02; // 2 cm/s.
+	vel.linear.z = -0.1;
 	end_effector_vel_cmd_pub_.publish(vel);
       }
       else if(type == QEvent::KeyRelease)
