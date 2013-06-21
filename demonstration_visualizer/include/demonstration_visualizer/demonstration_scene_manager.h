@@ -35,8 +35,12 @@ public:
   void saveTask(const std::string &filename);
 
   void addMesh(const visualization_msgs::Marker &marker);
+
+  visualization_msgs::Marker getMesh(int mesh_id);
   
   bool updateMeshPose(int mesh_id, const geometry_msgs::Pose &pose);
+
+  bool updateMeshScale(int mesh_id, double x, double y, double z);
 
   bool removeMesh(int mesh_id);
 
@@ -67,6 +71,14 @@ public:
 
 private:
   bool goals_changed_;
+
+  /**
+   * @brief Returns the iterator at the position of the marker in the given vector
+   *        of markers with the specified marker id, or end() if it cannot find 
+   *        such a marker.
+   */
+  std::vector<visualization_msgs::Marker>::iterator findMarker(std::vector<visualization_msgs::Marker> &,
+							       int);
 
   std::vector<visualization_msgs::Marker> meshes_;
   std::vector<visualization_msgs::Marker> goals_;

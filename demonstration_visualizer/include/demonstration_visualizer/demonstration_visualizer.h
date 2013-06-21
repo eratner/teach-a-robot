@@ -143,6 +143,10 @@ private Q_SLOTS:
 
   // For controlling the camera.
   void focusCameraTo(float, float, float);
+
+  // For pausing/playing the simulation.
+  void pauseSimulator();
+  void playSimulator();
   
 private:
   DemonstrationVisualizerNode node_;
@@ -164,8 +168,10 @@ private:
   QLabel                     *recording_icon_;
   QLabel                     *replaying_icon_;
   QListWidget                *goals_list_;
+  // Tab widgets.
   QWidget                    *basic_;
   QWidget                    *advanced_;
+  QWidget                    *controls_info_;
 
   // Basic controls.
   QPushButton                *start_button_;

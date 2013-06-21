@@ -20,6 +20,7 @@
 #include <pr2_simple_simulator/SetPose.h>
 #include <pr2_simple_simulator/SetJoints.h>
 #include <pr2_simple_simulator/FilePath.h>
+#include <pr2_simple_simulator/KeyEvent.h>
 #include <sbpl_manipulation_components/kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
 
@@ -41,6 +42,10 @@ public:
 
   void run();
 
+  /**
+   * @brief Update the (linear/angular) velocity of the base.
+   * @param[in] 
+   */
   void updateVelocity(const geometry_msgs::Twist &);
 
   /**
@@ -70,7 +75,7 @@ public:
    * @brief Finds and sets the appropriate positions of the
    *        (right) arm joints using IK so that the end-effector 
    *        is at the desired pose.
-   * @param the desired pose of the (right) end-effector.
+   * @param[in] the desired pose of the (right) end-effector.
    * @return true on success, otherwise false.
    */
   bool setEndEffectorPose(const geometry_msgs::Pose &);
@@ -106,7 +111,22 @@ public:
   bool endReplay(std_srvs::Empty::Request  &,
 		 std_srvs::Empty::Response &);
 
+  bool play(std_srvs::Empty::Request  &,
+	    std_srvs::Empty::Response &);
+
+  bool pause(std_srvs::Empty::Request  &,
+	     std_srvs::Empty::Response &);
+
+  bool processKeyEvent(pr2_simple_simulator::KeyEvent::Request  &,
+		       pr2_simple_simulator::KeyEvent::Response &);
+
+  void updateEndEffectorMarker();
+
+  void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &);
+
 private:
+  bool playing_;
+
   void updateTransforms();
 
   double frame_rate_;
@@ -120,6 +140,7 @@ private:
 
   ros::Subscriber vel_cmd_sub_;
   ros::Subscriber end_effector_vel_cmd_sub_;
+  ros::Subscriber end_effector_marker_vel_sub_;
   
   ros::Publisher base_pose_pub_;
   ros::Publisher joint_states_pub_;
@@ -128,6 +149,7 @@ private:
 
   geometry_msgs::Twist vel_cmd_;
   geometry_msgs::Twist end_effector_vel_cmd_;
+  geometry_msgs::Twist end_effector_marker_vel_;
   geometry_msgs::PoseStamped base_pose_;
   geometry_msgs::PoseStamped end_effector_pose_;
   geometry_msgs::PoseStamped end_effector_goal_pose_;
@@ -141,13 +163,15 @@ private:
   ros::ServiceServer end_rec_service_;
   ros::ServiceServer begin_replay_service_;
   ros::ServiceServer end_replay_service_;
+  ros::ServiceServer pause_service_;
+  ros::ServiceServer play_service_;
+  ros::ServiceServer key_event_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 
   geometry_msgs::PoseStamped goal_pose_;
 
   sbpl_arm_planner::KDLRobotModel kdl_robot_model_;
-  //KDL::Frame map_to_torso_lift_link_;
   KDL::Frame map_in_torso_lift_link_;
   std::map<std::string, int> joints_map_;
 

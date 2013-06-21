@@ -1,0 +1,40 @@
+# Type of key event.
+int8 KEY_PRESS=1
+int8 KEY_RELEASE=2
+# Key numbers.
+uint32 KEY_LEFT=16777234#0x01000012
+uint32 KEY_UP=16777235#0x01000013
+uint32 KEY_RIGHT=16777236#0x01000014
+uint32 KEY_DOWN=16777237#0x01000015
+uint32 KEY_A=65#0x41
+uint32 KEY_B=66#0x42
+uint32 KEY_C=67#0x43
+uint32 KEY_D=68#0x44
+uint32 KEY_E=69#0x45
+uint32 KEY_F=70#0x46
+uint32 KEY_G=71#0x47
+uint32 KEY_H=72#0x48
+uint32 KEY_I=73#0x49
+uint32 KEY_J=74#0x4a
+uint32 KEY_K=75#0x4b
+uint32 KEY_L=76#0x4c
+uint32 KEY_M=77#0x4d
+uint32 KEY_N=78#0x4e
+uint32 KEY_O=79#0x4f
+uint32 KEY_P=80#0x50
+uint32 KEY_Q=81#0x51
+uint32 KEY_R=82#0x52
+uint32 KEY_S=83#0x53
+uint32 KEY_T=84#0x54
+uint32 KEY_U=85#0x55
+uint32 KEY_V=86#0x56
+uint32 KEY_W=87#0x57
+uint32 KEY_X=88#0x58
+uint32 KEY_Y=89#0x59
+uint32 KEY_Z=90#0x5a
+
+# Type of key event.
+int8 type
+# Key associated with this event.
+uint32 key
+---

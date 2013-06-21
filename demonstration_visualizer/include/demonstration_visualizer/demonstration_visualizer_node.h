@@ -11,6 +11,7 @@
 #include <pr2_simple_simulator/FilePath.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
+#include <pr2_simple_simulator/KeyEvent.h>
 #include <std_srvs/Empty.h>
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
@@ -48,6 +49,10 @@ public:
   bool beginReplay(pr2_simple_simulator::FilePath &srv);
 
   bool endReplay(std_srvs::Empty &srv);
+
+  bool pauseSimulator(std_srvs::Empty &srv);
+  
+  bool playSimulator(std_srvs::Empty &srv);
 
   void publishVisualizationMarker(const visualization_msgs::Marker &msg,
 				  bool attach_interactive_marker = false);
@@ -97,12 +102,17 @@ private:
   ros::ServiceClient end_recording_client_;
   ros::ServiceClient begin_replay_client_;
   ros::ServiceClient end_replay_client_;
+  ros::ServiceClient pause_simulator_client_;
+  ros::ServiceClient play_simulator_client_;
 
   ros::ServiceClient reset_robot_client_;
   ros::ServiceClient set_robot_speed_client_;
 
+  ros::ServiceClient key_event_client_;
+
   ros::Publisher marker_pub_;
   ros::Publisher end_effector_vel_cmd_pub_;
+  ros::Publisher end_effector_marker_vel_pub_;
 
   ros::Subscriber end_effector_pose_sub_;
 

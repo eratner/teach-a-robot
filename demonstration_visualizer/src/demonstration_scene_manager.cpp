@@ -54,6 +54,9 @@ void DemonstrationSceneManager::loadScene(const std::string &filename)
     element->QueryDoubleAttribute("orientation_y", &mesh_marker.pose.orientation.y);
     element->QueryDoubleAttribute("orientation_z", &mesh_marker.pose.orientation.z);
     element->QueryDoubleAttribute("orientation_w", &mesh_marker.pose.orientation.w);
+    element->QueryDoubleAttribute("scale_x", &mesh_marker.scale.x);
+    element->QueryDoubleAttribute("scale_y", &mesh_marker.scale.y);
+    element->QueryDoubleAttribute("scale_z", &mesh_marker.scale.z);
 
     meshes_.push_back(mesh_marker);
   }
@@ -83,6 +86,9 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
     mesh->SetDoubleAttribute("orientation_y", it->pose.orientation.y);
     mesh->SetDoubleAttribute("orientation_z", it->pose.orientation.z);
     mesh->SetDoubleAttribute("orientation_w", it->pose.orientation.w);
+    mesh->SetDoubleAttribute("scale_x", it->scale.x);
+    mesh->SetDoubleAttribute("scale_y", it->scale.y);
+    mesh->SetDoubleAttribute("scale_z", it->scale.z);
   
     root->LinkEndChild(mesh);
   }
@@ -191,15 +197,24 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
   meshes_.push_back(marker);
 }
 
+visualization_msgs::Marker DemonstrationSceneManager::getMesh(int mesh_id)
+{
+  // Find the mesh marker by id.
+  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
+  
+  if(it == meshes_.end())
+  {
+    ROS_ERROR("Mesh with id %d not found!", mesh_id);
+    return visualization_msgs::Marker();
+  }
+
+  return *it;
+}
+
 bool DemonstrationSceneManager::updateMeshPose(int mesh_id, const geometry_msgs::Pose &pose)
 {
   // Find the marker by id.
-  std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = meshes_.begin(); it != meshes_.end(); ++it)
-  {
-    if(it->id == mesh_id)
-      break;
-  }
+  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
 
   if(it == meshes_.end())
     return false;
@@ -209,15 +224,25 @@ bool DemonstrationSceneManager::updateMeshPose(int mesh_id, const geometry_msgs:
   return true;
 }
 
+bool DemonstrationSceneManager::updateMeshScale(int mesh_id, double x, double y, double z)
+{
+  // Find the mesh marker by id.
+  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
+
+  if(it == meshes_.end())
+    return false;
+
+  it->scale.x = x;
+  it->scale.y = y;
+  it->scale.z = z;
+
+  return true;
+}
+
 bool DemonstrationSceneManager::removeMesh(int mesh_id)
 {
   // Find the marker to delete, by id.
-  std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = meshes_.begin(); it != meshes_.end(); ++it)
-  {
-    if(it->id == mesh_id)
-      break;
-  }
+  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
 
   if(it == meshes_.end())
     return false;
@@ -342,4 +367,19 @@ std::string DemonstrationSceneManager::getGoalDescription(int goal_number) const
   }
 
   return goal_descriptions_[goal_number];
+}
+
+std::vector<visualization_msgs::Marker>::iterator DemonstrationSceneManager::findMarker(
+    std::vector<visualization_msgs::Marker> &markers,
+    int marker_id
+  )
+{
+  std::vector<visualization_msgs::Marker>::iterator it;
+  for(it = markers.begin(); it != markers.end(); ++it)
+  {
+    if(it->id == marker_id)
+      break;
+  }
+
+  return it;
 }

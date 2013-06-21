@@ -45,15 +45,24 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   begin_replay_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/motion_recorder/begin_replay");
   end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
 
+  // Services for playing/pausing the simulation.
+  pause_simulator_client_ = nh.serviceClient<std_srvs::Empty>("/pause");
+  play_simulator_client_ = nh.serviceClient<std_srvs::Empty>("/play");
+
   // Service for resetting the state of the robot and environment.
   reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
   // Service for setting the speed of the robot.
   set_robot_speed_client_ = nh.serviceClient<pr2_simple_simulator::SetSpeed>("/set_speed");
 
+  // Service for passing keyboard events to the simulator.
+  key_event_client_ = nh.serviceClient<pr2_simple_simulator::KeyEvent>("/key_event");
+
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
   // Advertise topic for publishing end-effector velocity commands.
   end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 0);
+
+  end_effector_marker_vel_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_marker_vel", 0);
 
   // Subscribe to the pose of the (right) end effector.
   end_effector_pose_sub_ = nh.subscribe("/end_effector_pose", 10, 
@@ -96,6 +105,16 @@ bool DemonstrationVisualizerNode::beginReplay(pr2_simple_simulator::FilePath &sr
 bool DemonstrationVisualizerNode::endReplay(std_srvs::Empty &srv)
 {
   return end_replay_client_.call(srv);
+}
+
+bool DemonstrationVisualizerNode::pauseSimulator(std_srvs::Empty &srv)
+{
+  return pause_simulator_client_.call(srv);
+}
+
+bool DemonstrationVisualizerNode::playSimulator(std_srvs::Empty &srv)
+{
+  return play_simulator_client_.call(srv);
 }
 
 void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization_msgs::Marker &msg,
@@ -365,6 +384,20 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
 
 void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
 {
+  // Pass along the key event to the simulator.
+  pr2_simple_simulator::KeyEvent event;
+  if(type == QEvent::KeyPress)
+    event.request.type = pr2_simple_simulator::KeyEvent::Request::KEY_PRESS;
+  else if(type == QEvent::KeyRelease)
+    event.request.type = pr2_simple_simulator::KeyEvent::Request::KEY_RELEASE;
+  else
+    event.request.type = -1;
+  event.request.key = key;
+  if(!key_event_client_.call(event))
+  {
+    ROS_ERROR("[DVizNode] Error sending key event to simulator!");
+  }
+
   switch(key)
   {
   case Qt::Key_Up:
@@ -375,13 +408,13 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
 	geometry_msgs::Twist vel;
 	vel.linear.x = vel.linear.y = 0;
 	vel.linear.z = 0.1; 
-	end_effector_vel_cmd_pub_.publish(vel);
+	end_effector_marker_vel_pub_.publish(vel);
       }
       else if(type == QEvent::KeyRelease)
       {
 	geometry_msgs::Twist vel;
 	vel.linear.x = vel.linear.y = vel.linear.z = 0;
-	end_effector_vel_cmd_pub_.publish(vel);
+	end_effector_marker_vel_pub_.publish(vel);
       }
       break;
     }
@@ -393,13 +426,13 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
 	geometry_msgs::Twist vel;
 	vel.linear.x = vel.linear.y = 0;
 	vel.linear.z = -0.1;
-	end_effector_vel_cmd_pub_.publish(vel);
+	end_effector_marker_vel_pub_.publish(vel);
       }
       else if(type == QEvent::KeyRelease)
       {
 	geometry_msgs::Twist vel;
 	vel.linear.x = vel.linear.y = vel.linear.z = 0;
-	end_effector_vel_cmd_pub_.publish(vel);
+	end_effector_marker_vel_pub_.publish(vel);
       }
       break;
     }

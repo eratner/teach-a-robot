@@ -17,7 +17,8 @@ geometry_msgs::Twist EndEffectorController::moveTo(const geometry_msgs::Pose &cu
   frames_++;
 
   double distance = std::sqrt(std::pow(goal.position.x - current.position.x, 2) +
-			      std::pow(goal.position.y - current.position.y, 2));
+			      std::pow(goal.position.y - current.position.y, 2) + 
+			      std::pow(goal.position.z - current.position.z, 2));
 
   switch(last_state_)
   {
@@ -66,16 +67,22 @@ geometry_msgs::Twist EndEffectorController::movingToGoal(const geometry_msgs::Po
 {
   printStateTransition(MOVING_TO_GOAL);
 
-  // @todo for now, only worry about movement in the xy-plane.
-  double current_angle = tf::getYaw(current.orientation);
-  double angle_to_goal = std::atan2(goal.position.y - current.position.y,
-				    goal.position.x - current.position.x);
-  double theta = angle_to_goal - current_angle;
+  geometry_msgs::Vector3 r;
+  r.x = goal.position.x - current.position.x;
+  r.y = goal.position.y - current.position.y;
+  r.z = goal.position.z - current.position.z;
+
+  double length = std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z);
+  r.x = (r.x/length) * speed_;
+  r.y = (r.y/length) * speed_;
+  r.z = (r.z/length) * speed_;
 
   geometry_msgs::Twist vel;
-  vel.linear.x = speed_ * std::cos(theta);
-  vel.linear.y = speed_ * std::sin(theta);
-  vel.linear.z = 0;
+  vel.linear.x = r.x;
+  vel.linear.y = r.y;
+  vel.linear.z = r.z;
+
+  //ROS_INFO("velocity = (%f, %f, %f)", vel.linear.x, vel.linear.y, vel.linear.z);
 
   return vel;
 }

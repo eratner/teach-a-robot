@@ -162,6 +162,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   basic_layout->addWidget(start_button_);
   end_button_ = new QPushButton("End");
   basic_layout->addWidget(end_button_);
+  QHBoxLayout *play_pause_layout = new QHBoxLayout();
+  QPushButton *play = new QPushButton("Play");
+  QPushButton *pause = new QPushButton("Pause");
+  play_pause_layout->addWidget(play);
+  play_pause_layout->addWidget(pause);
+  basic_layout->addLayout(play_pause_layout);
   basic_layout->addWidget(goals_list_);
 
   basic_ = new QWidget();
@@ -169,13 +175,25 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   advanced_ = new QWidget();
   advanced_->setLayout(l_window_layout);
 
+  // The controls panel.
+  controls_info_ = new QWidget();
+  QLabel *controls_info = new QLabel("Controls:\n"
+				     "- Left-click on the base, and drag \nto the desired position in the xy-plane.\n"
+				     "- Left-click on the gripper, and move to\n the desired position in the x and y directions.\n"
+				     "- Press the Up arrow key to move the gripper up.\n"
+				     "- Press the Down arrow key to move the gripper down.\n");
+  QVBoxLayout *controls_info_layout = new QVBoxLayout();
+  controls_info_layout->addWidget(controls_info);
+  controls_info_->setLayout(controls_info_layout);
+
   QTabWidget *tabs = new QTabWidget();
   tabs->addTab(basic_, tr("Basic"));
   tabs->addTab(advanced_, tr("Advanced"));
+  tabs->addTab(controls_info_, tr("Controls"));
 
   QHBoxLayout *window_layout = new QHBoxLayout();
   window_layout->addWidget(tabs, 1);
-  window_layout->addWidget(render_panel_, 3);
+  window_layout->addWidget(render_panel_, 4);
 
   // Create and display a grid.
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
@@ -234,6 +252,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
   connect(&node_, SIGNAL(focusCameraTo(float, float, float)), this, SLOT(focusCameraTo(float, float, float)));
   connect(scale_mesh, SIGNAL(valueChanged(int)), this, SLOT(scaleMesh(int)));
+  connect(play, SIGNAL(clicked()), this, SLOT(playSimulator()));
+  connect(pause, SIGNAL(clicked()), this, SLOT(pauseSimulator()));
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -262,33 +282,47 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
 
 void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
 {
-  switch(event->key())
+  // switch(event->key())
+  // {
+  // case Qt::Key_Up:
+  //   node_.processKeyEvent(Qt::Key_Up, QEvent::KeyPress);
+  //   break;
+  // case Qt::Key_Down:
+  //   node_.processKeyEvent(Qt::Key_Down, QEvent::KeyPress);
+  //   break;
+  // default:
+  //   QWidget::keyPressEvent(event);
+  //   break;
+  // }
+  if(event->isAutoRepeat())
+    event->ignore();
+  else
   {
-  case Qt::Key_Up:
-    node_.processKeyEvent(Qt::Key_Up, QEvent::KeyPress);
-    break;
-  case Qt::Key_Down:
-    node_.processKeyEvent(Qt::Key_Down, QEvent::KeyPress);
-    break;
-  default:
+    node_.processKeyEvent(event->key(), QEvent::KeyPress);
     QWidget::keyPressEvent(event);
-    break;
   }
 }
 
 void DemonstrationVisualizer::keyReleaseEvent(QKeyEvent *event)
 {
-  switch(event->key())
+  // switch(event->key())
+  // {
+  // case Qt::Key_Up:
+  //   node_.processKeyEvent(Qt::Key_Up, QEvent::KeyRelease);
+  //   break;
+  // case Qt::Key_Down:
+  //   node_.processKeyEvent(Qt::Key_Down, QEvent::KeyRelease);
+  //   break;
+  // default:
+  //   QWidget::keyReleaseEvent(event);
+  //   break;
+  // }
+  if(event->isAutoRepeat())
+    event->ignore();
+  else
   {
-  case Qt::Key_Up:
-    node_.processKeyEvent(Qt::Key_Up, QEvent::KeyRelease);
-    break;
-  case Qt::Key_Down:
-    node_.processKeyEvent(Qt::Key_Down, QEvent::KeyRelease);
-    break;
-  default:
+    node_.processKeyEvent(event->key(), QEvent::KeyRelease);
     QWidget::keyReleaseEvent(event);
-    break;
   }
 }
 
@@ -482,7 +516,7 @@ void DemonstrationVisualizer::deleteMesh()
 {
   if(selected_mesh_ == -1)
   {
-    ROS_INFO("No marker selected.");
+    ROS_INFO("[DViz] No marker selected.");
     return;
   }
 
@@ -577,7 +611,7 @@ void DemonstrationVisualizer::loadScene()
   case QMessageBox::No:
     break;
   default:
-    ROS_ERROR("An error has occured in loading the scene!");
+    ROS_ERROR("[DViz] An error has occured in loading the scene!");
     break;
   }
 }
@@ -591,7 +625,7 @@ void DemonstrationVisualizer::saveScene()
 
   if(filename.isEmpty())
   {
-    ROS_INFO("No file selected.");
+    ROS_INFO("[DViz] No file selected.");
     return;
   }
 
@@ -607,7 +641,7 @@ void DemonstrationVisualizer::loadTask()
 
   if(filename.isEmpty())
   {
-    ROS_INFO("No file selected.");
+    ROS_INFO("[DViz] No file selected.");
     return;
   }  
 
@@ -648,7 +682,7 @@ void DemonstrationVisualizer::saveTask()
 
   if(filename.isEmpty())
   {
-    ROS_INFO("No file selected.");
+    ROS_INFO("[DViz] No file selected.");
     return;
   }
 
@@ -678,17 +712,42 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
   mesh_index -= 1;
   if(mesh_index >= 0)
   {
-    ROS_INFO("Selected mesh %d.", (int)select_mesh_->itemData(mesh_index+1).value<int>());
+    ROS_INFO("[DViz] Selected mesh %d.", (int)select_mesh_->itemData(mesh_index+1).value<int>());
     selected_mesh_ = select_mesh_->itemData(mesh_index+1).value<int>();
   }
 }
 
 void DemonstrationVisualizer::scaleMesh(int value)
 {
+  if(selected_mesh_ == -1)
+  {
+    ROS_INFO("[DViz] No marker selected to scale.");
+    return;
+  }
+
+  std::stringstream int_marker_name;
+  int_marker_name << "mesh_marker_" << selected_mesh_;
+  
+  if(!node_.removeInteractiveMarker(int_marker_name.str().c_str()))
+  {
+    ROS_ERROR("[DViz] Failed to remove interactive marker!");
+  }
+
+  visualization_msgs::Marker mesh = node_.getSceneManager()->getMesh(selected_mesh_);
+
   double scale_factor = value/100.0;
 
-  ROS_INFO("[DViz] Scaling mesh %d by a factor of %f.", select_mesh_->itemData(select_mesh_->currentIndex()).value<int>(),
+  ROS_INFO("[DViz] Scaling mesh %d by a factor of %f.", 
+	   select_mesh_->itemData(select_mesh_->currentIndex()).value<int>(),
 	   scale_factor);
+
+  mesh.scale.x = scale_factor;
+  mesh.scale.y = scale_factor;
+  mesh.scale.z = scale_factor;
+
+  node_.getSceneManager()->updateMeshScale(selected_mesh_, scale_factor, scale_factor, scale_factor);
+
+  node_.publishVisualizationMarker(mesh, true);
 }
 
 void DemonstrationVisualizer::setLinearSpeed(double linear)
@@ -747,6 +806,8 @@ void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
 
 void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
+  user_demo_.goals_completed_++;
+
   QMessageBox box;
 
   std::stringstream text;
@@ -807,4 +868,18 @@ void DemonstrationVisualizer::focusCameraTo(float x, float y, float z)
   // Focus the camera to look at the point (x, y, z) relative to the fixed frame.
   rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
   view_manager->getCurrent()->lookAt(x, y, z);
+}
+
+void DemonstrationVisualizer::pauseSimulator()
+{
+  std_srvs::Empty empty;
+  if(!node_.pauseSimulator(empty))
+    ROS_ERROR("[DViz] Failed to pause simulation!");
+}
+
+void DemonstrationVisualizer::playSimulator()
+{
+  std_srvs::Empty empty;
+  if(!node_.playSimulator(empty))
+    ROS_ERROR("[DViz] Failed to play simulation!");
 }
