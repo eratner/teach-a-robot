@@ -542,6 +542,47 @@ void DemonstrationVisualizer::deleteMesh()
     selected_mesh_ = -1;
 }
 
+void DemonstrationVisualizer::setEditSceneMode(int mode)
+{
+  switch(mode)
+  {
+  case Qt::Unchecked:
+    {
+      std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
+      std::vector<visualization_msgs::Marker>::iterator it;
+      // For each mesh, first remove all the interactive markers from the meshes.
+      // Then, re-visualize each marker without an attached interactive marker.
+      for(it = meshes.begin(); it != meshes.end(); ++it)
+      {
+	std::stringstream int_marker_name;
+	int_marker_name << "mesh_marker_" << it->id;
+
+	if(!node_.removeInteractiveMarker(int_marker_name.str().c_str()))
+	{
+	  ROS_ERROR("[DViz] Failed to remove interactive marker on mesh %d!", it->id);
+	}
+
+	it->header.frame_id = "/map";
+	it->header.stamp = ros::Time();
+	it->action = visualization_msgs::Marker::ADD;
+	it->type = visualization_msgs::Marker::MESH_RESOURCE;
+	it->color.r = it->color.g = it->color.b = it->color.a = 0;
+	it->mesh_use_embedded_materials = true;
+
+	node_.publishVisualizationMarker(*it, false);
+      }
+      
+      break;
+    }
+  case Qt::Checked:
+
+    break;
+  default:
+    ROS_ERROR("[DViz] Invalid edit scene mode!");
+    break;
+  }
+}
+
 void DemonstrationVisualizer::loadScene()
 {
   QString filename = QFileDialog::getOpenFileName(this, 
@@ -848,6 +889,8 @@ void DemonstrationVisualizer::startBasicMode()
   playSimulator();
 
   setEditGoalsMode(Qt::Unchecked);
+
+  setEditSceneMode(Qt::Unchecked);
 
   user_demo_.start();
  

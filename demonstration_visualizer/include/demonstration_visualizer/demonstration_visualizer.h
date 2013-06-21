@@ -113,6 +113,8 @@ private Q_SLOTS:
   // Load/delete a mesh file.
   void loadMesh();
   void deleteMesh();
+  
+  void setEditSceneMode(int);
 
   // Load from/save to a demonstration scene file.
   void loadScene();
