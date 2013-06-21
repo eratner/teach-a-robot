@@ -5,7 +5,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
     frame_rate_(10.0), 
     pviz_(), 
     int_marker_server_("simple_sim_marker"), 
-    base_movement_controller_()
+    base_movement_controller_(),
+    end_effector_controller_()
 {
   ros::NodeHandle nh;
 
@@ -320,6 +321,13 @@ void PR2SimpleSimulator::moveEndEffectors()
 							    end_effector_goal_pose_.pose)
 			    );
 
+  if(end_effector_controller_.getState() == EndEffectorController::INITIAL)
+  {
+    int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_.applyChanges();
+    return;
+  }
+
   if(end_effector_vel_cmd_.linear.x == 0 &&
      end_effector_vel_cmd_.linear.y == 0 &&
      end_effector_vel_cmd_.linear.z == 0)
@@ -389,10 +397,12 @@ void PR2SimpleSimulator::updateEndEffectorPose()
 										fk_pose[5]);
   end_effector_pose_pub_.publish(end_effector_pose_);
 
-  if(!is_moving_r_gripper_ && end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL)
+  if(!is_moving_r_gripper_ 
+     && end_effector_controller_.getState() == EndEffectorController::DONE)
   {
     int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_.applyChanges();
+    end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 }
 
@@ -531,7 +541,7 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
   base_movement_controller_.setState(BaseMovementController::INITIAL);
 
   // Reset the end effector controller.
-  end_effector_controller_.setState(EndEffectorController::DONE);
+  end_effector_controller_.setState(EndEffectorController::INITIAL);
 
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
@@ -689,6 +699,32 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 
 void PR2SimpleSimulator::updateEndEffectorMarker()
 {
+  // If the gripper marker is at an invalid pose, it should turn red.
+  if(end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL &&
+     end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
+  {
+    visualization_msgs::InteractiveMarker gripper_marker;
+    int_marker_server_.get("r_gripper_marker", gripper_marker);
+    gripper_marker.controls[0].markers[0].color.r = 1;
+    gripper_marker.controls[0].markers[0].color.g = 0;
+    gripper_marker.controls[0].markers[0].color.b = 0;
+    gripper_marker.controls[0].markers[0].pose = end_effector_goal_pose_.pose;
+    int_marker_server_.insert(gripper_marker);
+    int_marker_server_.applyChanges();
+  }
+  else if(end_effector_controller_.getState() != EndEffectorController::INVALID_GOAL &&
+	  end_effector_controller_.getLastState() == EndEffectorController::INVALID_GOAL)
+  {
+    visualization_msgs::InteractiveMarker gripper_marker;
+    int_marker_server_.get("r_gripper_marker", gripper_marker);
+    gripper_marker.controls[0].markers[0].color.r = 0;
+    gripper_marker.controls[0].markers[0].color.g = 1;
+    gripper_marker.controls[0].markers[0].color.b = 0;
+    gripper_marker.controls[0].markers[0].pose = end_effector_goal_pose_.pose;
+    int_marker_server_.insert(gripper_marker);
+    int_marker_server_.applyChanges();
+  }
+
   if(end_effector_marker_vel_.linear.x == 0 &&
      end_effector_marker_vel_.linear.y == 0 &&
      end_effector_marker_vel_.linear.z == 0)

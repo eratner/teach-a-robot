@@ -1,7 +1,7 @@
 #include "pr2_simple_simulator/end_effector_controller.h"
 
 EndEffectorController::EndEffectorController()
- : last_state_(DONE), frames_(0), speed_(0.05)
+ : last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(0.05)
 {
 
 }
@@ -20,8 +20,12 @@ geometry_msgs::Twist EndEffectorController::moveTo(const geometry_msgs::Pose &cu
 			      std::pow(goal.position.y - current.position.y, 2) + 
 			      std::pow(goal.position.z - current.position.z, 2));
 
-  switch(last_state_)
+  last_state_ = current_state_;
+
+  switch(current_state_)
   {
+  case INITIAL:
+    return initial();
   case READY:
   case MOVING_TO_GOAL:
     {
@@ -44,10 +48,17 @@ void EndEffectorController::setState(State state)
 {
   printStateTransition(state);
 
-  last_state_ = state;
+  last_state_ = current_state_;
+
+  current_state_ = state;
 }
 
 EndEffectorController::State EndEffectorController::getState() const
+{
+  return current_state_;
+}
+
+EndEffectorController::State EndEffectorController::getLastState() const
 {
   return last_state_;
 }
@@ -60,6 +71,18 @@ void EndEffectorController::setSpeed(double speed)
 double EndEffectorController::getSpeed() const
 {
   return speed_;
+}
+
+geometry_msgs::Twist EndEffectorController::initial()
+{
+  printStateTransition(INITIAL);
+
+  geometry_msgs::Twist vel;
+  vel.linear.x = 0;
+  vel.linear.y = 0;
+  vel.linear.z = 0;
+
+  return vel;
 }
 
 geometry_msgs::Twist EndEffectorController::movingToGoal(const geometry_msgs::Pose &current,
@@ -115,7 +138,6 @@ void EndEffectorController::printStateTransition(State next_state)
 	     END_EFFECTOR_STATE_NAMES[next_state],
 	     frames_,
 	     END_EFFECTOR_STATE_NAMES[last_state_]);
-    last_state_ = next_state;
     frames_ = 0;
   }
 }

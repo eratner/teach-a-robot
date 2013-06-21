@@ -7,7 +7,8 @@
 #include <tf/transform_datatypes.h>
 #include <cmath>
 
-static const char *END_EFFECTOR_STATE_NAMES[] = { "READY",
+static const char *END_EFFECTOR_STATE_NAMES[] = { "INITIAL",
+                                                  "READY",
 						  "MOVING_TO_GOAL",
 						  "INVALID_GOAL",
 						  "DONE" };
@@ -16,7 +17,8 @@ static const char *END_EFFECTOR_STATE_NAMES[] = { "READY",
 class EndEffectorController
 {
 public:
-  enum State { READY = 0,
+  enum State { INITIAL = 0,
+               READY,
 	       MOVING_TO_GOAL,
 	       INVALID_GOAL,
 	       DONE };
@@ -32,16 +34,21 @@ public:
 
   State getState() const;
 
+  State getLastState() const;
+
   void setSpeed(double speed);
   
   double getSpeed() const;
 
 private:
+  State current_state_;
   State last_state_;
   int frames_;
   double speed_;
 
   // States
+  geometry_msgs::Twist initial();
+
   geometry_msgs::Twist movingToGoal(const geometry_msgs::Pose &current,
 				    const geometry_msgs::Pose &goal);
 

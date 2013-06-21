@@ -282,18 +282,6 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
 
 void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
 {
-  // switch(event->key())
-  // {
-  // case Qt::Key_Up:
-  //   node_.processKeyEvent(Qt::Key_Up, QEvent::KeyPress);
-  //   break;
-  // case Qt::Key_Down:
-  //   node_.processKeyEvent(Qt::Key_Down, QEvent::KeyPress);
-  //   break;
-  // default:
-  //   QWidget::keyPressEvent(event);
-  //   break;
-  // }
   if(event->isAutoRepeat())
     event->ignore();
   else
@@ -305,18 +293,6 @@ void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
 
 void DemonstrationVisualizer::keyReleaseEvent(QKeyEvent *event)
 {
-  // switch(event->key())
-  // {
-  // case Qt::Key_Up:
-  //   node_.processKeyEvent(Qt::Key_Up, QEvent::KeyRelease);
-  //   break;
-  // case Qt::Key_Down:
-  //   node_.processKeyEvent(Qt::Key_Down, QEvent::KeyRelease);
-  //   break;
-  // default:
-  //   QWidget::keyReleaseEvent(event);
-  //   break;
-  // }
   if(event->isAutoRepeat())
     event->ignore();
   else
@@ -575,7 +551,7 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
       break;
     }
   case Qt::Checked:
-
+    // @todo !! re-enable the interactive marker controls on the meshes.
     break;
   default:
     ROS_ERROR("[DViz] Invalid edit scene mode!");
