@@ -604,7 +604,7 @@ void DemonstrationVisualizer::loadScene()
 	node_.publishVisualizationMarker(*it, true);
       }
 
-      next_mesh_id_ = max_mesh_id;
+      next_mesh_id_ = max_mesh_id+1;
 
       break;
     }
@@ -816,6 +816,8 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   if(goal_number+1 >= node_.getSceneManager()->getNumGoals())
   {
     text << " All goals complete!";
+    if(user_demo_.started_)
+      endBasicMode();
   }
   else
   {
@@ -843,16 +845,31 @@ void DemonstrationVisualizer::tabChanged(int index)
 
 void DemonstrationVisualizer::startBasicMode()
 {
+  playSimulator();
+
+  setEditGoalsMode(Qt::Unchecked);
+
   user_demo_.start();
  
   // Select the interaction tool. (@todo make the tools constants somewhere)
   changeTool(2);
 
-  // Begin recording. @todo
+  // Begin recording.
+  pr2_simple_simulator::FilePath srv;
+  srv.request.file_path = ".";
+  if(!node_.beginRecording(srv))
+  {
+    ROS_ERROR("Failed to call service /motion_recorder/begin_recording.");
+    return;
+  }
 }
 
 void DemonstrationVisualizer::endBasicMode()
 {
+  pauseSimulator();
+
+  changeTool(1);
+
   ros::Duration d = user_demo_.stop();
 
   // End recording.
