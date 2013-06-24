@@ -194,10 +194,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   control.markers.clear();
   control.markers.push_back(r_gripper_marker);
 
-  // EXPERIMENTAL:
   control.markers[0].pose = geometry_msgs::Pose();
   control.markers[0].header = std_msgs::Header();
-  // ***********************
 
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   int_marker.controls.clear();
@@ -671,7 +669,6 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	// Change the marker to only move in the +/- z-directions.
 	visualization_msgs::InteractiveMarker gripper_marker;
 	int_marker_server_.get("r_gripper_marker", gripper_marker);
-	//gripper_marker.controls.at(0).markers.at(0).pose = end_effector_goal_pose_.pose;
 	gripper_marker.pose = end_effector_goal_pose_.pose;
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
@@ -695,7 +692,6 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	// Change the marker back to moving in the xy-plane.
 	visualization_msgs::InteractiveMarker gripper_marker;
 	int_marker_server_.get("r_gripper_marker", gripper_marker);
-	//gripper_marker.controls.at(0).markers.at(0).pose = end_effector_goal_pose_.pose;
 	gripper_marker.pose = end_effector_goal_pose_.pose;
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
@@ -743,8 +739,6 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     int_marker_server_.insert(gripper_marker);
     int_marker_server_.applyChanges();
   }
-
-  return;
 
   if(end_effector_marker_vel_.linear.x == 0 &&
      end_effector_marker_vel_.linear.y == 0 &&

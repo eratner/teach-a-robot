@@ -100,6 +100,8 @@ private Q_SLOTS:
    */
   void resetRobot();
 
+  void resetTask();
+
   void changeTool(int tool_index);
 
   // For recording PR2 motion.

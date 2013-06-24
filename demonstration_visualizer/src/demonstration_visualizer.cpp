@@ -13,6 +13,8 @@
 #include <QLineEdit>
 #include <QSlider>
 
+#include <ros/package.h>
+
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
 {
@@ -60,10 +62,14 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   select_mesh_->addItem("Select Mesh...");
 
   // Scale meshes.
+  QHBoxLayout *scale_mesh_panel = new QHBoxLayout();
+  QLabel *scale_mesh_label = new QLabel("Scale Mesh: ");
+  scale_mesh_panel->addWidget(scale_mesh_label);
   QSlider *scale_mesh = new QSlider(Qt::Horizontal);
   scale_mesh->setMinimum(1);
   scale_mesh->setMaximum(200);
   scale_mesh->setValue(100);
+  scale_mesh_panel->addWidget(scale_mesh);
 
   rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
   ROS_INFO("There are %d tools loaded:", tool_manager->numTools());
@@ -115,8 +121,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   task_panel->addWidget(load_task);
   QPushButton *save_task = new QPushButton("Save Task");
   task_panel->addWidget(save_task);
+  QHBoxLayout *edit_mode_panel = new QHBoxLayout();
   QCheckBox *edit_goals = new QCheckBox("Edit Goals Mode");
   edit_goals->setCheckState(Qt::Checked);
+  edit_mode_panel->addWidget(edit_goals);
+  QCheckBox *edit_scene = new QCheckBox("Edit Scene Mode");
+  edit_scene->setCheckState(Qt::Checked);
+  edit_mode_panel->addWidget(edit_scene);
   QLabel *goals_label = new QLabel("Goals:");
   goals_list_ = new QListWidget();
   goals_list_->setSelectionRectVisible(false);
@@ -131,13 +142,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   controls_layout->addLayout(mesh_controls);
   controls_layout->addLayout(scene_controls);
   controls_layout->addWidget(select_mesh_);
-  controls_layout->addWidget(scale_mesh);
+  controls_layout->addLayout(scale_mesh_panel);
   controls_layout->addWidget(select_tool);
   controls_layout->addLayout(linear_speed_panel);
   controls_layout->addLayout(angular_speed_panel);
   controls_layout->addWidget(add_goal);
   controls_layout->addLayout(task_panel);
-  controls_layout->addWidget(edit_goals);
+  controls_layout->addLayout(edit_mode_panel);
   controls_layout->addWidget(goals_label);
 
   QHBoxLayout *status_icons = new QHBoxLayout();
@@ -177,13 +188,18 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // The controls panel.
   controls_info_ = new QWidget();
-  QLabel *controls_info = new QLabel("Controls:\n"
-				     "- Left-click on the base, and drag \nto the desired position in the xy-plane.\n"
-				     "- Left-click on the gripper, and move to\n the desired position in the x and y directions.\n"
-				     "- Press the Up arrow key to move the gripper up.\n"
-				     "- Press the Down arrow key to move the gripper down.\n");
+  QLabel *controls_info = new QLabel("<strong>Controls</strong>:"
+				     "<ul>"
+				     "<li>Left-click on the base, and drag <br />to the desired position in the <i>xy</i>-plane.</li>"
+				     "<li>Left-click on the gripper, and move <br />to the desired position in the <i>x</i> and <i>y</i> directions.</li>"
+				     "<li>Press the Up arrow key to move the gripper up.</li>"
+				     "<li>Press the Down arrow key to move the gripper down.</li>"
+				     "<hr />"
+				     "<li>Press and hold the Z key, and left-click <br />on the gripper to move in the <i>z</i> direction.</li>"
+				     "</ul>");
+  controls_info->setAlignment(Qt::AlignTop);
   QVBoxLayout *controls_info_layout = new QVBoxLayout();
-  controls_info_layout->addWidget(controls_info);
+  controls_info_layout->addWidget(controls_info, Qt::AlignTop);
   controls_info_->setLayout(controls_info_layout);
 
   QTabWidget *tabs = new QTabWidget();
@@ -242,6 +258,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(load_task, SIGNAL(clicked()), this, SLOT(loadTask()));
   connect(save_task, SIGNAL(clicked()), this, SLOT(saveTask()));
   connect(edit_goals, SIGNAL(stateChanged(int)), this, SLOT(setEditGoalsMode(int)));
+  connect(edit_scene, SIGNAL(stateChanged(int)), this, SLOT(setEditSceneMode(int)));
   connect(&node_, SIGNAL(goalComplete(int)), this, SLOT(notifyGoalComplete(int)));
   connect(goals_list_, 
 	  SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, 
@@ -341,6 +358,22 @@ void DemonstrationVisualizer::resetRobot()
   node_.resetRobot();
 }
 
+void DemonstrationVisualizer::resetTask()
+{
+  user_demo_.goals_completed_ = 0;
+
+  // Reset the goal list.
+  for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
+  {
+    QFont font = goals_list_->item(i)->font();
+    font.setBold(i == 0 ? true : false);
+    font.setStrikeOut(false);
+    goals_list_->item(i)->setFont(font);     
+  }
+
+  node_.getSceneManager()->setGoalsChanged(true);
+}
+
 void DemonstrationVisualizer::changeTool(int tool_index)
 {
   if(tool_index == 0)
@@ -433,9 +466,17 @@ void DemonstrationVisualizer::endReplay()
 
 void DemonstrationVisualizer::loadMesh()
 {
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+
+  if(package_path.empty())
+  {
+    ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
+    return;
+  }
+
   QString filename = QFileDialog::getOpenFileName(this, 
 						  tr("Open Mesh File"),
-						  "/home",
+						  QString(package_path.c_str()),
 						  tr("Mesh Files (*.dae *.stl *.mesh)"));
 
   if(filename.isEmpty())
@@ -444,8 +485,15 @@ void DemonstrationVisualizer::loadMesh()
     return;
   }
 
+  std::size_t found = filename.toStdString().find("demonstration_visualizer");
+  if(found == std::string::npos)
+  {
+    ROS_ERROR("[DViz] Please load a mesh that is within a subdirectory of the demonstration_visualizer pacakge.");
+    return;
+  }
+
   std::stringstream resource_path;
-  resource_path << "file://" << filename.toStdString();
+  resource_path << "package://" << filename.toStdString().substr(found);
   ROS_INFO("Loading mesh from file %s.", resource_path.str().c_str());
 
   int i = resource_path.str().size()-1;
@@ -551,8 +599,27 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
       break;
     }
   case Qt::Checked:
-    // @todo !! re-enable the interactive marker controls on the meshes.
-    break;
+    {
+      std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
+      std::vector<visualization_msgs::Marker>::iterator it;
+      for(it = meshes.begin(); it != meshes.end(); ++it)
+      {
+	it->header.frame_id = node_.getGlobalFrame();
+	it->header.stamp = ros::Time();
+	it->action = visualization_msgs::Marker::DELETE;
+	it->type = visualization_msgs::Marker::MESH_RESOURCE;
+	it->mesh_use_embedded_materials = true;
+
+	// First remove the old markers.
+	node_.publishVisualizationMarker(*it, false);
+
+	// Then add the markers again, but this time with interactive markers.
+	it->action = visualization_msgs::Marker::ADD;
+	node_.publishVisualizationMarker(*it, true);
+      }
+
+      break;
+    }
   default:
     ROS_ERROR("[DViz] Invalid edit scene mode!");
     break;
@@ -561,9 +628,17 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
 
 void DemonstrationVisualizer::loadScene()
 {
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+
+  if(package_path.empty())
+  {
+    ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
+    return;
+  }
+
   QString filename = QFileDialog::getOpenFileName(this, 
 						  tr("Open Demonstration Scene File"),
-						  "/home",
+						  QString(package_path.c_str()),
 						  tr("Demonstration Scene Files (*.xml)"));
 
   if(filename.isEmpty())
@@ -609,7 +684,7 @@ void DemonstrationVisualizer::loadScene()
 	std::string mesh_name = it->mesh_resource.substr(i+1);
 	mesh_names_.insert(std::pair<int, std::string>(it->id, mesh_name));
 
-	select_mesh_->addItem(QString(it->mesh_resource.c_str()), QVariant(it->id));
+	select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(it->id));
 
 	ROS_INFO_STREAM("Adding mesh " << it->id << " ns = "
 			<< it->ns << " mesh_resource = " 
@@ -635,9 +710,17 @@ void DemonstrationVisualizer::loadScene()
 
 void DemonstrationVisualizer::saveScene()
 {
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+
+  if(package_path.empty())
+  {
+    ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
+    return;
+  }
+
   QString filename = QFileDialog::getSaveFileName(this, 
 						  tr("Save Demonstration Scene File"),
-						  "/home",
+						  QString(package_path.c_str()),
 						  tr("Demonstration Scene Files (*.xml)"));
 
   if(filename.isEmpty())
@@ -651,9 +734,17 @@ void DemonstrationVisualizer::saveScene()
 
 void DemonstrationVisualizer::loadTask()
 {
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+
+  if(package_path.empty())
+  {
+    ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
+    return;
+  }  
+
   QString filename = QFileDialog::getOpenFileName(this, 
 						  tr("Open Demonstration Task File"),
-						  "/home",
+						  QString(package_path.c_str()),
 						  tr("Demonstration Task Files (*.xml)"));
 
   if(filename.isEmpty())
@@ -680,6 +771,11 @@ void DemonstrationVisualizer::loadTask()
 	goal_desc << "Goal " << i+1 << ": " << node_.getSceneManager()->getGoalDescription(i);
 	goals_list_->addItem(QString(goal_desc.str().c_str()));
       }
+      
+      // Bold the first entry to indicate that is the current goal.
+      QFont font = goals_list_->item(0)->font();
+      font.setBold(true);
+      goals_list_->item(0)->setFont(font);
       break;
     }
   case QMessageBox::No:
@@ -692,9 +788,17 @@ void DemonstrationVisualizer::loadTask()
 
 void DemonstrationVisualizer::saveTask()
 {
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+
+  if(package_path.empty())
+  {
+    ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
+    return;
+  }
+
   QString filename = QFileDialog::getSaveFileName(this, 
 						  tr("Save Demonstration Task File"),
-						  "/home",
+						  QString(package_path.c_str()),
 						  tr("Demonstration Task Files (*.xml)"));
 
   if(filename.isEmpty())
@@ -823,6 +927,21 @@ void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
 
 void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
+  pauseSimulator();
+
+  // Update the task list.
+  QFont font = goals_list_->item(goal_number)->font();
+  font.setBold(false);
+  font.setStrikeOut(true);
+  goals_list_->item(goal_number)->setFont(font);   
+
+  if(goal_number < node_.getSceneManager()->getNumGoals()+1)
+  {
+    QFont font = goals_list_->item(goal_number+1)->font();
+    font.setBold(true);
+    goals_list_->item(goal_number+1)->setFont(font);
+  }
+
   user_demo_.goals_completed_++;
 
   ros::Duration time_to_complete = ros::Time::now() - user_demo_.start_time_;
@@ -846,6 +965,8 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   box.setText(QString(text.str().c_str()));
 
   box.exec();
+
+  playSimulator();
 }
 
 void DemonstrationVisualizer::tabChanged(int index)
@@ -864,6 +985,12 @@ void DemonstrationVisualizer::tabChanged(int index)
 
 void DemonstrationVisualizer::startBasicMode()
 {
+  // Reset the robot.
+  resetRobot();
+
+  // Reset the task.
+  resetTask();
+
   playSimulator();
 
   setEditGoalsMode(Qt::Unchecked);
