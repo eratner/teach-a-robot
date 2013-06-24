@@ -50,7 +50,16 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   joint_states_.position.resize(14);
   joint_states_.velocity.resize(14);
   joint_states_.effort.resize(14);
-  for(int i = 0; i < 14; ++i)
+  // Tuck the left arm initially. @todo these should be constants somewhere.
+  joint_states_.position[0] = 0.06024;
+  joint_states_.position[1] = 1.248526;
+  joint_states_.position[2] = 1.789070;
+  joint_states_.position[3] = -1.683386;
+  joint_states_.position[4] = -1.7343417;
+  joint_states_.position[5] = -0.0962141;
+  joint_states_.position[6] = -0.0864407;
+
+  for(int i = 7; i < 14; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
 
   // Create a mapping from joint names to index.
@@ -184,6 +193,12 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   control.always_visible = true;
   control.markers.clear();
   control.markers.push_back(r_gripper_marker);
+
+  // EXPERIMENTAL:
+  control.markers[0].pose = geometry_msgs::Pose();
+  control.markers[0].header = std_msgs::Header();
+  // ***********************
+
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
@@ -533,8 +548,8 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
   int_marker_server_.setPose("base_marker", base_pose_.pose);
   int_marker_server_.applyChanges();
 
-  // Reset the joints.
-  for(int i = 0; i < joint_states_.position.size(); ++i)
+  // Reset the joints. (Leave the left arm joints as they were.)
+  for(int i = 7; i < joint_states_.position.size(); ++i)
     joint_states_.position[i] = 0;
 
   // Reset the base movement controller.
@@ -656,6 +671,8 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	// Change the marker to only move in the +/- z-directions.
 	visualization_msgs::InteractiveMarker gripper_marker;
 	int_marker_server_.get("r_gripper_marker", gripper_marker);
+	//gripper_marker.controls.at(0).markers.at(0).pose = end_effector_goal_pose_.pose;
+	gripper_marker.pose = end_effector_goal_pose_.pose;
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
 
@@ -678,6 +695,8 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	// Change the marker back to moving in the xy-plane.
 	visualization_msgs::InteractiveMarker gripper_marker;
 	int_marker_server_.get("r_gripper_marker", gripper_marker);
+	//gripper_marker.controls.at(0).markers.at(0).pose = end_effector_goal_pose_.pose;
+	gripper_marker.pose = end_effector_goal_pose_.pose;
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
 
@@ -708,7 +727,7 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     gripper_marker.controls[0].markers[0].color.r = 1;
     gripper_marker.controls[0].markers[0].color.g = 0;
     gripper_marker.controls[0].markers[0].color.b = 0;
-    gripper_marker.controls[0].markers[0].pose = end_effector_goal_pose_.pose;
+    gripper_marker.pose = end_effector_goal_pose_.pose;
     int_marker_server_.insert(gripper_marker);
     int_marker_server_.applyChanges();
   }
@@ -720,10 +739,12 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     gripper_marker.controls[0].markers[0].color.r = 0;
     gripper_marker.controls[0].markers[0].color.g = 1;
     gripper_marker.controls[0].markers[0].color.b = 0;
-    gripper_marker.controls[0].markers[0].pose = end_effector_goal_pose_.pose;
+    gripper_marker.pose = end_effector_goal_pose_.pose;
     int_marker_server_.insert(gripper_marker);
     int_marker_server_.applyChanges();
   }
+
+  return;
 
   if(end_effector_marker_vel_.linear.x == 0 &&
      end_effector_marker_vel_.linear.y == 0 &&

@@ -13,7 +13,6 @@ static const char *END_EFFECTOR_STATE_NAMES[] = { "INITIAL",
 						  "INVALID_GOAL",
 						  "DONE" };
 						
-
 class EndEffectorController
 {
 public:

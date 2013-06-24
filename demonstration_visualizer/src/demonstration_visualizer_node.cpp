@@ -225,10 +225,7 @@ void DemonstrationVisualizerNode::updateTaskGoals()
     return;
 
   if(current_goal_ >= getSceneManager()->getNumGoals())
-  {
-    ROS_INFO("[DVizNode] All goals complete!");
     return;
-  }
 
   if(edit_goals_mode_ && !getSceneManager()->goalsChanged())
     return;

@@ -825,10 +825,12 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
   user_demo_.goals_completed_++;
 
+  ros::Duration time_to_complete = ros::Time::now() - user_demo_.start_time_;
+
   QMessageBox box;
 
   std::stringstream text;
-  text << "Goal " << goal_number+1 << " complete! ";
+  text << "Goal " << goal_number+1 << " completed in " << time_to_complete.toSec() << " seconds! ";
 
   if(goal_number+1 >= node_.getSceneManager()->getNumGoals())
   {

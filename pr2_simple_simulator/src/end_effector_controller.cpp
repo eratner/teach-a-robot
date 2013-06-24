@@ -20,8 +20,6 @@ geometry_msgs::Twist EndEffectorController::moveTo(const geometry_msgs::Pose &cu
 			      std::pow(goal.position.y - current.position.y, 2) + 
 			      std::pow(goal.position.z - current.position.z, 2));
 
-  last_state_ = current_state_;
-
   switch(current_state_)
   {
   case INITIAL:
@@ -47,8 +45,6 @@ geometry_msgs::Twist EndEffectorController::moveTo(const geometry_msgs::Pose &cu
 void EndEffectorController::setState(State state)
 {
   printStateTransition(state);
-
-  last_state_ = current_state_;
 
   current_state_ = state;
 }
@@ -132,12 +128,14 @@ geometry_msgs::Twist EndEffectorController::done()
 
 void EndEffectorController::printStateTransition(State next_state)
 {
-  if(next_state != last_state_)
+  if(next_state != current_state_)
   {
     ROS_INFO("Transitioning to state %s after %d frames in state %s.",
 	     END_EFFECTOR_STATE_NAMES[next_state],
 	     frames_,
-	     END_EFFECTOR_STATE_NAMES[last_state_]);
+	     END_EFFECTOR_STATE_NAMES[current_state_]);
+    last_state_ = current_state_;
+    current_state_ = next_state;
     frames_ = 0;
   }
 }
