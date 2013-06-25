@@ -24,6 +24,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   setFocusPolicy(Qt::StrongFocus);
 
+  qRegisterMetaType<geometry_msgs::Pose>("geometry_msgs::Pose");
+
   // Initialize Rviz visualization manager and render panel.
   render_panel_ = new rviz::RenderPanel();
   render_panel_->installEventFilter(this);
@@ -275,6 +277,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
 
+  connect(&node_, SIGNAL(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)), this, 
+	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
+
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
 
@@ -361,6 +366,8 @@ void DemonstrationVisualizer::resetRobot()
 void DemonstrationVisualizer::resetTask()
 {
   user_demo_.goals_completed_ = 0;
+
+  node_.setCurrentGoal(0);
 
   // Reset the goal list.
   for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
@@ -985,6 +992,9 @@ void DemonstrationVisualizer::tabChanged(int index)
 
 void DemonstrationVisualizer::startBasicMode()
 {
+  start_button_->setEnabled(false);
+  end_button_->setEnabled(true);
+
   // Reset the robot.
   resetRobot();
 
@@ -1003,8 +1013,15 @@ void DemonstrationVisualizer::startBasicMode()
   changeTool(2);
 
   // Begin recording.
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+
+  if(package_path.empty())
+  {
+    ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
+    return;
+  }
   pr2_simple_simulator::FilePath srv;
-  srv.request.file_path = ".";
+  srv.request.file_path = package_path;
   if(!node_.beginRecording(srv))
   {
     ROS_ERROR("Failed to call service /motion_recorder/begin_recording.");
@@ -1014,6 +1031,9 @@ void DemonstrationVisualizer::startBasicMode()
 
 void DemonstrationVisualizer::endBasicMode()
 {
+  end_button_->setEnabled(false);
+  start_button_->setEnabled(true);
+
   pauseSimulator();
 
   changeTool(1);
@@ -1024,6 +1044,9 @@ void DemonstrationVisualizer::endBasicMode()
   std_srvs::Empty empty;
   node_.endRecording(empty);
 
+  // Show the base path at the end.
+  node_.showBasePath();
+
   ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %f seconds.",
 	   user_demo_.goals_completed_, d.toSec());
 }
@@ -1033,6 +1056,34 @@ void DemonstrationVisualizer::focusCameraTo(float x, float y, float z)
   // Focus the camera to look at the point (x, y, z) relative to the fixed frame.
   rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
   view_manager->getCurrent()->lookAt(x, y, z);
+}
+
+void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const geometry_msgs::Pose &B)
+{
+  geometry_msgs::Point midpoint;
+  midpoint.x = (A.position.x + B.position.x)/2.0;
+  midpoint.y = (A.position.y + B.position.y)/2.0;
+  midpoint.z = (A.position.z + B.position.z)/2.0;
+
+  // First focus camera to the appropriate position.
+  focusCameraTo(midpoint.x,
+		midpoint.y,
+		midpoint.z);
+
+  // Then, 
+  double dx = B.position.x - A.position.x;
+  double dy = B.position.y - B.position.y;
+  double m = -dx/dy;
+
+  Ogre::Camera *camera = visualization_manager_->getViewManager()->getCurrent()->getCamera();
+  // Vertical field of view.
+  float V = camera->getFOVy().valueRadians();
+  // Aspect ratio.
+  float r = camera->getAspectRatio();
+  // Horizontal field of view.
+  float H = 2*std::atan(std::tan(V) * r);
+  // ROS_INFO_STREAM("Camera vertical FOV = " << (180.0/M_PI) * V << ", horizontal FOV = " 
+  // 		  << (180.0/M_PI) * H << ", aspect ratio = " << r);
 }
 
 void DemonstrationVisualizer::pauseSimulator()

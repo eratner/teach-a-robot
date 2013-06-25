@@ -85,10 +85,13 @@ public:
 
   void processKeyEvent(int key, int type);
 
+  void showBasePath(const std::string &filename = "");
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
   void focusCameraTo(float, float, float);
+  void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
 private:
   DemonstrationSceneManager *demonstration_scene_manager_;
@@ -109,6 +112,8 @@ private:
   ros::ServiceClient set_robot_speed_client_;
 
   ros::ServiceClient key_event_client_;
+
+  ros::ServiceClient show_base_path_client_;
 
   ros::Publisher marker_pub_;
   ros::Publisher end_effector_vel_cmd_pub_;

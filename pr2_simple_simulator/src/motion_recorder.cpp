@@ -26,6 +26,7 @@ void MotionRecorder::beginRecording(const std::string &path)
     // Start recording to a new bag file.
     std::stringstream file_path;
     file_path << path << "/motion" << bag_count_ << ".bag";
+    write_bag_path_ = file_path.str();
     bag_count_++;
     write_bag_.open(file_path.str(), rosbag::bagmode::Write);
     ROS_INFO("[MotionRec] Beginning to record motion to %s.", file_path.str().c_str());
@@ -130,9 +131,9 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
   return base_path;
 }
 
-visualization_msgs::Marker MotionRecorder::getBasePath() const
+visualization_msgs::Marker MotionRecorder::getBasePath()
 {
-  return base_path_;
+  return getBasePath(write_bag_path_);
 }
 
 void MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)

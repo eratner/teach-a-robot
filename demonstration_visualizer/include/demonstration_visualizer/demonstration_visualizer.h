@@ -30,6 +30,8 @@
 #include <QListWidget>
 #include <QPushButton>
 
+Q_DECLARE_METATYPE(geometry_msgs::Pose);
+
 struct UserDemonstrationInfo
 {
   UserDemonstrationInfo()
@@ -147,6 +149,8 @@ private Q_SLOTS:
 
   // For controlling the camera.
   void focusCameraTo(float, float, float);
+
+  void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
   // For pausing/playing the simulation.
   void pauseSimulator();

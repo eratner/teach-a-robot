@@ -131,6 +131,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 					   &PR2SimpleSimulator::processKeyEvent,
 					   this);
 
+  show_base_path_service_ = nh.advertiseService("show_base_path",
+						&PR2SimpleSimulator::showBasePath,
+						this);
+
   // Attach an interactive marker to the base of the robot.
   visualizeRobot();
   
@@ -334,7 +338,7 @@ void PR2SimpleSimulator::moveEndEffectors()
 							    end_effector_goal_pose_.pose)
 			    );
 
-  if(end_effector_controller_.getState() == EndEffectorController::INITIAL)
+  if(isBaseMoving() && end_effector_controller_.getState() == EndEffectorController::INITIAL)
   {
     int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_.applyChanges();
@@ -556,6 +560,8 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
   // Reset the end effector controller.
   end_effector_controller_.setState(EndEffectorController::INITIAL);
 
+  // @todo !!! reset the pose of the end-effector here.
+
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
   base_path.header.frame_id = "/map";
@@ -679,7 +685,6 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	break;
       }
     default:
-      //ROS_INFO("[PR2SimpleSim] No key binding for key %d.", req.key);
       break;
     }
   }
@@ -702,12 +707,29 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	break;
       }
     default:
-      ROS_INFO("[PR2SimpleSim] No key binding for key %d.", req.key);
       break;
     }
   }
   else
     ROS_ERROR("[PR2SimpleSim] Invalid key event type!");
+
+  return true;
+}
+
+bool PR2SimpleSimulator::showBasePath(pr2_simple_simulator::FilePath::Request  &req,
+				      pr2_simple_simulator::FilePath::Response &res)
+{
+  visualization_msgs::Marker base_path_marker;
+  if(req.file_path.empty())
+  {
+    base_path_marker = recorder_.getBasePath();
+  }
+  else
+  {
+    base_path_marker = recorder_.getBasePath(req.file_path);
+  }
+
+  marker_pub_.publish(base_path_marker);
 
   return true;
 }
@@ -724,6 +746,7 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     gripper_marker.controls[0].markers[0].color.g = 0;
     gripper_marker.controls[0].markers[0].color.b = 0;
     gripper_marker.pose = end_effector_goal_pose_.pose;
+    //gripper_marker.pose = end_effector_pose_.pose;
     int_marker_server_.insert(gripper_marker);
     int_marker_server_.applyChanges();
   }
@@ -808,4 +831,13 @@ void PR2SimpleSimulator::updateTransforms()
   map_in_torso_lift_link_ = base_footprint_in_map.Inverse() * base_in_torso_lift_link;
 
   kdl_robot_model_.setKinematicsToPlanningTransform(map_in_torso_lift_link_.Inverse(), "map");
+}
+
+bool PR2SimpleSimulator::isBaseMoving() const
+{
+  if(base_movement_controller_.getState() == BaseMovementController::DONE ||
+     base_movement_controller_.getState() == BaseMovementController::INITIAL)
+    return false;
+
+  return true;
 }

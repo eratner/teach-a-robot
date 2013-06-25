@@ -117,12 +117,21 @@ public:
   bool pause(std_srvs::Empty::Request  &,
 	     std_srvs::Empty::Response &);
 
+  /**
+   * @brief Provides a way to notify the simulator of key events recieved
+   *        elsewhere.
+   */
   bool processKeyEvent(pr2_simple_simulator::KeyEvent::Request  &,
 		       pr2_simple_simulator::KeyEvent::Response &);
+
+  bool showBasePath(pr2_simple_simulator::FilePath::Request  &,
+		    pr2_simple_simulator::FilePath::Response &);
 
   void updateEndEffectorMarker();
 
   void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &);
+
+  bool isBaseMoving() const;
 
 private:
   bool playing_;
@@ -166,6 +175,7 @@ private:
   ros::ServiceServer pause_service_;
   ros::ServiceServer play_service_;
   ros::ServiceServer key_event_service_;
+  ros::ServiceServer show_base_path_service_;
 
   visualization_msgs::MarkerArray robot_markers_;
 

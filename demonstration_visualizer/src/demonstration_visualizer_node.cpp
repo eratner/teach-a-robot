@@ -57,6 +57,9 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   // Service for passing keyboard events to the simulator.
   key_event_client_ = nh.serviceClient<pr2_simple_simulator::KeyEvent>("/key_event");
 
+  // Service for visualizing the path of the base in a recorded motion.
+  show_base_path_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/show_base_path");
+
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
   // Advertise topic for publishing end-effector velocity commands.
@@ -186,6 +189,14 @@ void DemonstrationVisualizerNode::run()
   {
     updateTaskGoals();
 
+    // Focus the camera according to the position of the end-effector and the 
+    // current goal.
+    if(getSceneManager()->getNumGoals() > 0)
+    {
+      geometry_msgs::Pose current_goal_pose = getSceneManager()->getGoal(current_goal_).pose;
+      Q_EMIT updateCamera(end_effector_pose_, current_goal_pose);
+    }
+
     ros::spinOnce();
     rate.sleep();
   }
@@ -293,14 +304,7 @@ void DemonstrationVisualizerNode::updateTaskGoals()
     }
     interactive_marker_server_->applyChanges();
 
-    // Also, focus the camera to the midpoint between the end-effector and the 
-    // current goal.
-    geometry_msgs::Pose current_goal_pose = getSceneManager()->getGoal(current_goal_).pose;
-    // @todo
-    // float x = ...;
-    // float y = ...;
-    // float z = ...;
-    // Q_EMIT focusCameraAt(x, y, z);
+
   }
 
   getSceneManager()->setGoalsChanged(false);
@@ -438,5 +442,15 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
     }
   default:
     break;
+  }
+}
+
+void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
+{
+  pr2_simple_simulator::FilePath path;
+  path.request.file_path = filename;
+  if(!show_base_path_client_.call(path))
+  {
+    ROS_ERROR("[DVizNode] Failed to show base path!");
   }
 }

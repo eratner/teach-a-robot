@@ -46,7 +46,7 @@ public:
    */
   visualization_msgs::Marker getBasePath(const std::string &file);
 
-  visualization_msgs::Marker getBasePath() const;
+  visualization_msgs::Marker getBasePath();
 
   void recordJoints(const sensor_msgs::JointState &msg);
 
