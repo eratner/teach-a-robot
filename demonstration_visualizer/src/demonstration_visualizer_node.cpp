@@ -139,7 +139,7 @@ void DemonstrationVisualizerNode::publishVisualizationMarker(const visualization
     int_marker.name = marker_name.str();
 
     std::stringstream mesh_desc;
-    mesh_desc << "Move " << marker_name;
+    mesh_desc << "Move " << marker_name.str();
     int_marker.description = mesh_desc.str();
 
     // Add a non-interactive control for the mesh.

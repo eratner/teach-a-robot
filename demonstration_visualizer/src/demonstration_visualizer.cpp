@@ -12,6 +12,8 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QSlider>
+#include <QGroupBox>
+#include <QSignalMapper>
 
 #include <ros/package.h>
 
@@ -181,6 +183,27 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   play_pause_layout->addWidget(play);
   play_pause_layout->addWidget(pause);
   basic_layout->addLayout(play_pause_layout);
+
+  QGroupBox *camera_group = new QGroupBox("Camera Settings");
+  QHBoxLayout *camera_controls = new QHBoxLayout();
+  QPushButton *orbit_camera = new QPushButton("XY Orbit");
+  QPushButton *fps_camera = new QPushButton("FPS");
+  QPushButton *auto_camera = new QPushButton("Auto");
+  camera_controls->addWidget(orbit_camera);
+  camera_controls->addWidget(fps_camera);
+  camera_controls->addWidget(auto_camera);
+  camera_group->setLayout(camera_controls);
+
+  basic_layout->addWidget(camera_group);
+
+  QGroupBox *controls_group = new QGroupBox("Controls");
+  QHBoxLayout *user_controls_layout = new QHBoxLayout();
+  z_mode_button_ = new QPushButton("Enable Z-Mode");
+  user_controls_layout->addWidget(z_mode_button_);
+  controls_group->setLayout(user_controls_layout);
+
+  basic_layout->addWidget(controls_group);
+
   basic_layout->addWidget(goals_list_);
 
   basic_ = new QWidget();
@@ -194,10 +217,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 				     "<ul>"
 				     "<li>Left-click on the base, and drag <br />to the desired position in the <i>xy</i>-plane.</li>"
 				     "<li>Left-click on the gripper, and move <br />to the desired position in the <i>x</i> and <i>y</i> directions.</li>"
-				     "<li>Press the Up arrow key to move the gripper up.</li>"
-				     "<li>Press the Down arrow key to move the gripper down.</li>"
+				     "<li>Press the <b>Up</b> arrow key to move the gripper up.</li>"
+				     "<li>Press the <b>Down</b> arrow key to move the gripper down.</li>"
 				     "<hr />"
-				     "<li>Press and hold the Z key, and left-click <br />on the gripper to move in the <i>z</i> direction.</li>"
+				     "<li>Press and hold the <b>Z</b> key, and left-click <br />on the gripper to move in the <i>z</i> direction.</li>"
+				     "<hr />"
+				     "<li>Press the <b>R</b> key to reset the gripper marker.</li>"
 				     "</ul>");
   controls_info->setAlignment(Qt::AlignTop);
   QVBoxLayout *controls_info_layout = new QVBoxLayout();
@@ -274,14 +299,28 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(play, SIGNAL(clicked()), this, SLOT(playSimulator()));
   connect(pause, SIGNAL(clicked()), this, SLOT(pauseSimulator()));
 
+  QSignalMapper *camera_signal_mapper = new QSignalMapper(this);
+  connect(camera_signal_mapper, SIGNAL(mapped(int)), this, SLOT(changeCameraMode(int)));
+
+  connect(orbit_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
+  camera_signal_mapper->setMapping(orbit_camera, (int)ORBIT);
+  connect(fps_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
+  camera_signal_mapper->setMapping(fps_camera, (int)FPS);
+  connect(auto_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
+  camera_signal_mapper->setMapping(auto_camera, (int)AUTO);
+
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
 
   connect(&node_, SIGNAL(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)), this, 
 	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
 
+  connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
+
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
+  previous_camera_mode_ = camera_mode_ = ORBIT;
+  z_mode_ = false;
 
   setLayout(window_layout);
 
@@ -942,7 +981,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   font.setStrikeOut(true);
   goals_list_->item(goal_number)->setFont(font);   
 
-  if(goal_number < node_.getSceneManager()->getNumGoals()+1)
+  if(goal_number < node_.getSceneManager()->getNumGoals()-1)
   {
     QFont font = goals_list_->item(goal_number+1)->font();
     font.setBold(true);
@@ -1038,6 +1077,10 @@ void DemonstrationVisualizer::endBasicMode()
 
   changeTool(1);
 
+  setEditGoalsMode(Qt::Checked);
+
+  setEditSceneMode(Qt::Checked);
+
   ros::Duration d = user_demo_.stop();
 
   // End recording.
@@ -1060,34 +1103,96 @@ void DemonstrationVisualizer::focusCameraTo(float x, float y, float z)
 
 void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const geometry_msgs::Pose &B)
 {
-  geometry_msgs::Point midpoint;
-  midpoint.x = (A.position.x + B.position.x)/2.0;
-  midpoint.y = (A.position.y + B.position.y)/2.0;
-  midpoint.z = (A.position.z + B.position.z)/2.0;
+  rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
 
-  // First focus camera to the appropriate position.
-  focusCameraTo(midpoint.x,
-		midpoint.y,
-		midpoint.z);
+  switch(camera_mode_)
+  {
+  case ORBIT:
+    {
+      if(previous_camera_mode_ != ORBIT)
+      {
+	ROS_INFO("[DViz] Switching to rviz/XYOrbit view controller.");
+	view_manager->setCurrentViewControllerType("rviz/XYOrbit");
+	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+      }
+      break;
+    }
+  case FPS:
+    {
+      if(previous_camera_mode_ != FPS)
+      {
+	ROS_INFO("[DViz] Switching to rviz/FPS view controller.");
+	view_manager->setCurrentViewControllerType("rviz/FPS");
+	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+      }
+      break;
+    }
+  case AUTO:
+    {
+      if(previous_camera_mode_ != AUTO)
+      {
+	ROS_INFO("[DViz] Switching to automatic camera control.");
+	view_manager->setCurrentViewControllerType("rviz/XYOrbit");
+	view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+      }
 
-  // Then, 
-  double dx = B.position.x - A.position.x;
-  double dy = B.position.y - B.position.y;
-  double m = -dx/dy;
+      geometry_msgs::Point midpoint;
+      midpoint.x = (A.position.x + B.position.x)/2.0;
+      midpoint.y = (A.position.y + B.position.y)/2.0;
+      midpoint.z = (A.position.z + B.position.z)/2.0;
 
-  Ogre::Camera *camera = visualization_manager_->getViewManager()->getCurrent()->getCamera();
-  // Vertical field of view.
-  float V = camera->getFOVy().valueRadians();
-  // Aspect ratio.
-  float r = camera->getAspectRatio();
-  // Horizontal field of view.
-  float H = 2*std::atan(std::tan(V) * r);
-  // ROS_INFO_STREAM("Camera vertical FOV = " << (180.0/M_PI) * V << ", horizontal FOV = " 
-  // 		  << (180.0/M_PI) * H << ", aspect ratio = " << r);
+      // First focus camera to the appropriate position.
+      // focusCameraTo(midpoint.x,
+      // 		    midpoint.y,
+      // 		    midpoint.z);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(midpoint.x);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(midpoint.y);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);
+
+      // Then, ... @todo figure out how to position the camera.
+      double dx = B.position.x - A.position.x;
+      double dy = B.position.y - B.position.y;
+      double m = -dx/dy;
+
+      Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
+      // Vertical field of view.
+      float V = camera->getFOVy().valueRadians();
+      // Aspect ratio.
+      float r = camera->getAspectRatio();
+      // Horizontal field of view.
+      float H = 2*std::atan(std::tan(V) * r);
+      // ROS_INFO_STREAM("Camera vertical FOV = " << (180.0/M_PI) * V << ", horizontal FOV = " 
+      // 		  << (180.0/M_PI) * H << ", aspect ratio = " << r);
+      break;
+    }
+  default:
+    break;
+  }
+
+    previous_camera_mode_ = camera_mode_;
+}
+
+void DemonstrationVisualizer::changeCameraMode(int mode)
+{
+  ROS_INFO("[DViz] Changing camera mode from %d to %d.", camera_mode_, mode);
+
+  previous_camera_mode_ = (CameraMode)camera_mode_;
+
+  camera_mode_ = (CameraMode)mode;
 }
 
 void DemonstrationVisualizer::pauseSimulator()
 {
+  QPushButton *pause_button = basic_->findChild<QPushButton *>("Pause");
+  if(pause_button)
+    pause_button->setEnabled(false);
+  QPushButton *play_button = basic_->findChild<QPushButton *>("Play");
+  if(play_button)
+    play_button->setEnabled(true);
+
   std_srvs::Empty empty;
   if(!node_.pauseSimulator(empty))
     ROS_ERROR("[DViz] Failed to pause simulation!");
@@ -1095,7 +1200,40 @@ void DemonstrationVisualizer::pauseSimulator()
 
 void DemonstrationVisualizer::playSimulator()
 {
+  QPushButton *pause_button = basic_->layout()->findChild<QPushButton *>("Pause");
+  if(pause_button)
+    pause_button->setEnabled(true);
+  QPushButton *play_button = basic_->layout()->findChild<QPushButton *>("Play");
+  if(play_button)
+    play_button->setEnabled(false);
+
   std_srvs::Empty empty;
   if(!node_.playSimulator(empty))
     ROS_ERROR("[DViz] Failed to play simulation!");
+}
+
+void DemonstrationVisualizer::toggleZMode()
+{
+  if(z_mode_)
+    disableZMode();
+  else
+    enableZMode();
+}
+
+void DemonstrationVisualizer::enableZMode()
+{
+  ROS_INFO("[DViz] Enabling Z-mode.");
+  z_mode_ = true;
+  z_mode_button_->setText("Disable Z-Mode");
+  node_.processKeyEvent(pr2_simple_simulator::KeyEvent::Request::KEY_Z,
+			QEvent::KeyPress);
+}
+
+void DemonstrationVisualizer::disableZMode()
+{
+  ROS_INFO("[DViz] Disabling Z-mode.");
+  z_mode_ = false;
+  z_mode_button_->setText("Enable Z-Mode");
+  node_.processKeyEvent(pr2_simple_simulator::KeyEvent::Request::KEY_Z,
+			QEvent::KeyRelease);
 }

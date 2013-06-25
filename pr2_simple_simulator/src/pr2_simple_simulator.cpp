@@ -350,14 +350,18 @@ void PR2SimpleSimulator::moveEndEffectors()
      end_effector_vel_cmd_.linear.z == 0)
     return;
 
-  double theta = tf::getYaw(end_effector_pose_.pose.orientation);
+  // double theta = tf::getYaw(end_effector_pose_.pose.orientation);
 
-  // Apply the next end-effector velocity commands (in the robot's base frame.)
+  // // Apply the next end-effector velocity commands (in the robot's base frame.)
+  // geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
+  // next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::cos(theta)
+  //   - (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::sin(theta);
+  // next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::cos(theta)
+  //   + (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::sin(theta);
+  // next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
   geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
-  next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::cos(theta)
-    - (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::sin(theta);
-  next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::cos(theta)
-    + (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::sin(theta);
+  next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x;
+  next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y;
   next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
   
   if(!setEndEffectorPose(next_end_effector_pose))
@@ -554,13 +558,20 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
   for(int i = 7; i < joint_states_.position.size(); ++i)
     joint_states_.position[i] = 0;
 
+  updateEndEffectorPose();
+
+  end_effector_goal_pose_ = end_effector_pose_;
+
   // Reset the base movement controller.
   base_movement_controller_.setState(BaseMovementController::INITIAL);
 
   // Reset the end effector controller.
   end_effector_controller_.setState(EndEffectorController::INITIAL);
 
-  // @todo !!! reset the pose of the end-effector here.
+  // Reset the pose of the end-effector.
+  //int_marker_server_.setPose("r_gripper_marker", initial_end_effector_pose_.pose);
+  int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
+  int_marker_server_.applyChanges();
 
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
@@ -681,6 +692,25 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 
 	int_marker_server_.insert(gripper_marker);
 	int_marker_server_.applyChanges();
+
+	break;
+      }
+    case pr2_simple_simulator::KeyEvent::Request::KEY_R:
+      {
+	// Reset the interactive marker on the gripper to the actual position
+	// of the gripper.
+	updateEndEffectorPose();
+
+	int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
+	int_marker_server_.applyChanges();
+
+	end_effector_goal_pose_ = end_effector_pose_;
+
+	end_effector_controller_.setState(EndEffectorController::DONE);
+
+	updateEndEffectorMarker();
+
+	ROS_INFO("[PR2SimpleSim] Resetting the end-effector marker pose.");
 
 	break;
       }

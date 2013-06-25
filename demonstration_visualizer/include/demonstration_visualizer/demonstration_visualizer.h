@@ -80,9 +80,16 @@ class DemonstrationVisualizer : public QWidget
 {
 Q_OBJECT
 public:
+  enum CameraMode { ORBIT = 0,
+		    FPS,
+		    AUTO };
+
   DemonstrationVisualizer(int argc, char **argv, QWidget *parent = 0);
 
   virtual ~DemonstrationVisualizer();
+
+/* signals: */
+/*   void cameraModeChanged(CameraMode mode); */
 
 protected:
   void keyPressEvent(QKeyEvent *event);
@@ -91,7 +98,7 @@ protected:
 
   bool eventFilter(QObject *obj, QEvent *event);
 
-private Q_SLOTS:
+private slots:
   /**
    * @brief Toggles the visibility of the grid.
    */
@@ -152,9 +159,16 @@ private Q_SLOTS:
 
   void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
+  void changeCameraMode(int mode);
+
   // For pausing/playing the simulation.
   void pauseSimulator();
   void playSimulator();
+
+  void toggleZMode();
+
+  void enableZMode();
+  void disableZMode();
   
 private:
   DemonstrationVisualizerNode node_;
@@ -184,6 +198,12 @@ private:
   // Basic controls.
   QPushButton                *start_button_;
   QPushButton                *end_button_;
+  QPushButton                *z_mode_button_;
+
+  CameraMode                 camera_mode_;
+  CameraMode                 previous_camera_mode_;
+
+  bool                       z_mode_;
 
 };
 
