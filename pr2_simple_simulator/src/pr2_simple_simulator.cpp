@@ -307,26 +307,44 @@ void PR2SimpleSimulator::updateVelocity(const geometry_msgs::Twist &vel)
 
 void PR2SimpleSimulator::moveRobot()
 {
-  if(base_movement_controller_.getState() == BaseMovementController::DONE)
+  if(base_movement_controller_.getState() == BaseMovementController::DONE ||
+     (base_movement_controller_.getState() == BaseMovementController::INITIAL &&
+      isBaseMoving() == true)
+     )
   {
     int_marker_server_.setPose("base_marker", base_pose_.pose);
     int_marker_server_.applyChanges();
     base_movement_controller_.setState(BaseMovementController::INITIAL);
-    return;
+    //return;
   }
 
-  updateVelocity(base_movement_controller_.getNextVelocities(base_pose_.pose, goal_pose_.pose));
+  //updateVelocity(base_movement_controller_.getNextVelocities(base_pose_.pose, goal_pose_.pose));
+  geometry_msgs::Twist vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
+									 goal_pose_.pose);
+  vel.linear.x += vel_cmd_.linear.x;
+  vel.linear.y += vel_cmd_.linear.y;
+  vel.angular.z += vel_cmd_.angular.z;
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
-  base_pose_.pose.position.x += (1.0/getFrameRate())*vel_cmd_.linear.x*std::cos(theta) 
-    - (1.0/getFrameRate())*vel_cmd_.linear.y*std::sin(theta);
-  base_pose_.pose.position.y += (1.0/getFrameRate())*vel_cmd_.linear.y*std::cos(theta)
-    + (1.0/getFrameRate())*vel_cmd_.linear.x*std::sin(theta);
+  // base_pose_.pose.position.x += (1.0/getFrameRate())*vel_cmd_.linear.x*std::cos(theta) 
+  //   - (1.0/getFrameRate())*vel_cmd_.linear.y*std::sin(theta);
+  // base_pose_.pose.position.y += (1.0/getFrameRate())*vel_cmd_.linear.y*std::cos(theta)
+  //   + (1.0/getFrameRate())*vel_cmd_.linear.x*std::sin(theta);
+
+  // base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(
+  // 				  tf::getYaw(base_pose_.pose.orientation) 
+  // 				  + (1/getFrameRate())*vel_cmd_.angular.z
+  // 				);
+
+  base_pose_.pose.position.x += (1.0/getFrameRate())*vel.linear.x*std::cos(theta) 
+    - (1.0/getFrameRate())*vel.linear.y*std::sin(theta);
+  base_pose_.pose.position.y += (1.0/getFrameRate())*vel.linear.y*std::cos(theta)
+    + (1.0/getFrameRate())*vel.linear.x*std::sin(theta);
 
   base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(
 				  tf::getYaw(base_pose_.pose.orientation) 
-				  + (1/getFrameRate())*vel_cmd_.angular.z
+				  + (1/getFrameRate())*vel.angular.z
 				);
 
   base_pose_pub_.publish(base_pose_);
@@ -508,7 +526,6 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
       is_moving_r_gripper_ = false;
       ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
-      //end_effector_goal_pose_.pose = feedback->pose;
       setEndEffectorGoalPose(feedback->pose);
       break;
     }
@@ -697,6 +714,7 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	{
 	  gripper_marker.pose = end_effector_goal_pose_.pose;
 	}
+
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
 
@@ -724,6 +742,18 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 
 	break;
       }
+    case pr2_simple_simulator::KeyEvent::Request::KEY_W:
+      vel_cmd_.linear.x = 0.2;
+      break;
+    case pr2_simple_simulator::KeyEvent::Request::KEY_A:
+      vel_cmd_.linear.y = 0.2;
+      break;
+    case pr2_simple_simulator::KeyEvent::Request::KEY_S:
+      vel_cmd_.linear.x = -0.2;
+      break;
+    case pr2_simple_simulator::KeyEvent::Request::KEY_D:
+      vel_cmd_.linear.y = -0.2;
+      break;
     default:
       break;
     }
@@ -737,7 +767,17 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	// Change the marker back to moving in the xy-plane.
 	visualization_msgs::InteractiveMarker gripper_marker;
 	int_marker_server_.get("r_gripper_marker", gripper_marker);
-	gripper_marker.pose = end_effector_goal_pose_.pose;
+
+	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+	   end_effector_controller_.getState() == EndEffectorController::DONE)
+	{
+	  gripper_marker.pose = end_effector_pose_.pose;
+	}
+	else
+	{
+	  gripper_marker.pose = end_effector_goal_pose_.pose;
+	}
+
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
 
@@ -746,6 +786,18 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 
 	break;
       }
+    case pr2_simple_simulator::KeyEvent::Request::KEY_W:
+      vel_cmd_.linear.x = 0;
+      break;
+    case pr2_simple_simulator::KeyEvent::Request::KEY_A:
+      vel_cmd_.linear.y = 0;
+      break;
+    case pr2_simple_simulator::KeyEvent::Request::KEY_S:
+      vel_cmd_.linear.x = 0;
+      break;
+    case pr2_simple_simulator::KeyEvent::Request::KEY_D:
+      vel_cmd_.linear.y = 0;
+      break;
     default:
       break;
     }
@@ -875,8 +927,9 @@ void PR2SimpleSimulator::updateTransforms()
 
 bool PR2SimpleSimulator::isBaseMoving() const
 {
-  if(base_movement_controller_.getState() == BaseMovementController::DONE ||
-     base_movement_controller_.getState() == BaseMovementController::INITIAL)
+  if((base_movement_controller_.getState() == BaseMovementController::DONE ||
+     base_movement_controller_.getState() == BaseMovementController::INITIAL) &&
+     vel_cmd_.linear.x == 0 && vel_cmd_.linear.y == 0 && vel_cmd_.angular.z == 0)
     return false;
 
   return true;

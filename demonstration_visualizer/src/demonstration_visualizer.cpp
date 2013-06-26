@@ -186,10 +186,15 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   QGroupBox *camera_group = new QGroupBox("Camera Settings");
   QHBoxLayout *camera_controls = new QHBoxLayout();
-  QPushButton *orbit_camera = new QPushButton("XY Orbit");
+  QPushButton *orbit_camera = new QPushButton("Orbit");
+  camera_buttons_.push_back(orbit_camera);
   QPushButton *fps_camera = new QPushButton("FPS");
+  camera_buttons_.push_back(fps_camera);
   QPushButton *top_down_camera = new QPushButton ("Top Down");
+  camera_buttons_.push_back(top_down_camera);
   QPushButton *auto_camera = new QPushButton("Auto");
+  camera_buttons_.push_back(auto_camera);
+
   camera_controls->addWidget(orbit_camera);
   camera_controls->addWidget(fps_camera);
   camera_controls->addWidget(top_down_camera);
@@ -992,10 +997,6 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
     goals_list_->item(goal_number+1)->setFont(font);
   }
 
-  // user_demo_.goals_completed_++;
-
-  // ros::Duration time_to_complete = ros::Time::now() - user_demo_.start_time_;
-
   ros::Duration time_to_complete = user_demo_.goalComplete();
 
   QMessageBox box;
@@ -1093,6 +1094,10 @@ void DemonstrationVisualizer::endBasicMode()
 
   ros::Duration d = user_demo_.stop();
 
+  std::stringstream time;
+  time << static_cast<boost::posix_time::time_duration>(d.toBoost());
+  std::string time_str = time.str().substr(0, 8);
+
   // End recording.
   std_srvs::Empty empty;
   node_.endRecording(empty);
@@ -1100,8 +1105,8 @@ void DemonstrationVisualizer::endBasicMode()
   // Show the base path at the end.
   node_.showBasePath();
 
-  ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %f seconds.",
-	   user_demo_.goals_completed_, d.toSec());
+  ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %s.",
+	   user_demo_.goals_completed_, time_str.c_str());
 }
 
 void DemonstrationVisualizer::focusCameraTo(float x, float y, float z)
@@ -1121,6 +1126,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != ORBIT)
       {
+	camera_buttons_[ORBIT]->setEnabled(false);
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
 	ROS_INFO("[DViz] Switching to rviz/Orbit view.");
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
@@ -1135,6 +1143,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != FPS)
       {
+	camera_buttons_[FPS]->setEnabled(false);
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
 	ROS_INFO("[DViz] Switching to rviz/FPS view.");
 	view_manager->setCurrentViewControllerType("rviz/FPS");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
@@ -1152,6 +1163,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != TOP_DOWN)
       {
+	camera_buttons_[TOP_DOWN]->setEnabled(false);
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
 	ROS_INFO("[DViz] Switching to rviz/TopDownOrtho view.");
 	view_manager->setCurrentViewControllerType("rviz/TopDownOrtho");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
@@ -1167,8 +1181,11 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != AUTO)
       {
+	camera_buttons_[AUTO]->setEnabled(false);
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
 	ROS_INFO("[DViz] Switching to automatic camera control.");
-	view_manager->setCurrentViewControllerType("rviz/XYOrbit");
+	view_manager->setCurrentViewControllerType("rviz/Orbit");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
       }
 
@@ -1183,19 +1200,19 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);
 
       // Then, ... @todo figure out how to position the camera.
-      double dx = B.position.x - A.position.x;
-      double dy = B.position.y - B.position.y;
-      double m = -dx/dy;
+      // double dx = B.position.x - A.position.x;
+      // double dy = B.position.y - B.position.y;
+      // double m = -dx/dy;
 
-      Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
-      // Vertical field of view.
-      float V = camera->getFOVy().valueRadians();
-      // Aspect ratio.
-      float r = camera->getAspectRatio();
-      // Horizontal field of view.
-      float H = 2*std::atan(std::tan(V) * r);
-      // ROS_INFO_STREAM("Camera vertical FOV = " << (180.0/M_PI) * V << ", horizontal FOV = " 
-      // 		  << (180.0/M_PI) * H << ", aspect ratio = " << r);
+      // Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
+      // // Vertical field of view.
+      // float V = camera->getFOVy().valueRadians();
+      // // Aspect ratio.
+      // float r = camera->getAspectRatio();
+      // // Horizontal field of view.
+      // float H = 2*std::atan(std::tan(V) * r);
+      // // ROS_INFO_STREAM("Camera vertical FOV = " << (180.0/M_PI) * V << ", horizontal FOV = " 
+      // // 		  << (180.0/M_PI) * H << ", aspect ratio = " << r);
       break;
     }
   default:

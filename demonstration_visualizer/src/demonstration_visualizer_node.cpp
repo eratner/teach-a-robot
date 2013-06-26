@@ -308,8 +308,6 @@ void DemonstrationVisualizerNode::updateTaskGoals()
       marker_pub_.publish(*it);
     }
     interactive_marker_server_->applyChanges();
-
-
   }
 
   getSceneManager()->setGoalsChanged(false);
@@ -463,6 +461,9 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
 void DemonstrationVisualizerNode::updateBasePose(const geometry_msgs::PoseStamped &pose)
 {
   base_pose_ = pose.pose;
+
+  // ROS_INFO("[DVizNode] Updated base orientation to %f.",
+  // 	   tf::getYaw(base_pose_.orientation));
 }
 
 geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose() const

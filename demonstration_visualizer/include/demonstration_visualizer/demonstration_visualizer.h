@@ -214,6 +214,8 @@ private:
   QPushButton                *end_button_;
   QPushButton                *z_mode_button_;
 
+  std::vector<QPushButton *> camera_buttons_;
+
   CameraMode                 camera_mode_;
   CameraMode                 previous_camera_mode_;
 
