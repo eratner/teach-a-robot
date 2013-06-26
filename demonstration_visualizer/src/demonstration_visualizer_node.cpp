@@ -72,6 +72,11 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 					&DemonstrationVisualizerNode::updateEndEffectorPose,
 					this);
 
+  // Subscribe to the pose of the base in the map frame.
+  base_pose_sub_ = nh.subscribe("/base_pose", 10, 
+				&DemonstrationVisualizerNode::updateBasePose,
+				this);
+
   // Start the thread.
   start();
 
@@ -453,4 +458,14 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
   {
     ROS_ERROR("[DVizNode] Failed to show base path!");
   }
+}
+
+void DemonstrationVisualizerNode::updateBasePose(const geometry_msgs::PoseStamped &pose)
+{
+  base_pose_ = pose.pose;
+}
+
+geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose() const
+{
+  return base_pose_;
 }

@@ -80,6 +80,8 @@ public:
    */
   bool setEndEffectorPose(const geometry_msgs::Pose &);
 
+  void setEndEffectorGoalPose(const geometry_msgs::Pose &);
+
   void updateEndEffectorVelocity(const geometry_msgs::Twist &);
 
   void baseMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -132,6 +134,8 @@ public:
   void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &);
 
   bool isBaseMoving() const;
+
+  bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
 private:
   bool playing_;

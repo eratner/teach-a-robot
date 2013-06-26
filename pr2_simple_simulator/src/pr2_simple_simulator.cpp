@@ -350,15 +350,6 @@ void PR2SimpleSimulator::moveEndEffectors()
      end_effector_vel_cmd_.linear.z == 0)
     return;
 
-  // double theta = tf::getYaw(end_effector_pose_.pose.orientation);
-
-  // // Apply the next end-effector velocity commands (in the robot's base frame.)
-  // geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
-  // next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::cos(theta)
-  //   - (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::sin(theta);
-  // next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y*std::cos(theta)
-  //   + (1/getFrameRate())*end_effector_vel_cmd_.linear.x*std::sin(theta);
-  // next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
   geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
   next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x;
   next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y;
@@ -461,6 +452,16 @@ bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose
   return true;
 }
 
+void PR2SimpleSimulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
+{
+  end_effector_goal_pose_.pose = goal_pose;
+
+  if(isValidEndEffectorPose(goal_pose))
+    end_effector_controller_.setState(EndEffectorController::READY);
+  else
+    end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
+}
+
 void PR2SimpleSimulator::updateEndEffectorVelocity(const geometry_msgs::Twist &vel)
 {
   end_effector_vel_cmd_ = vel;
@@ -507,7 +508,8 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
       is_moving_r_gripper_ = false;
       ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
-      end_effector_goal_pose_.pose = feedback->pose;
+      //end_effector_goal_pose_.pose = feedback->pose;
+      setEndEffectorGoalPose(feedback->pose);
       break;
     }
   default:
@@ -569,7 +571,6 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
   end_effector_controller_.setState(EndEffectorController::INITIAL);
 
   // Reset the pose of the end-effector.
-  //int_marker_server_.setPose("r_gripper_marker", initial_end_effector_pose_.pose);
   int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
   int_marker_server_.applyChanges();
 
@@ -686,7 +687,16 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	// Change the marker to only move in the +/- z-directions.
 	visualization_msgs::InteractiveMarker gripper_marker;
 	int_marker_server_.get("r_gripper_marker", gripper_marker);
-	gripper_marker.pose = end_effector_goal_pose_.pose;
+
+	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+	   end_effector_controller_.getState() == EndEffectorController::DONE)
+	{
+	  gripper_marker.pose = end_effector_pose_.pose;
+	}
+	else
+	{
+	  gripper_marker.pose = end_effector_goal_pose_.pose;
+	}
 	gripper_marker.controls.at(0).interaction_mode = 
 	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
 
@@ -812,7 +822,7 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
   int_marker_server_.applyChanges();
 
   // Update the goal pose.
-  end_effector_goal_pose_.pose = pose;
+  setEndEffectorGoalPose(pose);
 
   end_effector_controller_.setState(EndEffectorController::READY);
 }
@@ -868,6 +878,35 @@ bool PR2SimpleSimulator::isBaseMoving() const
   if(base_movement_controller_.getState() == BaseMovementController::DONE ||
      base_movement_controller_.getState() == BaseMovementController::INITIAL)
     return false;
+
+  return true;
+}
+
+bool PR2SimpleSimulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
+{
+  // Attempt to compute IK for the arm given a goal pose and the current 
+  // configuration.
+  std::vector<double> r_arm_joints(7, 0);
+  for(int i = 7; i < 14; ++i)
+  {
+    r_arm_joints[i-7] = joint_states_.position[i];
+  }
+
+  std::vector<double> goal_end_effector_pose(7, 0);
+  goal_end_effector_pose[0] = pose.position.x;
+  goal_end_effector_pose[1] = pose.position.y;
+  goal_end_effector_pose[2] = pose.position.z;
+  goal_end_effector_pose[3] = pose.orientation.x;
+  goal_end_effector_pose[4] = pose.orientation.y;
+  goal_end_effector_pose[5] = pose.orientation.z;
+  goal_end_effector_pose[6] = pose.orientation.w;
+  
+  // Use IK to find the required joint angles for the arm.
+  std::vector<double> solution(7, 0);
+  if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
+  {
+    return false;
+  }
 
   return true;
 }

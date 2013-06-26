@@ -87,6 +87,10 @@ public:
 
   void showBasePath(const std::string &filename = "");
 
+  void updateBasePose(const geometry_msgs::PoseStamped &);
+  
+  geometry_msgs::Pose getBasePose() const;
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
@@ -98,6 +102,7 @@ private:
   bool edit_goals_mode_;
   int current_goal_;
   geometry_msgs::Pose end_effector_pose_;
+  geometry_msgs::Pose base_pose_;
 
   std::string global_frame_;
 
@@ -120,6 +125,7 @@ private:
   ros::Publisher end_effector_marker_vel_pub_;
 
   ros::Subscriber end_effector_pose_sub_;
+  ros::Subscriber base_pose_sub_;
 
   interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
 

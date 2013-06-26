@@ -188,9 +188,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QHBoxLayout *camera_controls = new QHBoxLayout();
   QPushButton *orbit_camera = new QPushButton("XY Orbit");
   QPushButton *fps_camera = new QPushButton("FPS");
+  QPushButton *top_down_camera = new QPushButton ("Top Down");
   QPushButton *auto_camera = new QPushButton("Auto");
   camera_controls->addWidget(orbit_camera);
   camera_controls->addWidget(fps_camera);
+  camera_controls->addWidget(top_down_camera);
   camera_controls->addWidget(auto_camera);
   camera_group->setLayout(camera_controls);
 
@@ -306,6 +308,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   camera_signal_mapper->setMapping(orbit_camera, (int)ORBIT);
   connect(fps_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
   camera_signal_mapper->setMapping(fps_camera, (int)FPS);
+  connect(top_down_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
+  camera_signal_mapper->setMapping(top_down_camera, (int)TOP_DOWN);
   connect(auto_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
   camera_signal_mapper->setMapping(auto_camera, (int)AUTO);
 
@@ -988,14 +992,20 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
     goals_list_->item(goal_number+1)->setFont(font);
   }
 
-  user_demo_.goals_completed_++;
+  // user_demo_.goals_completed_++;
 
-  ros::Duration time_to_complete = ros::Time::now() - user_demo_.start_time_;
+  // ros::Duration time_to_complete = ros::Time::now() - user_demo_.start_time_;
+
+  ros::Duration time_to_complete = user_demo_.goalComplete();
 
   QMessageBox box;
 
+  std::stringstream time;
+  time << static_cast<boost::posix_time::time_duration>(time_to_complete.toBoost());
+  std::string time_str = time.str().substr(0, 8);
+
   std::stringstream text;
-  text << "Goal " << goal_number+1 << " completed in " << time_to_complete.toSec() << " seconds! ";
+  text << "Goal " << goal_number+1 << " completed in " << time_str << "!";
 
   if(goal_number+1 >= node_.getSceneManager()->getNumGoals())
   {
@@ -1005,7 +1015,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   }
   else
   {
-    text << "Next goal:\n" << node_.getSceneManager()->getGoalDescription(goal_number+1);
+    text << " Next goal:\n" << node_.getSceneManager()->getGoalDescription(goal_number+1);
   }
   
   box.setText(QString(text.str().c_str()));
@@ -1111,9 +1121,13 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != ORBIT)
       {
-	ROS_INFO("[DViz] Switching to rviz/XYOrbit view controller.");
-	view_manager->setCurrentViewControllerType("rviz/XYOrbit");
+	ROS_INFO("[DViz] Switching to rviz/Orbit view.");
+	view_manager->setCurrentViewControllerType("rviz/Orbit");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+	view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
       }
       break;
     }
@@ -1121,13 +1135,32 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != FPS)
       {
-	ROS_INFO("[DViz] Switching to rviz/FPS view controller.");
+	ROS_INFO("[DViz] Switching to rviz/FPS view.");
 	view_manager->setCurrentViewControllerType("rviz/FPS");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
 	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+
+	//@todo set the correct direction.
+	view_manager->getCurrent()->subProp("Yaw")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
       }
+      break;
+    }
+  case TOP_DOWN:
+    {
+      if(previous_camera_mode_ != TOP_DOWN)
+      {
+	ROS_INFO("[DViz] Switching to rviz/TopDownOrtho view.");
+	view_manager->setCurrentViewControllerType("rviz/TopDownOrtho");
+	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+	view_manager->getCurrent()->subProp("Angle")->setValue(tf::getYaw(node_.getBasePose().orientation));
+	view_manager->getCurrent()->subProp("Scale")->setValue(230.0);
+	view_manager->getCurrent()->subProp("X")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Y")->setValue(0.0);
+      }
+
       break;
     }
   case AUTO:
@@ -1145,9 +1178,6 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       midpoint.z = (A.position.z + B.position.z)/2.0;
 
       // First focus camera to the appropriate position.
-      // focusCameraTo(midpoint.x,
-      // 		    midpoint.y,
-      // 		    midpoint.z);
       view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(midpoint.x);
       view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(midpoint.y);
       view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);

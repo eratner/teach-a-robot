@@ -10,6 +10,7 @@
 #include <pr2_simple_simulator/FilePath.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <visualization_msgs/Marker.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <map>
 
@@ -35,7 +36,7 @@ Q_DECLARE_METATYPE(geometry_msgs::Pose);
 struct UserDemonstrationInfo
 {
   UserDemonstrationInfo()
-  : start_time_(), end_time_(), started_(false), goals_completed_(0)
+  : start_time_(), end_time_(), last_goal_time_(), started_(false), goals_completed_(0)
   {
 
   }
@@ -44,11 +45,13 @@ struct UserDemonstrationInfo
   {
     start_time_ = ros::Time();
     end_time_ = ros::Time();
+    last_goal_time_ = ros::Time();
   }
 
   void start()
   {
     start_time_ = ros::Time::now();
+    last_goal_time_ = ros::Time::now();
     started_ = true;
   }
   
@@ -64,10 +67,23 @@ struct UserDemonstrationInfo
     return ros::Duration(0.0);
   }
 
+  ros::Duration goalComplete()
+  {
+    goals_completed_++;
+
+    ros::Duration time_to_complete = ros::Time::now() - last_goal_time_;
+
+    last_goal_time_ = ros::Time::now();
+
+    return time_to_complete;
+  }
+
   ros::Time start_time_;
   ros::Time end_time_;
+  ros::Time last_goal_time_;
   bool started_;
   int goals_completed_;
+
 };
 
 /**
@@ -82,14 +98,12 @@ Q_OBJECT
 public:
   enum CameraMode { ORBIT = 0,
 		    FPS,
+		    TOP_DOWN,
 		    AUTO };
 
   DemonstrationVisualizer(int argc, char **argv, QWidget *parent = 0);
 
   virtual ~DemonstrationVisualizer();
-
-/* signals: */
-/*   void cameraModeChanged(CameraMode mode); */
 
 protected:
   void keyPressEvent(QKeyEvent *event);
