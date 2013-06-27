@@ -100,6 +100,9 @@ public:
   bool setJointPositions(pr2_simple_simulator::SetJoints::Request  &,
 			 pr2_simple_simulator::SetJoints::Response &);
 
+  bool setRobotBaseCommand(pr2_simple_simulator::SetPose::Request  &,
+			   pr2_simple_simulator::SetPose::Response &);
+
   // Service-based controls for recording/replaying trajectories.
   bool beginRecording(pr2_simple_simulator::FilePath::Request  &,
 		      pr2_simple_simulator::FilePath::Response &);
@@ -137,6 +140,8 @@ public:
 
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
+  void showEndEffectorWorkspaceArc();
+
 private:
   bool playing_;
 
@@ -161,6 +166,7 @@ private:
   ros::Publisher marker_pub_;
 
   geometry_msgs::Twist vel_cmd_;
+  geometry_msgs::Twist key_vel_cmd_;
   geometry_msgs::Twist end_effector_vel_cmd_;
   geometry_msgs::Twist end_effector_marker_vel_;
   geometry_msgs::PoseStamped base_pose_;
@@ -172,6 +178,7 @@ private:
   ros::ServiceServer reset_robot_service_;
   ros::ServiceServer set_robot_pose_service_;
   ros::ServiceServer set_joint_states_service_;
+  ros::ServiceServer set_base_command_service_;
   ros::ServiceServer begin_rec_service_;
   ros::ServiceServer end_rec_service_;
   ros::ServiceServer begin_replay_service_;

@@ -91,6 +91,10 @@ public:
   
   geometry_msgs::Pose getBasePose() const;
 
+  void sendBaseCommand(const geometry_msgs::Pose &);
+
+  void sendBaseVelocityCommand(const geometry_msgs::Twist &);
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
@@ -120,9 +124,12 @@ private:
 
   ros::ServiceClient show_base_path_client_;
 
+  ros::ServiceClient set_base_command_client_;
+
   ros::Publisher marker_pub_;
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher end_effector_marker_vel_pub_;
+  ros::Publisher base_vel_cmd_pub_;
 
   ros::Subscriber end_effector_pose_sub_;
   ros::Subscriber base_pose_sub_;

@@ -60,12 +60,17 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   // Service for visualizing the path of the base in a recorded motion.
   show_base_path_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/show_base_path");
 
+  // Service for setting the base command (i.e. the location of the carrot marker.)
+  set_base_command_client_ = nh.serviceClient<pr2_simple_simulator::SetPose>("/set_base_command");
+
   // Advertise topic for publishing markers.
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
   // Advertise topic for publishing end-effector velocity commands.
-  end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 0);
+  end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 1);
 
-  end_effector_marker_vel_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_marker_vel", 0);
+  end_effector_marker_vel_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_marker_vel", 1);
+
+  base_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/vel_cmd", 1);
 
   // Subscribe to the pose of the (right) end effector.
   end_effector_pose_sub_ = nh.subscribe("/end_effector_pose", 10, 
@@ -200,6 +205,11 @@ void DemonstrationVisualizerNode::run()
     {
       geometry_msgs::Pose current_goal_pose = getSceneManager()->getGoal(current_goal_).pose;
       Q_EMIT updateCamera(end_effector_pose_, current_goal_pose);
+    }
+    else
+    {
+      // @todo sort of a hack, should make this cleaner.
+      Q_EMIT updateCamera(end_effector_pose_, end_effector_pose_);
     }
 
     ros::spinOnce();
@@ -469,4 +479,20 @@ void DemonstrationVisualizerNode::updateBasePose(const geometry_msgs::PoseStampe
 geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose() const
 {
   return base_pose_;
+}
+
+void DemonstrationVisualizerNode::sendBaseCommand(const geometry_msgs::Pose &pose)
+{
+  pr2_simple_simulator::SetPose set;
+  set.request.pose.pose = pose;
+  set.request.pose.header.frame_id = "/map";
+  if(!set_base_command_client_.call(set))
+  {
+    ROS_ERROR("[DVizNode] Failed to set the base command!");
+  }
+}
+
+void DemonstrationVisualizerNode::sendBaseVelocityCommand(const geometry_msgs::Twist &cmd)
+{
+  base_vel_cmd_pub_.publish(cmd);
 }

@@ -1153,10 +1153,33 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
 
-	//@todo set the correct direction.
-	view_manager->getCurrent()->subProp("Yaw")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
 	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
       }
+
+      geometry_msgs::Twist vel_cmd;
+      // @todo set a new goal orientation for the base.
+      double current_camera_yaw = view_manager->getCurrent()->subProp("Yaw")->getValue().toDouble();
+
+      if(current_camera_yaw >= M_PI && current_camera_yaw < 2*M_PI)
+	current_camera_yaw -= 2*M_PI;
+
+      geometry_msgs::Pose base_pose = node_.getBasePose();
+      bool clockwise = (tf::getYaw(base_pose.orientation) - current_camera_yaw) > 0;
+      if(std::abs(tf::getYaw(base_pose.orientation) - current_camera_yaw) > 0.1)
+      {
+	if(clockwise)
+	  vel_cmd.angular.z = -0.3;
+	else
+	  vel_cmd.angular.z = 0.3;
+      }
+      else
+      {
+	vel_cmd.angular.z = 0;
+      }
+
+      node_.sendBaseVelocityCommand(vel_cmd);
+
       break;
     }
   case TOP_DOWN:

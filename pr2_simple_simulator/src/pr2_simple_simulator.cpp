@@ -103,6 +103,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 						  &PR2SimpleSimulator::setJointPositions,
 						  this);
 
+  set_base_command_service_ = nh.advertiseService("set_base_command",
+						  &PR2SimpleSimulator::setRobotBaseCommand,
+						  this);
+
   begin_rec_service_ = nh.advertiseService("/motion_recorder/begin_recording", 
 					   &PR2SimpleSimulator::beginRecording,
 					   this);
@@ -267,6 +271,8 @@ void PR2SimpleSimulator::run()
 
     visualizeRobot();
 
+    showEndEffectorWorkspaceArc();
+
     // Replay motion.
     if(recorder_.isReplaying() && playing_)
     {
@@ -322,8 +328,11 @@ void PR2SimpleSimulator::moveRobot()
   geometry_msgs::Twist vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
 									 goal_pose_.pose);
   vel.linear.x += vel_cmd_.linear.x;
+  vel.linear.x += key_vel_cmd_.linear.x;
   vel.linear.y += vel_cmd_.linear.y;
+  vel.linear.y += key_vel_cmd_.linear.y;
   vel.angular.z += vel_cmd_.angular.z;
+  vel.angular.z += key_vel_cmd_.angular.z;
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
@@ -636,6 +645,25 @@ bool PR2SimpleSimulator::setJointPositions(pr2_simple_simulator::SetJoints::Requ
   return true;
 }
 
+bool PR2SimpleSimulator::setRobotBaseCommand(pr2_simple_simulator::SetPose::Request  &req,
+					     pr2_simple_simulator::SetPose::Response &res)
+{
+  ROS_INFO("[PR2SimpleSim] Setting robot to yaw %f.", tf::getYaw(req.pose.pose.orientation));
+
+  goal_pose_ = req.pose;
+
+  int_marker_server_.setPose("base_marker", req.pose.pose);
+  int_marker_server_.applyChanges();
+
+  if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
+     base_movement_controller_.getState() == BaseMovementController::DONE)
+  {
+    base_movement_controller_.setState(BaseMovementController::READY);
+  }
+
+  return true;
+}
+
 bool PR2SimpleSimulator::beginRecording(pr2_simple_simulator::FilePath::Request  &req,
 					pr2_simple_simulator::FilePath::Response &res)
 {
@@ -743,16 +771,20 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	break;
       }
     case pr2_simple_simulator::KeyEvent::Request::KEY_W:
-      vel_cmd_.linear.x = 0.2;
+      //vel_cmd_.linear.x = 0.2;
+      key_vel_cmd_.linear.x = 0.2;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_A:
-      vel_cmd_.linear.y = 0.2;
+      //vel_cmd_.linear.y = 0.2;
+      key_vel_cmd_.linear.y = 0.2;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_S:
-      vel_cmd_.linear.x = -0.2;
+      //vel_cmd_.linear.x = -0.2;
+      key_vel_cmd_.linear.x = -0.2;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_D:
-      vel_cmd_.linear.y = -0.2;
+      //vel_cmd_.linear.y = -0.2;
+      key_vel_cmd_.linear.y = -0.2;
       break;
     default:
       break;
@@ -787,16 +819,20 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	break;
       }
     case pr2_simple_simulator::KeyEvent::Request::KEY_W:
-      vel_cmd_.linear.x = 0;
+      //vel_cmd_.linear.x = 0;
+      key_vel_cmd_.linear.x = 0;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_A:
-      vel_cmd_.linear.y = 0;
+      //vel_cmd_.linear.y = 0;
+      key_vel_cmd_.linear.y = 0;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_S:
-      vel_cmd_.linear.x = 0;
+      //vel_cmd_.linear.x = 0;
+      key_vel_cmd_.linear.x = 0;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_D:
-      vel_cmd_.linear.y = 0;
+      //vel_cmd_.linear.y = 0;
+      key_vel_cmd_.linear.y = 0;
       break;
     default:
       break;
@@ -929,7 +965,8 @@ bool PR2SimpleSimulator::isBaseMoving() const
 {
   if((base_movement_controller_.getState() == BaseMovementController::DONE ||
      base_movement_controller_.getState() == BaseMovementController::INITIAL) &&
-     vel_cmd_.linear.x == 0 && vel_cmd_.linear.y == 0 && vel_cmd_.angular.z == 0)
+     vel_cmd_.linear.x == 0 && vel_cmd_.linear.y == 0 && vel_cmd_.angular.z == 0 &&
+     key_vel_cmd_.linear.x == 0 && key_vel_cmd_.linear.y == 0 && key_vel_cmd_.angular.z == 0)
     return false;
 
   return true;
@@ -962,4 +999,39 @@ bool PR2SimpleSimulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
   }
 
   return true;
+}
+
+void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
+{
+  visualization_msgs::Marker arc;
+
+  arc.header.stamp = ros::Time::now();
+  arc.header.frame_id = "/base_footprint";
+
+  // @todo align the center of the arc with right shoulder link.
+  arc.pose = geometry_msgs::Pose();
+
+  arc.ns = "pr2_simple_sim";
+  arc.id = 0;
+  arc.type = visualization_msgs::Marker::LINE_STRIP;
+  arc.action = visualization_msgs::Marker::ADD;
+  arc.scale.x = 0.03;
+  arc.color.r = 1;
+  arc.color.g = 0;
+  arc.color.b = 0;
+  arc.color.a = 0.4;
+  
+  double y = 0;
+  double x = 0;
+  for(int i = 0; i < 200; ++i)
+  {
+    y = (0.74 / 100.0) * i - 0.74;
+    x = std::sqrt(std::pow(0.74, 2) - std::pow(y, 2));
+    geometry_msgs::Point p;
+    p.x = x;
+    p.y = y;
+    arc.points.push_back(p);
+  }
+
+  marker_pub_.publish(arc);
 }
