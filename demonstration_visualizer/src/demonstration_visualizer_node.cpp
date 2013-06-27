@@ -82,6 +82,10 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 				&DemonstrationVisualizerNode::updateBasePose,
 				this);
 
+  end_effector_marker_pose_sub_ = nh.subscribe("/end_effector_marker_pose", 10,
+					       &DemonstrationVisualizerNode::updateEndEffectorMarkerPose,
+					       this);
+
   // Start the thread.
   start();
 
@@ -389,7 +393,8 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
   if(edit_goals_mode_ || current_goal_ >= getSceneManager()->getNumGoals())
     return;
 
-  if(getSceneManager()->hasReachedGoal(current_goal_, pose.pose))
+  if(getSceneManager()->hasReachedGoal(current_goal_, pose.pose) &&
+     getSceneManager()->hasReachedGoal(current_goal_, end_effector_marker_pose_))
   {
     ROS_INFO("[DVizNode] Reached goal %d!", current_goal_);
     current_goal_++;
@@ -495,4 +500,9 @@ void DemonstrationVisualizerNode::sendBaseCommand(const geometry_msgs::Pose &pos
 void DemonstrationVisualizerNode::sendBaseVelocityCommand(const geometry_msgs::Twist &cmd)
 {
   base_vel_cmd_pub_.publish(cmd);
+}
+
+void DemonstrationVisualizerNode::updateEndEffectorMarkerPose(const geometry_msgs::Pose &pose)
+{
+  end_effector_marker_pose_ = pose;
 }

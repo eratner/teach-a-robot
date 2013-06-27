@@ -1120,6 +1120,16 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 {
   rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
 
+  if(previous_camera_mode_ == FPS && camera_mode_ != FPS)
+  {
+    geometry_msgs::Twist vel;
+    vel.linear.x = 0;
+    vel.linear.y = 0;
+    vel.angular.z = 0;
+
+    node_.sendBaseVelocityCommand(vel);
+  }
+
   switch(camera_mode_)
   {
   case ORBIT:
@@ -1160,13 +1170,20 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       geometry_msgs::Twist vel_cmd;
       // @todo set a new goal orientation for the base.
       double current_camera_yaw = view_manager->getCurrent()->subProp("Yaw")->getValue().toDouble();
+      geometry_msgs::Pose base_pose = node_.getBasePose();
+      double current_base_yaw = tf::getYaw(base_pose.orientation);
 
       if(current_camera_yaw >= M_PI && current_camera_yaw < 2*M_PI)
 	current_camera_yaw -= 2*M_PI;
 
-      geometry_msgs::Pose base_pose = node_.getBasePose();
-      bool clockwise = (tf::getYaw(base_pose.orientation) - current_camera_yaw) > 0;
-      if(std::abs(tf::getYaw(base_pose.orientation) - current_camera_yaw) > 0.1)
+      if(current_base_yaw >= M_PI && current_base_yaw < 2*M_PI)
+	current_base_yaw -= 2*M_PI;
+
+      ROS_INFO("base_yaw - camera_yaw = %f - %f = %f", current_base_yaw, current_camera_yaw, 
+	       current_base_yaw - current_camera_yaw);
+
+      bool clockwise = (current_base_yaw - current_camera_yaw) > 0;
+      if(std::abs(current_base_yaw - current_camera_yaw) > 0.1)
       {
 	if(clockwise)
 	  vel_cmd.angular.z = -0.3;

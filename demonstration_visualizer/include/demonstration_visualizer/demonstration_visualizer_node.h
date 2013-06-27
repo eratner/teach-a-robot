@@ -95,6 +95,8 @@ public:
 
   void sendBaseVelocityCommand(const geometry_msgs::Twist &);
 
+  void updateEndEffectorMarkerPose(const geometry_msgs::Pose &);
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
@@ -107,6 +109,7 @@ private:
   int current_goal_;
   geometry_msgs::Pose end_effector_pose_;
   geometry_msgs::Pose base_pose_;
+  geometry_msgs::Pose end_effector_marker_pose_;
 
   std::string global_frame_;
 
@@ -133,6 +136,7 @@ private:
 
   ros::Subscriber end_effector_pose_sub_;
   ros::Subscriber base_pose_sub_;
+  ros::Subscriber end_effector_marker_pose_sub_;
 
   interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
 

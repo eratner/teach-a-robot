@@ -84,6 +84,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
   joint_states_pub_ = nh.advertise<sensor_msgs::JointState>("joint_states", 20);
   end_effector_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("end_effector_pose", 20);
+  end_effector_marker_pose_pub_ = nh.advertise<geometry_msgs::Pose>("end_effector_marker_pose", 20);
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
 
   // Clients can change the speed (linear and angular) at which the robot moves.
@@ -913,6 +914,8 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
   setEndEffectorGoalPose(pose);
 
   end_effector_controller_.setState(EndEffectorController::READY);
+
+  end_effector_marker_pose_pub_.publish(pose);
 }
 
 void PR2SimpleSimulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
