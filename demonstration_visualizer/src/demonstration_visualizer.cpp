@@ -1220,18 +1220,29 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       geometry_msgs::Pose base_pose = node_.getBasePose();
       double current_base_yaw = tf::getYaw(base_pose.orientation);
 
-      //current_camera_yaw -= current_base_yaw;
-      if(current_camera_yaw >= M_PI && current_camera_yaw < 2*M_PI)
-	current_camera_yaw -= 2*M_PI;
+      // Note that B is always the larger angle. We wish to move in the direction that minimizes
+      // the angular distance between the angular position of the camera and the base. These angles
+      // are in the range [0, 2\pi), so we need to account for the discontinuity. 
+      double A = 0.0;
+      double B = 0.0;
+      bool base_larger_angle = false;
+      if(current_camera_yaw > current_base_yaw)
+      {
+	B = current_camera_yaw;
+	A = current_base_yaw;
+      }
+      else
+      {
+	base_larger_angle = true;
+	B = current_base_yaw;
+	A = current_camera_yaw;
+      }
 
-      if(current_base_yaw >= M_PI && current_base_yaw < 2*M_PI)
-	current_base_yaw -= 2*M_PI;
+      bool clockwise = (base_larger_angle && (B - A) < (2*M_PI - B + A)) ||
+	(!base_larger_angle && (B - A) > (2*M_PI - B + A));
 
-      // ROS_INFO("base_yaw - camera_yaw = %f - %f = %f", current_base_yaw, current_camera_yaw, 
-      // 	       current_base_yaw - current_camera_yaw);
-
-      bool clockwise = (current_base_yaw - current_camera_yaw) > 0;
-      if(std::abs(current_base_yaw - current_camera_yaw) > 0.1)
+      //ROS_INFO_STREAM("turing " << (clockwise ? "clockwise" : "counter-clockwise"));
+      if(std::abs(B - A) > 0.1)
       {
 	if(clockwise)
 	  vel_cmd.angular.z = -0.3;

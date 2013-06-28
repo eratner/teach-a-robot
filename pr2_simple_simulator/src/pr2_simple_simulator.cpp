@@ -1016,7 +1016,10 @@ void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
   arc.header.frame_id = "/base_footprint";
 
   // @todo align the center of the arc with right shoulder link.
-  arc.pose = geometry_msgs::Pose();
+  //arc.pose = geometry_msgs::Pose();
+  arc.pose.position.x = robot_markers_.markers.at(2).pose.position.x;
+  arc.pose.position.y = robot_markers_.markers.at(2).pose.position.y;
+  arc.pose.position.z = 0;
 
   arc.ns = "pr2_simple_sim";
   arc.id = 0;
