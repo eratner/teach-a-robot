@@ -390,6 +390,38 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   {
     if(camera_mode_ == FPS)
       return true;
+    else if(camera_mode_ == ORBIT || camera_mode_ == AUTO)
+    {
+      QWheelEvent *wheel_event = static_cast<QWheelEvent *>(event);
+      int degrees = wheel_event->delta() / 8;
+      int steps = -degrees / 15;
+
+      double current_distance = 
+	visualization_manager_->getViewManager()->getCurrent()->subProp("Distance")->getValue().toDouble();
+
+      if(steps > 0 && current_distance < 8.0)
+      {
+	current_distance += steps;
+	visualization_manager_->getViewManager()->getCurrent()->subProp("Distance")->setValue(current_distance);
+      }
+      else if(steps < 0 && current_distance > 3.0)
+      {
+	current_distance += steps;
+	visualization_manager_->getViewManager()->getCurrent()->subProp("Distance")->setValue(current_distance);
+      }
+
+      return true;
+    }
+    else
+      return QObject::eventFilter(obj, event);
+  }
+  else if(event->type() == QEvent::MouseButtonPress ||
+	  event->type() == QEvent::MouseButtonRelease)
+  {
+    // @todo is there a way to filter events related to camera movements, but NOT
+    // related to moving the interactive markers?
+    if(camera_mode_ == TOP_DOWN && user_demo_.started_ == false)
+      return true;
     else
       return QObject::eventFilter(obj, event);
   }
@@ -1154,6 +1186,11 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
       }
+      
+      // Ensure that the user never moves the camera below the ground.
+      if(view_manager->getCurrent()->subProp("Pitch")->getValue().toDouble() < 0.0)
+	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
+
       break;
     }
   case FPS:
@@ -1183,6 +1220,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       geometry_msgs::Pose base_pose = node_.getBasePose();
       double current_base_yaw = tf::getYaw(base_pose.orientation);
 
+      //current_camera_yaw -= current_base_yaw;
       if(current_camera_yaw >= M_PI && current_camera_yaw < 2*M_PI)
 	current_camera_yaw -= 2*M_PI;
 
@@ -1216,14 +1254,16 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	camera_buttons_[TOP_DOWN]->setEnabled(false);
 	camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
-	ROS_INFO("[DViz] Switching to rviz/TopDownOrtho view.");
-	view_manager->setCurrentViewControllerType("rviz/TopDownOrtho");
+	ROS_INFO("[DViz] Switching to rviz/Orbit top-down view.");
+	view_manager->setCurrentViewControllerType("rviz/Orbit");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	view_manager->getCurrent()->subProp("Angle")->setValue(tf::getYaw(node_.getBasePose().orientation));
-	view_manager->getCurrent()->subProp("Scale")->setValue(230.0);
-	view_manager->getCurrent()->subProp("X")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Y")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
       }
+      view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
+      view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
 
       break;
     }

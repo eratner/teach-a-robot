@@ -310,6 +310,7 @@ visualization_msgs::Marker DemonstrationSceneManager::getGoal(int goal_number)
 bool DemonstrationSceneManager::hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose)
 {
   geometry_msgs::Pose goal_pose = getGoal(goal_number).pose;
+  //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
   double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
 			      std::pow(goal_pose.position.y - pose.position.y, 2) +
 			      std::pow(goal_pose.position.z - pose.position.z, 2));

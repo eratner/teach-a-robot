@@ -270,6 +270,12 @@ void PR2SimpleSimulator::run()
 
     updateEndEffectorMarker();
 
+    // Update and publish the pose of the end-effector marker.
+    visualization_msgs::InteractiveMarker marker;
+    int_marker_server_.get("r_gripper_marker", marker);
+    geometry_msgs::Pose marker_pose = marker.pose;
+    end_effector_marker_pose_pub_.publish(marker_pose);
+
     visualizeRobot();
 
     showEndEffectorWorkspaceArc();
@@ -875,7 +881,6 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     gripper_marker.controls[0].markers[0].color.g = 0;
     gripper_marker.controls[0].markers[0].color.b = 0;
     gripper_marker.pose = end_effector_goal_pose_.pose;
-    //gripper_marker.pose = end_effector_pose_.pose;
     int_marker_server_.insert(gripper_marker);
     int_marker_server_.applyChanges();
   }
@@ -914,9 +919,8 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
   setEndEffectorGoalPose(pose);
 
   end_effector_controller_.setState(EndEffectorController::READY);
-
-  end_effector_marker_pose_pub_.publish(pose);
 }
+
 
 void PR2SimpleSimulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
 {

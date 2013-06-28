@@ -393,6 +393,9 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
   if(edit_goals_mode_ || current_goal_ >= getSceneManager()->getNumGoals())
     return;
 
+  // ROS_INFO("marker = (%f, %f, %f)", end_effector_marker_pose_.position.x,
+  // 	   end_effector_marker_pose_.position.y, end_effector_marker_pose_.position.z);
+
   if(getSceneManager()->hasReachedGoal(current_goal_, pose.pose) &&
      getSceneManager()->hasReachedGoal(current_goal_, end_effector_marker_pose_))
   {
