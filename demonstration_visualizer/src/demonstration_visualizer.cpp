@@ -386,6 +386,13 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     keyReleaseEvent(key_event);
     return true;
   }
+  else if(event->type() == QEvent::Wheel)
+  {
+    if(camera_mode_ == FPS)
+      return true;
+    else
+      return QObject::eventFilter(obj, event);
+  }
   else
   {
     return QObject::eventFilter(obj, event);
@@ -1165,6 +1172,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 
 	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
 	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
+
+	// Filter mouse scroll wheel events so that the user cannot zoom in/out.
+	view_manager->getCurrent()->installEventFilter(this);
       }
 
       geometry_msgs::Twist vel_cmd;
@@ -1179,8 +1189,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(current_base_yaw >= M_PI && current_base_yaw < 2*M_PI)
 	current_base_yaw -= 2*M_PI;
 
-      ROS_INFO("base_yaw - camera_yaw = %f - %f = %f", current_base_yaw, current_camera_yaw, 
-	       current_base_yaw - current_camera_yaw);
+      // ROS_INFO("base_yaw - camera_yaw = %f - %f = %f", current_base_yaw, current_camera_yaw, 
+      // 	       current_base_yaw - current_camera_yaw);
 
       bool clockwise = (current_base_yaw - current_camera_yaw) > 0;
       if(std::abs(current_base_yaw - current_camera_yaw) > 0.1)
