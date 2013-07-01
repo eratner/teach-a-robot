@@ -23,7 +23,7 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
   double current_angle = tf::getYaw(current_pose.orientation);
   double angle_to_goal = std::atan2(goal_pose.position.y - current_pose.position.y,
 				    goal_pose.position.x - current_pose.position.x);
-  double goal_yaw      = tf::getYaw(goal_pose.orientation);
+  double goal_angle    = tf::getYaw(goal_pose.orientation);
 
   // Based on the previous state and the current information, decide which state to 
   // transition to.
@@ -36,7 +36,7 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
     }
   case ROTATE_TO_POSITION:
     {
-      if(std::abs(angle_to_goal - current_angle) > 0.1 && distance >= 0.1)
+      if(!anglesEqual(current_angle, goal_angle, 0.1) && distance >= 0.1)
 	return rotateToGoalPosition(current_angle, angle_to_goal);
       else
 	return translateToGoalPosition(distance);
@@ -47,10 +47,14 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
 	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
       else
       {
-	if(std::abs(angle_to_goal - current_angle) > 0.2)
-	  return rotateToGoalPosition(current_angle, angle_to_goal);
-	else
+	// if(std::abs(angle_to_goal - current_angle) > 0.2)
+	//   return rotateToGoalPosition(current_angle, angle_to_goal);
+	// else
+	//   return translateToGoalPosition(distance);
+	if(anglesEqual(current_angle, goal_angle, 0.2))
 	  return translateToGoalPosition(distance);
+	else
+	  return rotateToGoalPosition(current_angle, angle_to_goal);
       }
     }
   case TRANSLATE_TO_CLOSE_POSITION:
@@ -64,7 +68,7 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
     }
   case ROTATE_TO_ORIENTATION:
     {
-      if(std::abs(goal_yaw - current_angle) < 0.1)
+      if(anglesEqual(current_angle, goal_angle, 0.1))
 	return done();
       else
 	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
@@ -111,20 +115,71 @@ double BaseMovementController::getAngularSpeed() const
   return angular_speed_;
 }
 
+geometry_msgs::Twist BaseMovementController::rotate(double current_angle, 
+						    double goal_angle,
+						    double angular_speed)
+{
+  bool clockwise = shortestRotationDirection(current_angle, goal_angle);
+
+  geometry_msgs::Twist vel;
+  vel.linear.x = vel.linear.y = vel.linear.z = 0;
+
+  if(clockwise)
+    vel.angular.z = -1.0 * angular_speed;
+  else
+    vel.angular.z = angular_speed;
+
+  return vel;
+}
+
+bool BaseMovementController::anglesEqual(double current_angle,
+					 double goal_angle,
+					 double tolerance)
+{
+  bool clockwise = shortestRotationDirection(current_angle, goal_angle);
+  double distance = 0.0;
+
+  if(goal_angle > current_angle)
+  {
+    distance = (clockwise ? (2*M_PI - goal_angle + current_angle)
+		: std::abs(goal_angle - current_angle));
+  }
+  else
+  {
+    distance = (clockwise ? (2*M_PI - current_angle + goal_angle) 
+		: std::abs(current_angle - goal_angle));
+  }
+
+  return (distance <= tolerance);
+}
+
+bool BaseMovementController::shortestRotationDirection(double current_angle, 
+						       double goal_angle)
+{
+  double A = 0.0;
+  double B = 0.0;
+  bool goal_angle_larger = goal_angle > current_angle;
+  if(goal_angle_larger)
+  {
+    B = goal_angle;
+    A = current_angle;
+  }
+  else
+  {
+    B = current_angle;
+    A = goal_angle;
+  }
+
+  return (!goal_angle_larger && (B - A) < (2*M_PI - B + A)) ||
+    (goal_angle_larger && (B - A) > (2*M_PI - B + A));  
+}
+
 geometry_msgs::Twist BaseMovementController::rotateToGoalPosition(double current_angle,
-								  double angle_to_goal)
+								  double goal_angle)
 {
   printStateTransition(ROTATE_TO_POSITION);
 
-  geometry_msgs::Twist vel;
-  // Pure rotation.
-  vel.linear.x = vel.linear.y = 0.0;
-  vel.angular.z = angular_speed_;
-
-  if(angle_to_goal - current_angle < 0) // Rotate counter-clockwise.
-  {
-    vel.angular.z *= -1.0;
-  }
+  geometry_msgs::Twist vel = rotate(current_angle, goal_angle, angular_speed_);
 
   return vel;
 }
@@ -169,14 +224,7 @@ geometry_msgs::Twist BaseMovementController::rotateToGoalOrientation(
   double current_angle = tf::getYaw(current_orientation);
   double goal_angle    = tf::getYaw(goal_orientation);
 
-  geometry_msgs::Twist vel;
-  vel.linear.x = vel.linear.y = 0.0;
-  vel.angular.z = angular_speed_;
-
-  if(goal_angle - current_angle < 0) // Rotate counter-clockwise.
-  {
-    vel.angular.z *= -1.0;
-  }
+  geometry_msgs::Twist vel = rotate(current_angle, goal_angle, angular_speed_);
 
   return vel;
 }

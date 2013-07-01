@@ -1225,24 +1225,23 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       // are in the range [0, 2\pi), so we need to account for the discontinuity. 
       double A = 0.0;
       double B = 0.0;
-      bool base_larger_angle = false;
-      if(current_camera_yaw > current_base_yaw)
+      bool base_angle_larger = current_base_yaw > current_camera_yaw;
+
+      if(base_angle_larger)
+      {
+	B = current_base_yaw;
+	A = current_camera_yaw;
+      }
+      else
       {
 	B = current_camera_yaw;
 	A = current_base_yaw;
       }
-      else
-      {
-	base_larger_angle = true;
-	B = current_base_yaw;
-	A = current_camera_yaw;
-      }
 
-      bool clockwise = (base_larger_angle && (B - A) < (2*M_PI - B + A)) ||
-	(!base_larger_angle && (B - A) > (2*M_PI - B + A));
+      bool clockwise = (base_angle_larger && (B - A) < (2*M_PI - B + A)) ||
+	(!base_angle_larger && (B - A) > (2*M_PI - B + A));
 
-      //ROS_INFO_STREAM("turing " << (clockwise ? "clockwise" : "counter-clockwise"));
-      if(std::abs(B - A) > 0.1)
+      if((clockwise ? (2*M_PI - B + A) > 0.1 : std::abs(B - A) > 0.1))
       {
 	if(clockwise)
 	  vel_cmd.angular.z = -0.3;
@@ -1288,6 +1287,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	ROS_INFO("[DViz] Switching to automatic camera control.");
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+	view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
       }
 
       geometry_msgs::Point midpoint;

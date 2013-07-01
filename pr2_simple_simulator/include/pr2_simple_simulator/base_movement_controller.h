@@ -50,6 +50,28 @@ public:
   
   double getAngularSpeed() const;
 
+  /**
+   * @brief A helper method to compute the necessary angular velocity to achieve
+   *        the goal angle given the current angle, both in the range [0, 2 \pi),
+   *        and a set angular speed.
+   */
+  static geometry_msgs::Twist rotate(double current_angle, double goal_angle, double angular_speed);
+
+  /**
+   * @brief A helper method that determines whether two angles, both in the range 
+   *        [0, 2 \pi), are equal within a given tolerance.
+   */
+  static bool anglesEqual(double current_angle, double goal_angle, double tolerance = 0.1);
+
+  /**
+   * @brief A helper method to determine the direction of rotation (clockwise or 
+   *        counter-clockwise) that yields the shortest angular distance between
+   *        the current and goal angles.
+   * @return Returns true if the shortest direction is clockwise rotation; returns
+   *         false if shortest direction is counter-clockwise.
+   */
+  static bool shortestRotationDirection(double current_angle, double goal_angle);
+
 private:
   State last_state_;
   int frames_;
@@ -58,7 +80,7 @@ private:
   
   // States.
   geometry_msgs::Twist rotateToGoalPosition(double current_angle,
-					    double angle_to_goal);
+					    double goal_angle);
 
   geometry_msgs::Twist translateToGoalPosition(double distance);
 

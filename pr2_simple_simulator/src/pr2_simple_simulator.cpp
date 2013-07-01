@@ -1013,13 +1013,15 @@ void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
   visualization_msgs::Marker arc;
 
   arc.header.stamp = ros::Time::now();
-  arc.header.frame_id = "/base_footprint";
+  //arc.header.frame_id = "/base_footprint";
+  arc.header.frame_id = "/map";
 
   // @todo align the center of the arc with right shoulder link.
   //arc.pose = geometry_msgs::Pose();
   arc.pose.position.x = robot_markers_.markers.at(2).pose.position.x;
   arc.pose.position.y = robot_markers_.markers.at(2).pose.position.y;
   arc.pose.position.z = 0;
+  arc.pose.orientation = robot_markers_.markers.at(2).pose.orientation;
 
   arc.ns = "pr2_simple_sim";
   arc.id = 0;
