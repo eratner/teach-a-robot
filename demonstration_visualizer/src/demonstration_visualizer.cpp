@@ -204,9 +204,30 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   basic_layout->addWidget(camera_group);
 
   QGroupBox *controls_group = new QGroupBox("Controls");
-  QHBoxLayout *user_controls_layout = new QHBoxLayout();
+  QVBoxLayout *user_controls_layout = new QVBoxLayout();
   z_mode_button_ = new QPushButton("Enable Z-Mode");
   user_controls_layout->addWidget(z_mode_button_);
+
+  QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
+  QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
+  fps_x_offset_layout->addWidget(fps_x_offset_label);
+  QSlider *fps_x_offset = new QSlider(Qt::Horizontal);
+  fps_x_offset->setMinimum(0);
+  fps_x_offset->setMaximum(500);
+  fps_x_offset->setValue(0);
+  fps_x_offset_layout->addWidget(fps_x_offset);
+  user_controls_layout->addLayout(fps_x_offset_layout);
+
+  QHBoxLayout *fps_z_offset_layout = new QHBoxLayout();
+  QLabel *fps_z_offset_label = new QLabel("FPS z-offset: ");
+  fps_z_offset_layout->addWidget(fps_z_offset_label);
+  QSlider *fps_z_offset = new QSlider(Qt::Horizontal);
+  fps_z_offset->setMinimum(0);
+  fps_z_offset->setMaximum(500);
+  fps_z_offset->setValue(0);
+  fps_z_offset_layout->addWidget(fps_z_offset);
+  user_controls_layout->addLayout(fps_z_offset_layout);
+
   controls_group->setLayout(user_controls_layout);
 
   basic_layout->addWidget(controls_group);
@@ -325,11 +346,15 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
 
   connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
+  connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
+  connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
   previous_camera_mode_ = camera_mode_ = ORBIT;
   z_mode_ = false;
+  x_fps_offset_ = 0;
+  z_fps_offset_ = 0;
 
   setLayout(window_layout);
 
@@ -388,7 +413,7 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::Wheel)
   {
-    if(camera_mode_ == FPS)
+    if(camera_mode_ == FPS || camera_mode_ == TOP_DOWN)
       return true;
     else if(camera_mode_ == ORBIT || camera_mode_ == AUTO)
     {
@@ -415,13 +440,22 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     else
       return QObject::eventFilter(obj, event);
   }
-  else if(event->type() == QEvent::MouseButtonPress ||
-	  event->type() == QEvent::MouseButtonRelease)
+  // else if(event->type() == QEvent::MouseButtonPress ||
+  // 	  event->type() == QEvent::MouseButtonRelease)
+  // {
+  //   // @todo is there a way to filter events related to camera movements, but NOT
+  //   // related to moving the interactive markers?
+  //   if(camera_mode_ == TOP_DOWN && user_demo_.started_ == false)
+  //     return true;
+  //   else
+  //     return QObject::eventFilter(obj, event);
+  // }
+  else if(event->type() == QEvent::MouseMove)
   {
-    // @todo is there a way to filter events related to camera movements, but NOT
-    // related to moving the interactive markers?
-    if(camera_mode_ == TOP_DOWN && user_demo_.started_ == false)
+    if(camera_mode_ == TOP_DOWN)
+    {
       return true;
+    }
     else
       return QObject::eventFilter(obj, event);
   }
@@ -988,6 +1022,11 @@ void DemonstrationVisualizer::addTaskGoal()
   std::string desc = "";
   if(ok)
     desc = description.toStdString();
+  else
+  {
+    ROS_INFO("[DViz] No task added.");
+    return;
+  }
 
   if(node_.getSceneManager()->getNumGoals() == 0)
     goals_list_->clear();
@@ -1203,9 +1242,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	ROS_INFO("[DViz] Switching to rviz/FPS view.");
 	view_manager->setCurrentViewControllerType("rviz/FPS");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+	// view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
+	// view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
+	// view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
 
 	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
 	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
@@ -1254,6 +1293,20 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       }
 
       node_.sendBaseVelocityCommand(vel_cmd);
+
+      // Offset the position of the FPS camera, if set.
+      if(x_fps_offset_ > 0)
+      {
+	view_manager->getCurrent()->subProp("Position")->
+	  subProp("X")->setValue(base_pose.position.x - x_fps_offset_ * std::cos(current_base_yaw));
+	view_manager->getCurrent()->subProp("Position")->
+	  subProp("Y")->setValue(base_pose.position.y - x_fps_offset_ * std::sin(current_base_yaw));
+      }
+      if(z_fps_offset_ > 0)
+	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2 + z_fps_offset_);
+
+      if(x_fps_offset_ > 0 && z_fps_offset_ > 0)
+	view_manager->getCurrent()->subProp("Pitch")->setValue(std::atan2(z_fps_offset_, x_fps_offset_));
 
       break;
     }
@@ -1384,4 +1437,22 @@ void DemonstrationVisualizer::disableZMode()
   z_mode_button_->setText("Enable Z-Mode");
   node_.processKeyEvent(pr2_simple_simulator::KeyEvent::Request::KEY_Z,
 			QEvent::KeyRelease);
+}
+
+void DemonstrationVisualizer::setFPSXOffset(int offset)
+{
+  if(camera_mode_ == FPS)
+  {
+    x_fps_offset_ = (double)offset/100;
+    ROS_INFO("[DViz] (FPS mode) Setting x-offset to %f.", x_fps_offset_);
+  }
+}
+
+void DemonstrationVisualizer::setFPSZOffset(int offset)
+{
+  if(camera_mode_ == FPS)
+  {
+    z_fps_offset_ = (double)offset/100;
+    ROS_INFO("[DViz] (FPS mode) Setting z-offset to %f.", z_fps_offset_);
+  }
 }

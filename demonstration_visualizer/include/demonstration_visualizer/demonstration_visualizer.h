@@ -183,6 +183,9 @@ private slots:
 
   void enableZMode();
   void disableZMode();
+
+  void setFPSXOffset(int);
+  void setFPSZOffset(int);
   
 private:
   DemonstrationVisualizerNode node_;
@@ -220,6 +223,9 @@ private:
   CameraMode                 previous_camera_mode_;
 
   bool                       z_mode_;
+
+  double                     x_fps_offset_;
+  double                     z_fps_offset_;
 
 };
 
