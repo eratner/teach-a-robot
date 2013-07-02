@@ -36,7 +36,7 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
     }
   case ROTATE_TO_POSITION:
     {
-      if(!anglesEqual(current_angle, goal_angle, 0.1) && distance >= 0.1)
+      if(!anglesEqual(current_angle, angle_to_goal, 0.1) && distance >= 0.1)
 	return rotateToGoalPosition(current_angle, angle_to_goal);
       else
 	return translateToGoalPosition(distance);
@@ -47,11 +47,7 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
 	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
       else
       {
-	// if(std::abs(angle_to_goal - current_angle) > 0.2)
-	//   return rotateToGoalPosition(current_angle, angle_to_goal);
-	// else
-	//   return translateToGoalPosition(distance);
-	if(anglesEqual(current_angle, goal_angle, 0.2))
+	if(anglesEqual(current_angle, angle_to_goal, 0.2))
 	  return translateToGoalPosition(distance);
 	else
 	  return rotateToGoalPosition(current_angle, angle_to_goal);
