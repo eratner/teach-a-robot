@@ -1382,7 +1382,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       view_manager->getCurrent()->subProp("Distance")->setValue(zoom);
 
       //roll is 0 since we always want the camera straight up and down (with respect to gravity)
-      view_manager->getCurrent()->subProp("Roll")->setValue(0.0);
+      // @todo the view controller does not allow us to set the roll.
+      //view_manager->getCurrent()->subProp("Roll")->setValue(0.0);
 
       //choose the pitch and yaw to be on the highest point on the circle orthogonal to the line
       //this is computed by crossing the hand to goal vector with a vector that has no z component and is rotated 90 degress in xy
