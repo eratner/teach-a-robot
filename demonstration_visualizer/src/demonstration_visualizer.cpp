@@ -1364,6 +1364,53 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(midpoint.y);
       view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);
 
+      // Next choose the appropriate zoom
+      Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
+      // Vertical field of view.
+      float V = camera->getFOVy().valueRadians();
+      //float H = camera->getFOVx().valueRadians();
+      // Aspect ratio.
+      float r = camera->getAspectRatio();
+      // Horizontal field of view.
+      float H = 2*std::atan(0.5*std::tan(V) * r);
+      float th = std::min(H,V);
+      double dx = B.position.x - A.position.x;
+      double dy = B.position.y - A.position.y;
+      double dz = B.position.z - A.position.z;
+      double d = sqrt(dx*dx+dy*dy+dz*dz) + 4.0;
+      double zoom = d/(2*tan(th/2.0));
+      view_manager->getCurrent()->subProp("Distance")->setValue(zoom);
+
+      //roll is 0 since we always want the camera straight up and down (with respect to gravity)
+      view_manager->getCurrent()->subProp("Roll")->setValue(0.0);
+
+      //choose the pitch and yaw to be on the highest point on the circle orthogonal to the line
+      //this is computed by crossing the hand to goal vector with a vector that has no z component and is rotated 90 degress in xy
+      double v1x = dx;
+      double v1y = dy;
+      double v1z = dz;
+      double v2x = -v1y;
+      double v2y = v1x;
+      double v2z = 0;
+      double v3x = v1y*v2z - v1z*v2y;
+      double v3y = v1z*v2x - v1x*v2z;
+      double v3z = v1x*v2y - v1y*v2x;
+
+      double yaw_angle = atan2(v3y,v3x);
+      double xy_length = sqrt(v3x*v3x+v3y*v3y);
+      double pitch_angle = atan2(v3z, xy_length);
+
+      view_manager->getCurrent()->subProp("Yaw")->setValue(yaw_angle);
+      view_manager->getCurrent()->subProp("Pitch")->setValue(pitch_angle);
+
+      //the yaw will be orthogonal to the xy projection of the line connecting the gripper and goal
+      //double line_angle = atan2(dy,dx);
+      //view_manager->getCurrent()->subProp("Yaw")->setValue(line_angle+M_PI/2.0);
+      //view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
+      
+      //the pitch is going to be a function of the z to xy ratio
+      //view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
+
       // Then, ... @todo figure out how to position the camera.
       // double dx = B.position.x - A.position.x;
       // double dy = B.position.y - B.position.y;
