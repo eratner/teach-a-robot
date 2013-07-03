@@ -205,7 +205,7 @@ void DemonstrationVisualizerNode::run()
 
     // Focus the camera according to the position of the end-effector and the 
     // current goal.
-    if(getSceneManager()->getNumGoals() > 0)
+    if(getSceneManager()->getNumGoals() > 0 && current_goal_ < getSceneManager()->getNumGoals())
     {
       geometry_msgs::Pose current_goal_pose = getSceneManager()->getGoal(current_goal_).pose;
       Q_EMIT updateCamera(end_effector_pose_, current_goal_pose);

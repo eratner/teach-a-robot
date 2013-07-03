@@ -138,6 +138,10 @@ public:
 
   bool isBaseMoving() const;
 
+  /**
+   * @brief Checks to see if the given pose is a valid pose for the end effector
+   *        using FK with the current joint angles.
+   */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
   void showEndEffectorWorkspaceArc();

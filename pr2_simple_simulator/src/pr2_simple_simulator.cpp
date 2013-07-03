@@ -284,8 +284,6 @@ void PR2SimpleSimulator::run()
     geometry_msgs::Pose marker_pose = marker.pose;
     end_effector_marker_pose_pub_.publish(marker_pose);
 
-    // visualizeRobot();
-
     showEndEffectorWorkspaceArc();
 
     // Replay motion.
@@ -309,12 +307,6 @@ void PR2SimpleSimulator::run()
 	int_marker_server_.applyChanges();
       }
     }
-    // else if(playing_)
-    // {
-    //   moveEndEffectors();
-
-    //   moveRobot();
-    // }
   
     ros::spinOnce();
     loop.sleep();
@@ -450,8 +442,6 @@ void PR2SimpleSimulator::updateEndEffectorPose()
 										fk_pose[4],
 										fk_pose[5]);
   end_effector_pose_pub_.publish(end_effector_pose_);
-
-
 }
 
 bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
