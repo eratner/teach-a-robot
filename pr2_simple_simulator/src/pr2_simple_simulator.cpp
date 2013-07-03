@@ -256,19 +256,27 @@ void PR2SimpleSimulator::run()
   {
     if(playing_)
     {
+      if(!recorder_.isReplaying())
+	moveRobot();
+
+      visualizeRobot();
+
+      updateTransforms();
+
+      updateEndEffectorPose();
+
+      updateEndEffectorMarker();
+
+      if(!recorder_.isReplaying())
+	moveEndEffectors();
+
       // Record motion.
       if(recorder_.isRecording())
       {
 	recorder_.recordBasePose(base_pose_);
 	recorder_.recordJoints(joint_states_);
       }
-
-      updateEndEffectorPose();
-
-      updateTransforms();
     }
-
-    updateEndEffectorMarker();
 
     // Update and publish the pose of the end-effector marker.
     visualization_msgs::InteractiveMarker marker;
@@ -276,7 +284,7 @@ void PR2SimpleSimulator::run()
     geometry_msgs::Pose marker_pose = marker.pose;
     end_effector_marker_pose_pub_.publish(marker_pose);
 
-    visualizeRobot();
+    // visualizeRobot();
 
     showEndEffectorWorkspaceArc();
 
@@ -301,12 +309,12 @@ void PR2SimpleSimulator::run()
 	int_marker_server_.applyChanges();
       }
     }
-    else if(playing_)
-    {
-      moveEndEffectors();
+    // else if(playing_)
+    // {
+    //   moveEndEffectors();
 
-      moveRobot();
-    }
+    //   moveRobot();
+    // }
   
     ros::spinOnce();
     loop.sleep();
@@ -443,13 +451,7 @@ void PR2SimpleSimulator::updateEndEffectorPose()
 										fk_pose[5]);
   end_effector_pose_pub_.publish(end_effector_pose_);
 
-  if(!is_moving_r_gripper_ 
-     && end_effector_controller_.getState() == EndEffectorController::DONE)
-  {
-    int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
-    int_marker_server_.applyChanges();
-    end_effector_controller_.setState(EndEffectorController::INITIAL);
-  }
+
 }
 
 bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
@@ -778,19 +780,15 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	break;
       }
     case pr2_simple_simulator::KeyEvent::Request::KEY_W:
-      //vel_cmd_.linear.x = 0.2;
       key_vel_cmd_.linear.x = 0.2;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_A:
-      //vel_cmd_.linear.y = 0.2;
       key_vel_cmd_.linear.y = 0.2;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_S:
-      //vel_cmd_.linear.x = -0.2;
       key_vel_cmd_.linear.x = -0.2;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_D:
-      //vel_cmd_.linear.y = -0.2;
       key_vel_cmd_.linear.y = -0.2;
       break;
     default:
@@ -826,19 +824,15 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
 	break;
       }
     case pr2_simple_simulator::KeyEvent::Request::KEY_W:
-      //vel_cmd_.linear.x = 0;
       key_vel_cmd_.linear.x = 0;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_A:
-      //vel_cmd_.linear.y = 0;
       key_vel_cmd_.linear.y = 0;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_S:
-      //vel_cmd_.linear.x = 0;
       key_vel_cmd_.linear.x = 0;
       break;
     case pr2_simple_simulator::KeyEvent::Request::KEY_D:
-      //vel_cmd_.linear.y = 0;
       key_vel_cmd_.linear.y = 0;
       break;
     default:
@@ -895,6 +889,15 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     gripper_marker.pose = end_effector_goal_pose_.pose;
     int_marker_server_.insert(gripper_marker);
     int_marker_server_.applyChanges();
+  }
+
+  if(!is_moving_r_gripper_ 
+     && end_effector_controller_.getState() == EndEffectorController::DONE
+     || recorder_.isReplaying())
+  {
+    int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_.applyChanges();
+    end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 
   if(end_effector_marker_vel_.linear.x == 0 &&

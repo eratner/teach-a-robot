@@ -251,6 +251,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 				     "<li>Press and hold the <b>Z</b> key, and left-click <br />on the gripper to move in the <i>z</i> direction.</li>"
 				     "<hr />"
 				     "<li>Press the <b>R</b> key to reset the gripper marker.</li>"
+				     "<hr />"
+				     "<li>In FPS mode, use the <b>W</b>, <b>A</b>, <b>S</b>, and <b>D</b> keys <br />to move the base forward, left, backward, <br />and right, respectively.</li>"
+				     "<li>In FPS mode, yaw the camera to rotate the base.</li>"
 				     "</ul>");
   controls_info->setAlignment(Qt::AlignTop);
   QVBoxLayout *controls_info_layout = new QVBoxLayout();
@@ -574,6 +577,12 @@ void DemonstrationVisualizer::beginReplay()
   {
     ROS_ERROR("Failed to call service /motion_recorder/begin_replay.");
     return;
+  }
+
+  std_srvs::Empty empty;
+  if(!node_.playSimulator(empty))
+  {
+    ROS_ERROR("Failed to call service to play simulator.");
   }
 
   replaying_icon_->show();
@@ -1242,9 +1251,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	ROS_INFO("[DViz] Switching to rviz/FPS view.");
 	view_manager->setCurrentViewControllerType("rviz/FPS");
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	// view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
-	// view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
-	// view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
 
 	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
 	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
@@ -1327,6 +1336,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       }
       view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
       view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
+
+      view_manager->getCurrent()->installEventFilter(this);
 
       break;
     }

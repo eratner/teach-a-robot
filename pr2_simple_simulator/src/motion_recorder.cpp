@@ -102,14 +102,17 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
   base_path.pose.orientation.w = 1;
   base_path.id = 0;
   base_path.type = visualization_msgs::Marker::LINE_STRIP;
-  base_path.scale.x = 0.2;
+  base_path.scale.x = 0.03;
   base_path.color.r = 1;
-  base_path.color.a = 1;
+  base_path.color.a = 0.8;
 
   rosbag::Bag bag;
   bag.open(file, rosbag::bagmode::Read);
 
   rosbag::View poses_view(bag, rosbag::TopicQuery("/base_pose"));
+
+  geometry_msgs::Point last;
+  int skipped = 0;
 
   foreach(rosbag::MessageInstance const m, poses_view)
   {
@@ -121,10 +124,17 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
       p.y = base_pose->pose.position.y;
       p.z = base_pose->pose.position.z;
 
-      base_path.points.push_back(p);
+      if(p.x == last.x && p.y == last.y && p.z == last.z)
+	skipped++;
+      else
+      {
+	last = p;
+	base_path.points.push_back(p);
+      }
     }
   }
-  ROS_INFO("[MotionRec] Added %d points to the base path.", base_path.points.size());
+  ROS_INFO("[MotionRec] Added %d points to the base path (skipped %d).", base_path.points.size(),
+	   skipped);
 
   bag.close();
 
