@@ -143,17 +143,18 @@ void DemonstrationSceneManager::loadTask(const std::string &filename)
     element->QueryDoubleAttribute("orientation_z", &goal_marker.pose.orientation.z);
     element->QueryDoubleAttribute("orientation_w", &goal_marker.pose.orientation.w);
 
-    goal_marker.type = visualization_msgs::Marker::CUBE;
+    //goal_marker.type = visualization_msgs::Marker::CUBE;
+    goal_marker.type = visualization_msgs::Marker::SPHERE;
     goal_marker.action = visualization_msgs::Marker::ADD;
 
-    // Cube with 10cm sides.
-    goal_marker.scale.x = 0.1;
-    goal_marker.scale.y = 0.1;
-    goal_marker.scale.z = 0.1;
+    // Sphere with 8cm radius.
+    goal_marker.scale.x = 0.16;
+    goal_marker.scale.y = 0.16;
+    goal_marker.scale.z = 0.16;
 
-    goal_marker.color.r = 0;
+    goal_marker.color.r = 0.5;
     goal_marker.color.g = 0;
-    goal_marker.color.b = 1;
+    goal_marker.color.b = 0.5;
     goal_marker.color.a = 0.4;
 
     goals_.push_back(goal_marker);
@@ -262,19 +263,20 @@ void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose,
   goal.header.stamp = ros::Time();
   goal.ns = "demonstration_visualizer_goal";
   goal.id = goals_.size();
-  goal.type = visualization_msgs::Marker::CUBE;
+  //goal.type = visualization_msgs::Marker::CUBE;
+  goal.type = visualization_msgs::Marker::SPHERE;
   goal.action = visualization_msgs::Marker::ADD;
 
   goal.pose = pose;
 
-  // Cube with 10cm sides.
-  goal.scale.x = 0.1;
-  goal.scale.y = 0.1;
-  goal.scale.z = 0.1;
+  // Sphere with 8cm radius.
+  goal.scale.x = 0.16;
+  goal.scale.y = 0.16;
+  goal.scale.z = 0.16;
 
-  goal.color.r = 0;
+  goal.color.r = 0.5;
   goal.color.g = 0;
-  goal.color.b = 1;
+  goal.color.b = 0.5;
   goal.color.a = 0.4;
 
   goals_.push_back(goal);
@@ -307,17 +309,17 @@ visualization_msgs::Marker DemonstrationSceneManager::getGoal(int goal_number)
   return goals_[goal_number];
 }
 
-bool DemonstrationSceneManager::hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose)
+bool DemonstrationSceneManager::hasReachedGoal(int goal_number, 
+					       const geometry_msgs::Pose &pose, 
+					       double tolerance)
 {
   geometry_msgs::Pose goal_pose = getGoal(goal_number).pose;
   //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
   double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
 			      std::pow(goal_pose.position.y - pose.position.y, 2) +
 			      std::pow(goal_pose.position.z - pose.position.z, 2));
-  // @todo add angle?
 
-  // Tolerance of 8cm.
-  if(distance < 0.08)
+  if(distance < tolerance)
     return true;
 
   return false;

@@ -53,7 +53,11 @@ public:
 
   visualization_msgs::Marker getGoal(int goal_number);
 
-  bool hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose);
+  /**
+   * @brief Determines whether the given position is at the position of the given goal, 
+   *        within a tolerance (in meters).
+   */
+  bool hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose, double tolerance = 0.1);
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 

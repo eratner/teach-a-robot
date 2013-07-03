@@ -1266,7 +1266,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       // @todo set a new goal orientation for the base.
       double current_camera_yaw = view_manager->getCurrent()->subProp("Yaw")->getValue().toDouble();
       geometry_msgs::Pose base_pose = node_.getBasePose();
-      double current_base_yaw = tf::getYaw(base_pose.orientation);
+      double current_base_yaw = tf::getYaw(base_pose.orientation) < 0 ? 
+	tf::getYaw(base_pose.orientation) + 2*M_PI : tf::getYaw(base_pose.orientation);
 
       // Note that B is always the larger angle. We wish to move in the direction that minimizes
       // the angular distance between the angular position of the camera and the base. These angles
@@ -1274,6 +1275,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       double A = 0.0;
       double B = 0.0;
       bool base_angle_larger = current_base_yaw > current_camera_yaw;
+
+      ROS_INFO("camera yaw = %f, base yaw = %f", current_camera_yaw, current_base_yaw);
 
       if(base_angle_larger)
       {
@@ -1384,6 +1387,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       //roll is 0 since we always want the camera straight up and down (with respect to gravity)
       // @todo the view controller does not allow us to set the roll.
       //view_manager->getCurrent()->subProp("Roll")->setValue(0.0);
+      view_manager->getCurrent()->getCamera()->roll(Ogre::Radian(0.0));
 
       //choose the pitch and yaw to be on the highest point on the circle orthogonal to the line
       //this is computed by crossing the hand to goal vector with a vector that has no z component and is rotated 90 degress in xy
