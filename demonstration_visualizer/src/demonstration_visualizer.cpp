@@ -1348,13 +1348,16 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     {
       if(previous_camera_mode_ != AUTO)
       {
-	camera_buttons_[AUTO]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+        camera_buttons_[AUTO]->setEnabled(false);
+        camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
-	ROS_INFO("[DViz] Switching to automatic camera control.");
-	view_manager->setCurrentViewControllerType("rviz/Orbit");
-	view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
-	view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+        ROS_INFO("[DViz] Switching to automatic camera control.");
+        view_manager->setCurrentViewControllerType("rviz/Orbit");
+        view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+        view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+
+        auto_camera_state_ = "normal";
+        auto_camera_cached_yaw_ = 0.0;
       }
 
       geometry_msgs::Point midpoint;
@@ -1405,31 +1408,36 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       double xy_length = sqrt(v3x*v3x+v3y*v3y);
       double pitch_angle = atan2(v3z, xy_length);
 
-      view_manager->getCurrent()->subProp("Yaw")->setValue(yaw_angle);
-      view_manager->getCurrent()->subProp("Pitch")->setValue(pitch_angle);
+      //determine if we are in a special region on the sphere
+      if(strcmp(auto_camera_state_.c_str(),"normal")==0){
+        if(pitch_angle > 85.0*M_PI/180.0)
+          auto_camera_state_ = "north pole";
+        if(pitch_angle < 15.0*M_PI/180.0)
+          auto_camera_state_ = "equator";
 
-      //the yaw will be orthogonal to the xy projection of the line connecting the gripper and goal
-      //double line_angle = atan2(dy,dx);
-      //view_manager->getCurrent()->subProp("Yaw")->setValue(line_angle+M_PI/2.0);
-      //view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
-      
-      //the pitch is going to be a function of the z to xy ratio
-      //view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
+        view_manager->getCurrent()->subProp("Yaw")->setValue(yaw_angle);
+        view_manager->getCurrent()->subProp("Pitch")->setValue(pitch_angle);
+        auto_camera_cached_yaw_ = yaw_angle;
+        auto_camera_cached_pitch_ = pitch_angle;
+      }
+      else if(strcmp(auto_camera_state_.c_str(),"north pole")==0){
+        if(pitch_angle < 80.0*M_PI/180.0)
+          auto_camera_state_ = "normal";
 
-      // Then, ... @todo figure out how to position the camera.
-      // double dx = B.position.x - A.position.x;
-      // double dy = B.position.y - B.position.y;
-      // double m = -dx/dy;
+        view_manager->getCurrent()->subProp("Yaw")->setValue(auto_camera_cached_yaw_);
+        view_manager->getCurrent()->subProp("Pitch")->setValue(auto_camera_cached_pitch_);
+      }
+      else if(strcmp(auto_camera_state_.c_str(),"equator")==0){
+        if(pitch_angle > 30.0*M_PI/180.0)
+          auto_camera_state_ = "normal";
 
-      // Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
-      // // Vertical field of view.
-      // float V = camera->getFOVy().valueRadians();
-      // // Aspect ratio.
-      // float r = camera->getAspectRatio();
-      // // Horizontal field of view.
-      // float H = 2*std::atan(std::tan(V) * r);
-      // // ROS_INFO_STREAM("Camera vertical FOV = " << (180.0/M_PI) * V << ", horizontal FOV = " 
-      // // 		  << (180.0/M_PI) * H << ", aspect ratio = " << r);
+        view_manager->getCurrent()->subProp("Yaw")->setValue(auto_camera_cached_yaw_);
+        view_manager->getCurrent()->subProp("Pitch")->setValue(auto_camera_cached_pitch_);
+      }
+      else{
+        ROS_ERROR("auto camera is in a bad state");
+      }
+
       break;
     }
   default:
