@@ -224,6 +224,10 @@ private:
   CameraMode                 camera_mode_;
   CameraMode                 previous_camera_mode_;
 
+  std::string                auto_camera_state_;
+  double                     auto_camera_cached_yaw_;
+  double                     auto_camera_cached_pitch_;
+
   bool                       z_mode_;
 
   double                     x_fps_offset_;
