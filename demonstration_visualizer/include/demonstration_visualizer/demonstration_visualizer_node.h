@@ -25,6 +25,8 @@
 #include <QThread>
 #include <QEvent>
 
+namespace demonstration_visualizer {
+
 /**
  * @brief This runs all the ROS functionality (i.e. publishing to topics, subscribing
  *        to services, etc.) on a separate thread from the dviz Qt component.
@@ -54,33 +56,14 @@ public:
   
   bool playSimulator(std_srvs::Empty &srv);
 
-  void publishVisualizationMarker(const visualization_msgs::Marker &msg,
-				  bool attach_interactive_marker = false);
-
-  bool removeInteractiveMarker(const std::string &name);
-
-  void clearInteractiveMarkers();
-
   void run();
-
-  void processInteractiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
   void setRobotSpeed(double, double);
 
   void resetRobot();
 
-  void updateTaskGoals();
-
-  void processGoalFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
-
   DemonstrationSceneManager *getSceneManager();
-
-  void interactiveMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
-
-  void setEditGoalsMode(bool mode);
   
-  void setCurrentGoal(int goal_number);
-
   void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
 
   void processKeyEvent(int key, int type);
@@ -100,13 +83,11 @@ public:
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
-  void focusCameraTo(float, float, float);
   void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
 private:
   DemonstrationSceneManager *demonstration_scene_manager_;
-  bool edit_goals_mode_;
-  int current_goal_;
+
   geometry_msgs::Pose end_effector_pose_;
   geometry_msgs::Pose base_pose_;
   geometry_msgs::Pose end_effector_marker_pose_;
@@ -129,7 +110,6 @@ private:
 
   ros::ServiceClient set_base_command_client_;
 
-  ros::Publisher marker_pub_;
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher end_effector_marker_vel_pub_;
   ros::Publisher base_vel_cmd_pub_;
@@ -138,8 +118,8 @@ private:
   ros::Subscriber base_pose_sub_;
   ros::Subscriber end_effector_marker_pose_sub_;
 
-  interactive_markers::InteractiveMarkerServer *interactive_marker_server_;
-
 };
+
+} // namespace demonstration_visualizer
 
 #endif // DEMONSTRATION_VISUALIZER_NODE_H

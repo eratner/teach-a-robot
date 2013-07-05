@@ -33,6 +33,8 @@
 
 Q_DECLARE_METATYPE(geometry_msgs::Pose);
 
+namespace demonstration_visualizer {
+
 struct UserDemonstrationInfo
 {
   UserDemonstrationInfo()
@@ -197,7 +199,7 @@ private:
   rviz::Display              *robot_model_;
   rviz::Display              *robot_interactive_markers_;
   rviz::Display              *visualization_marker_;
-  rviz::Display              *mesh_interactive_markers_;
+  rviz::Display              *scene_interactive_markers_;
 
   QComboBox                  *select_mesh_;
   std::map<int, std::string> mesh_names_;
@@ -228,5 +230,7 @@ private:
   double                     z_fps_offset_;
 
 };
+
+} // namespace demonstration_visualizer
 
 #endif // DEMONSTRATION_VISUALIZER_H

@@ -1,5 +1,7 @@
 #include "pr2_simple_simulator/base_movement_controller.h"
 
+namespace pr2_simple_simulator {
+
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0),
     linear_speed_(0.2), angular_speed_(0.2)
@@ -259,3 +261,5 @@ void BaseMovementController::printStateTransition(State next_state)
     frames_ = 0;
   }
 }
+
+} // namespace pr2_simple_simulator

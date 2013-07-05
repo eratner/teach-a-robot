@@ -29,6 +29,8 @@
 #include <cmath>
 #include <map>
 
+namespace pr2_simple_simulator {
+
 class PR2SimpleSimulator
 {
 public:
@@ -206,5 +208,7 @@ private:
   tf::TransformBroadcaster tf_broadcaster_;
 
 };
+
+} // namespace pr2_simple_simulator
 
 #endif // PR2_SIMPLE_SIMULATOR_H

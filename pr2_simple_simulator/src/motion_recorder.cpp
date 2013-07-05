@@ -1,5 +1,7 @@
 #include "pr2_simple_simulator/motion_recorder.h"
 
+namespace pr2_simple_simulator {
+
 MotionRecorder::MotionRecorder()
   : is_recording_(false),
     is_replaying_(false),
@@ -205,3 +207,5 @@ geometry_msgs::PoseStamped MotionRecorder::getNextBasePose()
   pose_count_++;
   return poses_.at(pose_count_-1);
 }
+
+} // namespace pr2_simple_simulator

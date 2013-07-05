@@ -17,6 +17,8 @@
 
 #include <ros/package.h>
 
+namespace demonstration_visualizer {
+
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
 {
@@ -285,17 +287,17 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   ROS_ASSERT(robot_interactive_markers_ != NULL);
   robot_interactive_markers_->subProp("Update Topic")->setValue("/simple_sim_marker/update");
 
-  // Create a visualization marker for loading meshes of environments.
-  visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Mesh", true);
+  // Create a visualization markers display for scenes of demonstration environments.
+  visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Scene", true);
   visualization_marker_->subProp("Marker Topic")->setValue("/visualization_marker");
   ROS_ASSERT(visualization_marker_ != NULL);
 
-  // Create an interactive markers display for moving meshes around the scene.
-  mesh_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
-								    "Mesh Interactive Markers",
-								    true);
-  ROS_ASSERT(mesh_interactive_markers_ != NULL);
-  mesh_interactive_markers_->subProp("Update Topic")->setValue("/mesh_marker/update");
+  // Create an interactive markers display for moving meshes and goals within a scene.
+  scene_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
+  								     "Scene Interactive Markers",
+  								     true);
+  ROS_ASSERT(scene_interactive_markers_ != NULL);
+  scene_interactive_markers_->subProp("Update Topic")->setValue("/scene_marker/update");
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
@@ -491,7 +493,7 @@ void DemonstrationVisualizer::resetTask()
 {
   user_demo_.goals_completed_ = 0;
 
-  node_.setCurrentGoal(0);
+  node_.getSceneManager()->setCurrentGoal(0);
 
   // Reset the goal list.
   for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
@@ -646,31 +648,7 @@ void DemonstrationVisualizer::loadMesh()
 
   select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(next_mesh_id_-1));
 
-  // Spawn the mesh at the origin.
-  geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.header.frame_id = node_.getGlobalFrame();
-  pose_stamped.header.stamp = ros::Time();
-  pose_stamped.pose.position.x = 0;
-  pose_stamped.pose.position.y = 0;
-  pose_stamped.pose.position.z = 0;
-  pose_stamped.pose.orientation.x = 0.0;
-  pose_stamped.pose.orientation.y = 0.0;
-  pose_stamped.pose.orientation.z = 0.0;
-  pose_stamped.pose.orientation.w = 1.0;  
-  geometry_msgs::Vector3 scale;
-  scale.x = scale.y = scale.z = 1;
-
-  visualization_msgs::Marker marker = makeMeshMarker(resource_path.str(),
-						     "demonstration_visualizer",
-						     next_mesh_id_-1,
-						     pose_stamped,
-						     scale,
-						     0.0,
-						     true);
-
-  node_.getSceneManager()->addMesh(marker);
- 
-  node_.publishVisualizationMarker(marker, true);
+  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1);
 }
 
 void DemonstrationVisualizer::deleteMesh()
@@ -682,14 +660,6 @@ void DemonstrationVisualizer::deleteMesh()
   }
 
   ROS_INFO("Deleting mesh %d.", selected_mesh_);
-
-  std::stringstream int_marker_name;
-  int_marker_name << "mesh_marker_" << selected_mesh_;
-  
-  if(!node_.removeInteractiveMarker(int_marker_name.str().c_str()))
-  {
-    ROS_ERROR("Failed to remove interactive marker!");
-  }
 
   node_.getSceneManager()->removeMesh(selected_mesh_);
 
@@ -709,51 +679,15 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
   {
   case Qt::Unchecked:
     {
-      std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
-      std::vector<visualization_msgs::Marker>::iterator it;
-      // For each mesh, first remove all the interactive markers from the meshes.
-      // Then, re-visualize each marker without an attached interactive marker.
-      for(it = meshes.begin(); it != meshes.end(); ++it)
-      {
-	std::stringstream int_marker_name;
-	int_marker_name << "mesh_marker_" << it->id;
+      node_.getSceneManager()->setEditMeshesMode(false);
+      node_.getSceneManager()->setMeshesChanged();
 
-	if(!node_.removeInteractiveMarker(int_marker_name.str().c_str()))
-	{
-	  ROS_ERROR("[DViz] Failed to remove interactive marker on mesh %d!", it->id);
-	}
-
-	it->header.frame_id = "/map";
-	it->header.stamp = ros::Time();
-	it->action = visualization_msgs::Marker::ADD;
-	it->type = visualization_msgs::Marker::MESH_RESOURCE;
-	it->color.r = it->color.g = it->color.b = it->color.a = 0;
-	it->mesh_use_embedded_materials = true;
-
-	node_.publishVisualizationMarker(*it, false);
-      }
-      
       break;
     }
   case Qt::Checked:
     {
-      std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
-      std::vector<visualization_msgs::Marker>::iterator it;
-      for(it = meshes.begin(); it != meshes.end(); ++it)
-      {
-	it->header.frame_id = node_.getGlobalFrame();
-	it->header.stamp = ros::Time();
-	it->action = visualization_msgs::Marker::DELETE;
-	it->type = visualization_msgs::Marker::MESH_RESOURCE;
-	it->mesh_use_embedded_materials = true;
-
-	// First remove the old markers.
-	node_.publishVisualizationMarker(*it, false);
-
-	// Then add the markers again, but this time with interactive markers.
-	it->action = visualization_msgs::Marker::ADD;
-	node_.publishVisualizationMarker(*it, true);
-      }
+      node_.getSceneManager()->setEditMeshesMode(true);
+      node_.getSceneManager()->setMeshesChanged();
 
       break;
     }
@@ -793,19 +727,20 @@ void DemonstrationVisualizer::loadScene()
   case QMessageBox::Yes:
     {
       // Load the scene into the demonstration scene manager.
-      node_.getSceneManager()->loadScene(filename.toStdString());
+      int max_mesh_id = node_.getSceneManager()->loadScene(filename.toStdString());
+
+      if(max_mesh_id < 0)
+      {
+	ROS_ERROR("[DViz] Failed to load scene from %s!", filename.toStdString().c_str());
+	return;
+      }
       
-      // Re-publish each mesh marker.
-      node_.clearInteractiveMarkers();
+      // Visualize each mesh marker.
       std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
       std::vector<visualization_msgs::Marker>::iterator it;
-      int max_mesh_id = -1;
       for(it = meshes.begin(); it != meshes.end(); ++it)
       {
-	if(it->id > max_mesh_id)
-	  max_mesh_id = it->id;
-
-	it->header.frame_id = node_.getGlobalFrame();
+	it->header.frame_id = "/map";
 	it->header.stamp = ros::Time();
 	it->action = visualization_msgs::Marker::ADD;
 	it->type = visualization_msgs::Marker::MESH_RESOURCE;
@@ -830,7 +765,7 @@ void DemonstrationVisualizer::loadScene()
 			<< it->pose.position.y << ", "
 			<< it->pose.position.z << ").");
 
-	node_.publishVisualizationMarker(*it, true);
+	node_.getSceneManager()->visualizeMesh(it->id, node_.getSceneManager()->editMeshesMode());
       }
 
       next_mesh_id_ = max_mesh_id+1;
@@ -952,12 +887,12 @@ void DemonstrationVisualizer::setEditGoalsMode(int mode)
   switch(mode)
   {
   case Qt::Unchecked:
-    node_.setEditGoalsMode(false);
-    node_.getSceneManager()->setGoalsChanged(true);
+    node_.getSceneManager()->setEditGoalsMode(false);
+    node_.getSceneManager()->setGoalsChanged();
     break;
   case Qt::Checked:
-    node_.setEditGoalsMode(true);
-    node_.getSceneManager()->setGoalsChanged(true);
+    node_.getSceneManager()->setEditGoalsMode(true);
+    node_.getSceneManager()->setGoalsChanged();
     break;
   default:
     ROS_ERROR("[DViz] Invalid edit goals mode!");
@@ -983,29 +918,13 @@ void DemonstrationVisualizer::scaleMesh(int value)
     return;
   }
 
-  std::stringstream int_marker_name;
-  int_marker_name << "mesh_marker_" << selected_mesh_;
-  
-  if(!node_.removeInteractiveMarker(int_marker_name.str().c_str()))
-  {
-    ROS_ERROR("[DViz] Failed to remove interactive marker!");
-  }
-
-  visualization_msgs::Marker mesh = node_.getSceneManager()->getMesh(selected_mesh_);
-
   double scale_factor = value/100.0;
 
   ROS_INFO("[DViz] Scaling mesh %d by a factor of %f.", 
 	   select_mesh_->itemData(select_mesh_->currentIndex()).value<int>(),
 	   scale_factor);
 
-  mesh.scale.x = scale_factor;
-  mesh.scale.y = scale_factor;
-  mesh.scale.z = scale_factor;
-
   node_.getSceneManager()->updateMeshScale(selected_mesh_, scale_factor, scale_factor, scale_factor);
-
-  node_.publishVisualizationMarker(mesh, true);
 }
 
 void DemonstrationVisualizer::setLinearSpeed(double linear)
@@ -1276,8 +1195,6 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       double B = 0.0;
       bool base_angle_larger = current_base_yaw > current_camera_yaw;
 
-      ROS_INFO("camera yaw = %f, base yaw = %f", current_camera_yaw, current_base_yaw);
-
       if(base_angle_larger)
       {
 	B = current_base_yaw;
@@ -1519,3 +1436,5 @@ void DemonstrationVisualizer::setFPSZOffset(int offset)
     ROS_INFO("[DViz] (FPS mode) Setting z-offset to %f.", z_fps_offset_);
   }
 }
+
+} // namespace demonstration_visualizer

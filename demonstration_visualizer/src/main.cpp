@@ -6,7 +6,8 @@ int main(int argc, char **argv)
 {
   QApplication a(argc, argv);
 
-  DemonstrationVisualizer *viz = new DemonstrationVisualizer(argc, argv);
+  demonstration_visualizer::DemonstrationVisualizer *viz = 
+    new demonstration_visualizer::DemonstrationVisualizer(argc, argv);
   viz->show();
   
   a.exec();

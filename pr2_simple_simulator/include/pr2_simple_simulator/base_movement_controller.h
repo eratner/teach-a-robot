@@ -12,6 +12,8 @@
 #include <tf/transform_datatypes.h>
 #include <cmath>
 
+namespace pr2_simple_simulator {
+
 static const char *STATE_NAMES[] = { "INITIAL",
                                      "READY",
 				     "ROTATE_TO_POSITION",
@@ -98,5 +100,7 @@ private:
   void printStateTransition(State next_state);
 
 };
+
+} // namespace pr2_simple_simulator
 
 #endif // BASE_MOVEMENT_CONTROLLER_H

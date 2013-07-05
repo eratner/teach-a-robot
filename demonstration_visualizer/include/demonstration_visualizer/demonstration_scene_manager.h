@@ -6,12 +6,16 @@
 #define DEMONSTRATION_SCENE_MANAGER_H
 
 #include <ros/ros.h>
+#include <interactive_markers/interactive_marker_server.h>
+#include <demonstration_visualizer/visualization_helpers.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
 #include <tinyxml.h>
 #include <string>
 #include <vector>
 #include <cmath>
+
+namespace demonstration_visualizer {
 
 /**
  * @brief This manages the demonstration scene and current task. Demonstration
@@ -26,7 +30,18 @@ public:
 
   ~DemonstrationSceneManager();
 
-  void loadScene(const std::string &filename);
+  /**
+   * @brief Updates the meshes and goal markers according to the current 
+   *        state of the demonstration scene.
+   */
+  void updateScene();
+
+  /**
+   * @brief Loads a scene file (.xml format), and displays it, overwriting 
+   *        any existing scene that has been displayed.
+   * @return The max mesh id of the meshes in the loaded scene.
+   */
+  int loadScene(const std::string &filename);
 
   void saveScene(const std::string &filename);
 
@@ -34,7 +49,11 @@ public:
 
   void saveTask(const std::string &filename);
 
-  void addMesh(const visualization_msgs::Marker &marker);
+  void addMeshFromFile(const std::string &filename, int mesh_id);
+
+  void addMesh(const visualization_msgs::Marker &marker, bool attach_interactive_marker = false);
+
+  bool visualizeMesh(int mesh_id, bool attach_interactive_marker);
 
   visualization_msgs::Marker getMesh(int mesh_id);
   
@@ -67,14 +86,36 @@ public:
 
   bool goalsChanged() const;
 
-  void setGoalsChanged(bool);
+  void setGoalsChanged(bool changed = true);
 
   void setGoalDescription(int goal_number, const std::string &desc);
 
   std::string getGoalDescription(int goal_number) const;
 
+  int getCurrentGoal() const;
+
+  void setCurrentGoal(int);
+
+  bool editGoalsMode() const;
+  
+  void setEditGoalsMode(bool);
+
+  bool editMeshesMode() const;
+
+  void setEditMeshesMode(bool);
+
+  void setMeshesChanged(bool changed = true);
+
+  bool meshesChanged() const;
+
+  bool taskDone() const;
+
 private:
   bool goals_changed_;
+  bool meshes_changed_;
+  bool edit_goals_mode_;
+  bool edit_meshes_mode_;
+  int current_goal_;
 
   /**
    * @brief Returns the iterator at the position of the marker in the given vector
@@ -84,10 +125,22 @@ private:
   std::vector<visualization_msgs::Marker>::iterator findMarker(std::vector<visualization_msgs::Marker> &,
 							       int);
 
+  void processGoalFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
+  void processMeshFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
   std::vector<visualization_msgs::Marker> meshes_;
   std::vector<visualization_msgs::Marker> goals_;
   std::vector<std::string> goal_descriptions_;
 
+  interactive_markers::InteractiveMarkerServer int_marker_server_;
+  interactive_markers::InteractiveMarkerServer::FeedbackCallback goal_feedback_;
+  interactive_markers::InteractiveMarkerServer::FeedbackCallback mesh_feedback_;
+
+  ros::Publisher marker_pub_;
+
 };
+
+} // namespace demonstration_visualizer
 
 #endif // DEMONSTRATION_SCENE_MANAGER_H

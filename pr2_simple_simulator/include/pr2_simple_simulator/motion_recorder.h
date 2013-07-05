@@ -19,6 +19,8 @@
 
 #define foreach BOOST_FOREACH
 
+namespace pr2_simple_simulator {
+
 class MotionRecorder
 {
 public:
@@ -89,5 +91,7 @@ private:
   visualization_msgs::Marker base_path_;
   
 };
+
+} // namespace pr2_simple_simulator
 
 #endif // MOTION_RECORDER_H

@@ -4,7 +4,7 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "simple_sim");
 
-  PR2SimpleSimulator simple_sim;
+  pr2_simple_simulator::PR2SimpleSimulator simple_sim;
 
   simple_sim.run();
 

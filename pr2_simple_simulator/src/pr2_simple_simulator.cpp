@@ -1,5 +1,7 @@
 #include "pr2_simple_simulator/pr2_simple_simulator.h"
 
+namespace pr2_simple_simulator {
+
 PR2SimpleSimulator::PR2SimpleSimulator()
   : playing_(true), 
     frame_rate_(10.0), 
@@ -716,6 +718,15 @@ bool PR2SimpleSimulator::pause(std_srvs::Empty::Request  &,
 
   playing_ = false;
 
+  // Set all velocity commands to zero.
+  key_vel_cmd_.linear.x = 0;
+  key_vel_cmd_.linear.y = 0;
+  key_vel_cmd_.linear.z = 0;
+
+  end_effector_marker_vel_.linear.x = 0;
+  end_effector_marker_vel_.linear.y = 0;
+  end_effector_marker_vel_.linear.z = 0;
+
   return true;
 }
 
@@ -953,7 +964,7 @@ void PR2SimpleSimulator::updateTransforms()
   KDL::Frame base_in_torso_lift_link;
   base_in_torso_lift_link.p.x(0.050);
   base_in_torso_lift_link.p.y(0.0);
-  base_in_torso_lift_link.p.z(-0.803);
+  base_in_torso_lift_link.p.z(-0.802);
   base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
   map_in_torso_lift_link_ = base_footprint_in_map.Inverse() * base_in_torso_lift_link;
@@ -1040,3 +1051,5 @@ void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
 
   marker_pub_.publish(arc);
 }
+
+} // namespace pr2_simple_simulator
