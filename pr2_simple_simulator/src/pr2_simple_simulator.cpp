@@ -146,7 +146,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   visualizeRobot();
   
   // Initialize the end-effector pose.
-  end_effector_pose_.header.frame_id = "/map";
+  //end_effector_pose_.header.frame_id = "/map";
+  end_effector_pose_.header.frame_id = "/base_footprint";
   end_effector_pose_.header.stamp = ros::Time();
   end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
 
@@ -189,7 +190,8 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   // Attach an interactive marker to the end effectors of the robot.
   visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
 
-  int_marker.header.frame_id = "/map";
+  //int_marker.header.frame_id = "/map";
+  int_marker.header.frame_id = "/base_footprint";
   int_marker.pose = r_gripper_marker.pose;
   int_marker.name = "r_gripper_marker";
   int_marker.description = "";
@@ -280,11 +282,40 @@ void PR2SimpleSimulator::run()
       }
     }
 
-    // Update and publish the pose of the end-effector marker.
+    // Update and publish the pose of the end-effector marker. Note that it must 
+    // first be transformed into the map frame, as it is in the base footprint frame.
     visualization_msgs::InteractiveMarker marker;
     int_marker_server_.get("r_gripper_marker", marker);
     geometry_msgs::Pose marker_pose = marker.pose;
-    end_effector_marker_pose_pub_.publish(marker_pose);
+
+    tf::Transform base_footprint_in_map(tf::Quaternion(base_pose_.pose.orientation.x,
+						       base_pose_.pose.orientation.y,
+						       base_pose_.pose.orientation.z,
+						       base_pose_.pose.orientation.w),
+					tf::Vector3(base_pose_.pose.position.x,
+						    base_pose_.pose.position.y,
+						    base_pose_.pose.position.z)
+					);
+  
+    tf::Transform marker_in_base(tf::Quaternion(marker_pose.orientation.x,
+						marker_pose.orientation.y,
+						marker_pose.orientation.z,
+						marker_pose.orientation.w),
+				 tf::Vector3(marker_pose.position.x,
+					     marker_pose.position.y,
+					     marker_pose.position.z)
+				 );
+
+    tf::Transform marker_in_map = base_footprint_in_map * marker_in_base;
+
+    geometry_msgs::Pose end_effector_marker_pose;
+    tf::quaternionTFToMsg(marker_in_map.getRotation(), end_effector_marker_pose.orientation);
+    geometry_msgs::Vector3 position;
+    tf::vector3TFToMsg(marker_in_map.getOrigin(), position);
+    end_effector_marker_pose.position.x = position.x;
+    end_effector_marker_pose.position.y = position.y;
+    end_effector_marker_pose.position.z = position.z;
+    end_effector_marker_pose_pub_.publish(end_effector_marker_pose);
 
     showEndEffectorWorkspaceArc();
 
@@ -345,16 +376,6 @@ void PR2SimpleSimulator::moveRobot()
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
-  // base_pose_.pose.position.x += (1.0/getFrameRate())*vel_cmd_.linear.x*std::cos(theta) 
-  //   - (1.0/getFrameRate())*vel_cmd_.linear.y*std::sin(theta);
-  // base_pose_.pose.position.y += (1.0/getFrameRate())*vel_cmd_.linear.y*std::cos(theta)
-  //   + (1.0/getFrameRate())*vel_cmd_.linear.x*std::sin(theta);
-
-  // base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(
-  // 				  tf::getYaw(base_pose_.pose.orientation) 
-  // 				  + (1/getFrameRate())*vel_cmd_.angular.z
-  // 				);
-
   base_pose_.pose.position.x += (1.0/getFrameRate())*vel.linear.x*std::cos(theta) 
     - (1.0/getFrameRate())*vel.linear.y*std::sin(theta);
   base_pose_.pose.position.y += (1.0/getFrameRate())*vel.linear.y*std::cos(theta)
@@ -443,7 +464,39 @@ void PR2SimpleSimulator::updateEndEffectorPose()
   end_effector_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(fk_pose[3], 
 										fk_pose[4],
 										fk_pose[5]);
-  end_effector_pose_pub_.publish(end_effector_pose_);
+
+  // Transform the end effector pose into the map frame and publish it.
+  tf::Transform base_footprint_in_map(tf::Quaternion(base_pose_.pose.orientation.x,
+						     base_pose_.pose.orientation.y,
+						     base_pose_.pose.orientation.z,
+						     base_pose_.pose.orientation.w),
+				      tf::Vector3(base_pose_.pose.position.x,
+						  base_pose_.pose.position.y,
+						  base_pose_.pose.position.z)
+				      );
+  
+  tf::Transform end_effector_in_base(tf::Quaternion(end_effector_pose_.pose.orientation.x,
+						    end_effector_pose_.pose.orientation.y,
+						    end_effector_pose_.pose.orientation.z,
+						    end_effector_pose_.pose.orientation.w),
+				     tf::Vector3(end_effector_pose_.pose.position.x,
+						 end_effector_pose_.pose.position.y,
+						 end_effector_pose_.pose.position.z)
+				     );
+
+  tf::Transform end_effector_in_map = base_footprint_in_map * end_effector_in_base;
+
+  geometry_msgs::PoseStamped end_effector_pose;
+  end_effector_pose.header.frame_id = "/map";
+  end_effector_pose.header.stamp = ros::Time::now();
+  tf::quaternionTFToMsg(end_effector_in_map.getRotation(), end_effector_pose.pose.orientation);
+  geometry_msgs::Vector3 position;
+  tf::vector3TFToMsg(end_effector_in_map.getOrigin(), position);
+  end_effector_pose.pose.position.x = position.x;
+  end_effector_pose.pose.position.y = position.y;
+  end_effector_pose.pose.position.z = position.z;
+
+  end_effector_pose_pub_.publish(end_effector_pose);
 }
 
 bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
@@ -634,7 +687,7 @@ bool PR2SimpleSimulator::setJointPositions(pr2_simple_simulator::SetJoints::Requ
   ROS_ASSERT(req.name.size() == req.position.size());
 
   for(int i = 0; i < req.name.size(); ++i)
-    {
+  {
     if(joints_map_.find(req.name[i]) != joints_map_.end())
     {
       joint_states_.position[joints_map_[req.name[i]]] = req.position[i];
@@ -950,16 +1003,6 @@ void PR2SimpleSimulator::updateTransforms()
 						     "base_footprint")
 				);
 
-  // Get the pose of the base footprint frame with respect to the map frame.
-  KDL::Frame base_footprint_in_map;
-  base_footprint_in_map.p.x(base_pose_.pose.position.x);
-  base_footprint_in_map.p.y(base_pose_.pose.position.y);
-  base_footprint_in_map.p.z(base_pose_.pose.position.z);
-  base_footprint_in_map.M = KDL::Rotation::Quaternion(base_pose_.pose.orientation.x,
-   						      base_pose_.pose.orientation.y,
-  						      base_pose_.pose.orientation.z,
-						      base_pose_.pose.orientation.w);
-
   // Get the pose of the base footprint in the torso lift link frame.
   KDL::Frame base_in_torso_lift_link;
   base_in_torso_lift_link.p.x(0.050);
@@ -967,9 +1010,8 @@ void PR2SimpleSimulator::updateTransforms()
   base_in_torso_lift_link.p.z(-0.802);
   base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
-  map_in_torso_lift_link_ = base_footprint_in_map.Inverse() * base_in_torso_lift_link;
-
-  kdl_robot_model_.setKinematicsToPlanningTransform(map_in_torso_lift_link_.Inverse(), "map");
+  // Note that all computed poses of the end-effector are in the base footprint frame.
+  kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), "base_footprint");
 }
 
 bool PR2SimpleSimulator::isBaseMoving() const
@@ -1002,7 +1044,8 @@ bool PR2SimpleSimulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
   goal_end_effector_pose[5] = pose.orientation.z;
   goal_end_effector_pose[6] = pose.orientation.w;
   
-  // Use IK to find the required joint angles for the arm.
+  // Use IK to find the required joint angles for the arm. If it fails, then this
+  // is not a valid end-effector pose.
   std::vector<double> solution(7, 0);
   if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
   {
@@ -1017,11 +1060,9 @@ void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
   visualization_msgs::Marker arc;
 
   arc.header.stamp = ros::Time::now();
-  //arc.header.frame_id = "/base_footprint";
   arc.header.frame_id = "/map";
 
-  // @todo align the center of the arc with right shoulder link.
-  //arc.pose = geometry_msgs::Pose();
+  // Align the center of the arc with right shoulder link.
   arc.pose.position.x = robot_markers_.markers.at(2).pose.position.x;
   arc.pose.position.y = robot_markers_.markers.at(2).pose.position.y;
   arc.pose.position.z = 0;

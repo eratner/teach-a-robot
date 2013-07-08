@@ -230,6 +230,17 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   fps_z_offset_layout->addWidget(fps_z_offset);
   user_controls_layout->addLayout(fps_z_offset_layout);
 
+  QHBoxLayout *gripper_position_layout = new QHBoxLayout();
+  QLabel *gripper_position_label = new QLabel("Gripper Position: ");
+  gripper_position_layout->addWidget(gripper_position_label);
+  QSlider *gripper_position = new QSlider(Qt::Horizontal);
+  // @todo make these constants.
+  gripper_position->setMinimum(0);
+  gripper_position->setMaximum(86);
+  gripper_position->setValue(0);
+  gripper_position_layout->addWidget(gripper_position);
+  user_controls_layout->addLayout(gripper_position_layout);
+
   controls_group->setLayout(user_controls_layout);
 
   basic_layout->addWidget(controls_group);
@@ -327,7 +338,6 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   connect(start_button_, SIGNAL(clicked()), this, SLOT(startBasicMode()));
   connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
-  connect(&node_, SIGNAL(focusCameraTo(float, float, float)), this, SLOT(focusCameraTo(float, float, float)));
   connect(scale_mesh, SIGNAL(valueChanged(int)), this, SLOT(scaleMesh(int)));
   connect(play, SIGNAL(clicked()), this, SLOT(playSimulator()));
   connect(pause, SIGNAL(clicked()), this, SLOT(pauseSimulator()));
@@ -353,6 +363,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
+
+  connect(gripper_position, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
 
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
@@ -445,16 +457,6 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     else
       return QObject::eventFilter(obj, event);
   }
-  // else if(event->type() == QEvent::MouseButtonPress ||
-  // 	  event->type() == QEvent::MouseButtonRelease)
-  // {
-  //   // @todo is there a way to filter events related to camera movements, but NOT
-  //   // related to moving the interactive markers?
-  //   if(camera_mode_ == TOP_DOWN && user_demo_.started_ == false)
-  //     return true;
-  //   else
-  //     return QObject::eventFilter(obj, event);
-  // }
   else if(event->type() == QEvent::MouseMove)
   {
     if(camera_mode_ == TOP_DOWN)
@@ -1115,13 +1117,6 @@ void DemonstrationVisualizer::endBasicMode()
 	   user_demo_.goals_completed_, time_str.c_str());
 }
 
-void DemonstrationVisualizer::focusCameraTo(float x, float y, float z)
-{
-  // Focus the camera to look at the point (x, y, z) relative to the fixed frame.
-  rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
-  view_manager->getCurrent()->lookAt(x, y, z);
-}
-
 void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const geometry_msgs::Pose &B)
 {
   rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
@@ -1442,6 +1437,20 @@ void DemonstrationVisualizer::setFPSZOffset(int offset)
   {
     z_fps_offset_ = (double)offset/100;
     ROS_INFO("[DViz] (FPS mode) Setting z-offset to %f.", z_fps_offset_);
+  }
+}
+
+void DemonstrationVisualizer::setGripperPosition(int position)
+{
+  double p = (double)position/1000.0;
+
+  pr2_simple_simulator::SetJoints srv;
+  // @todo how do we move the r_gripper_joint?
+  //srv.request.name.push_back("r_wrist_flex_joint");
+  srv.request.position.push_back(p);
+  if(!node_.setJoints(srv))
+  {
+    ROS_INFO("[DViz] Failed to set gripper to position %f!", p);
   }
 }
 

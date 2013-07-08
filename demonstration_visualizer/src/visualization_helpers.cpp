@@ -1,5 +1,7 @@
 #include "demonstration_visualizer/visualization_helpers.h"
 
+namespace demonstration_visualizer {
+
 visualization_msgs::Marker makeMeshMarker(std::string mesh_resource,
 					  std::string ns,
 					  int id,
@@ -83,3 +85,5 @@ void attach6DOFControl(visualization_msgs::InteractiveMarker &int_marker)
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
   int_marker.controls.push_back(control);
 }
+
+} // namespace demonstration_visualizer

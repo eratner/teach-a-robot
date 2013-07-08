@@ -11,6 +11,7 @@
 #include <pr2_simple_simulator/FilePath.h>
 #include <pr2_simple_simulator/SetSpeed.h>
 #include <pr2_simple_simulator/SetPose.h>
+#include <pr2_simple_simulator/SetJoints.h>
 #include <pr2_simple_simulator/KeyEvent.h>
 #include <std_srvs/Empty.h>
 #include <visualization_msgs/Marker.h>
@@ -56,6 +57,8 @@ public:
   
   bool playSimulator(std_srvs::Empty &srv);
 
+  bool setJoints(pr2_simple_simulator::SetJoints &srv);
+
   void run();
 
   void setRobotSpeed(double, double);
@@ -100,6 +103,8 @@ private:
   ros::ServiceClient end_replay_client_;
   ros::ServiceClient pause_simulator_client_;
   ros::ServiceClient play_simulator_client_;
+
+  ros::ServiceClient set_joints_client_;
 
   ros::ServiceClient reset_robot_client_;
   ros::ServiceClient set_robot_speed_client_;

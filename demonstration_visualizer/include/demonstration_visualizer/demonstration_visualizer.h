@@ -171,8 +171,6 @@ private slots:
   void endBasicMode();
 
   // For controlling the camera.
-  void focusCameraTo(float, float, float);
-
   void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
   void changeCameraMode(int mode);
@@ -188,6 +186,8 @@ private slots:
 
   void setFPSXOffset(int);
   void setFPSZOffset(int);
+
+  void setGripperPosition(int);
   
 private:
   DemonstrationVisualizerNode node_;

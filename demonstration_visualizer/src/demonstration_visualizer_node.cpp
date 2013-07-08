@@ -84,6 +84,8 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 					       &DemonstrationVisualizerNode::updateEndEffectorMarkerPose,
 					       this);
 
+  set_joints_client_ = nh.serviceClient<pr2_simple_simulator::SetJoints>("/set_joints");
+
   return true;
 }
 
@@ -129,9 +131,14 @@ bool DemonstrationVisualizerNode::playSimulator(std_srvs::Empty &srv)
   return play_simulator_client_.call(srv);
 }
 
+bool DemonstrationVisualizerNode::setJoints(pr2_simple_simulator::SetJoints &srv)
+{
+  return set_joints_client_.call(srv);
+}
+
 void DemonstrationVisualizerNode::run()
 {
-  ros::Rate rate(10.0);
+  ros::Rate rate(30.0/*10.0*/);
   while(ros::ok())
   {
     getSceneManager()->updateScene();

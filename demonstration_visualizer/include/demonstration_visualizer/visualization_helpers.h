@@ -9,6 +9,8 @@
 
 #include <string>
 
+namespace demonstration_visualizer {
+
 visualization_msgs::Marker makeMeshMarker(std::string mesh_resource,
 					  std::string ns,
 					  int id,
@@ -25,5 +27,7 @@ visualization_msgs::Marker makeShapeMarker(int type,
 					   const std_msgs::ColorRGBA &color);
 
 void attach6DOFControl(visualization_msgs::InteractiveMarker &int_marker);
+
+} // namespace demonstration_visualizer
 
 #endif // VISUALIZATION_HELPERS_H
