@@ -27,8 +27,7 @@ DemonstrationSceneManager::~DemonstrationSceneManager()
 void DemonstrationSceneManager::updateScene()
 {
   // First, update the goals.
-  if(goals_.size() > 0 && current_goal_ < goals_.size() &&
-     !(edit_goals_mode_ && !goalsChanged()))
+  if(goals_.size() > 0 && !taskDone() && goalsChanged())
   {
     // Draw each of the goals in the current task. 
     if(editGoalsMode())
@@ -528,6 +527,8 @@ void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose,
 {
   setGoalsChanged(true);
 
+  ROS_INFO("Adding goal with id %d", (int)goals_.size());
+
   visualization_msgs::Marker goal;
   goal.header.frame_id = frame;
   goal.header.stamp = ros::Time();
@@ -551,6 +552,9 @@ void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose,
 
   goals_.push_back(goal);
   goal_descriptions_.push_back(desc);
+
+  if(current_goal_ < 0)
+    current_goal_ = 0;
 }
 
 bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::Pose &pose)
@@ -583,6 +587,9 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 					       const geometry_msgs::Pose &pose, 
 					       double tolerance)
 {
+  if(getNumGoals() == 0)
+    return false;
+
   geometry_msgs::Pose goal_pose = getGoal(goal_number).pose;
   //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
   double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
@@ -674,7 +681,7 @@ void DemonstrationSceneManager::processGoalFeedback(
     ROS_ERROR("[SceneManager] Demonstration scene manager failed to update task goal pose!");
   }
 
-  setGoalsChanged();  
+  setGoalsChanged(true);  
 }
 
 void DemonstrationSceneManager::processMeshFeedback(
@@ -706,7 +713,7 @@ void DemonstrationSceneManager::setCurrentGoal(int goal)
   if(goal != current_goal_)
   {
     current_goal_ = goal;
-    setGoalsChanged();
+    setGoalsChanged(true);
   }
 }
 
@@ -742,7 +749,7 @@ bool DemonstrationSceneManager::meshesChanged() const
 
 bool DemonstrationSceneManager::taskDone() const
 {
-  return (current_goal_ >= goals_.size());
+  return (current_goal_ >= (int)goals_.size());
 }
 
 } // namespace demonstration_visualizer

@@ -138,7 +138,7 @@ void DemonstrationVisualizerNode::run()
 
     // Focus the camera according to the position of the end-effector and the 
     // current goal.
-    if(!getSceneManager()->taskDone())
+    if(!getSceneManager()->taskDone() && getSceneManager()->getNumGoals() > 0)
     {
       geometry_msgs::Pose current_goal_pose = 
 	getSceneManager()->getGoal(getSceneManager()->getCurrentGoal()).pose;
@@ -188,7 +188,9 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
 {
   end_effector_pose_ = pose.pose;
 
-  if(getSceneManager()->editGoalsMode() || getSceneManager()->taskDone())
+  if(getSceneManager()->editGoalsMode() || 
+     getSceneManager()->taskDone() || 
+     getSceneManager()->getNumGoals() == 0)
     return;
 
   // ROS_INFO("marker = (%f, %f, %f)", end_effector_marker_pose_.position.x,
