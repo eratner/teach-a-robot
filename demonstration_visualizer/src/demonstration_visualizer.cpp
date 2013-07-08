@@ -236,7 +236,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QSlider *gripper_position = new QSlider(Qt::Horizontal);
   // @todo make these constants.
   gripper_position->setMinimum(0);
-  gripper_position->setMaximum(86);
+  gripper_position->setMaximum(400);
   gripper_position->setValue(0);
   gripper_position_layout->addWidget(gripper_position);
   user_controls_layout->addLayout(gripper_position_layout);
@@ -1445,8 +1445,7 @@ void DemonstrationVisualizer::setGripperPosition(int position)
   double p = (double)position/1000.0;
 
   pr2_simple_simulator::SetJoints srv;
-  // @todo how do we move the r_gripper_joint?
-  //srv.request.name.push_back("r_wrist_flex_joint");
+  srv.request.name.push_back("r_gripper_joint");
   srv.request.position.push_back(p);
   if(!node_.setJoints(srv))
   {

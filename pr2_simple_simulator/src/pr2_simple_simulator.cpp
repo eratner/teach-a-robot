@@ -34,7 +34,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   goal_pose_ = base_pose_;
 
   // Initialize the joint states.
-  joint_states_.name.resize(14);
+  joint_states_.name.resize(15);
   joint_states_.name[0] = "l_shoulder_pan_joint";
   joint_states_.name[1] = "l_shoulder_lift_joint";
   joint_states_.name[2] = "l_upper_arm_roll_joint";
@@ -49,9 +49,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   joint_states_.name[11] = "r_forearm_roll_joint";
   joint_states_.name[12] = "r_wrist_flex_joint";
   joint_states_.name[13] = "r_wrist_roll_joint";
-  joint_states_.position.resize(14);
-  joint_states_.velocity.resize(14);
-  joint_states_.effort.resize(14);
+  joint_states_.name[14] = "r_gripper_joint";
+  joint_states_.position.resize(15);
+  joint_states_.velocity.resize(15);
+  joint_states_.effort.resize(15);
   // Tuck the left arm initially. @todo these should be constants somewhere.
   joint_states_.position[0] = 0.06024;
   joint_states_.position[1] = 1.248526;
@@ -61,11 +62,11 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   joint_states_.position[5] = -0.0962141;
   joint_states_.position[6] = -0.0864407;
 
-  for(int i = 7; i < 14; ++i)
+  for(int i = 7; i < 15; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
 
   // Create a mapping from joint names to index.
-  for(int i = 0; i < 14; ++i)
+  for(int i = 0; i < 15; ++i)
     joints_map_[joint_states_.name[i]] = i;
 
   vel_cmd_sub_ = nh.subscribe("vel_cmd",
@@ -228,7 +229,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
     ROS_ERROR("[PR2SimpleSim] Failed to find the robot_description on the parameter server.");
   }
   nh.param<std::string>(robot_param, robot_description, "");
-  std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end());
+  std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end()-1);
   kdl_robot_model_.init(robot_description, planning_joints);
   kdl_robot_model_.setPlanningLink("r_wrist_roll_link");
 
@@ -421,12 +422,13 @@ void PR2SimpleSimulator::moveEndEffectors()
 void PR2SimpleSimulator::visualizeRobot()
 {
   std::vector<double> l_joints_pos(7, 0);
-  std::vector<double> r_joints_pos(7, 0);
+  std::vector<double> r_joints_pos(8, 0);
   for(int i = 0; i < 7; ++i)
   {
     l_joints_pos[i] = joint_states_.position.at(i);
     r_joints_pos[i] = joint_states_.position.at(i+7);
   }
+  r_joints_pos[7] = joint_states_.position.at(14);
 
   std::vector<double> body_pos(3, 0);
   body_pos[0] = base_pose_.pose.position.x;
@@ -525,7 +527,7 @@ bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose
   }
 
   // Set the new joint angles.
-  for(int i = 7; i < joint_states_.position.size(); ++i)
+  for(int i = 7; i < 14/*joint_states_.position.size()*/; ++i)
     joint_states_.position[i] = solution[i-7];
   
   end_effector_pose_.pose = goal_pose;
