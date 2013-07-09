@@ -98,7 +98,8 @@ public:
   enum CameraMode { ORBIT = 0,
 		    FPS,
 		    TOP_DOWN,
-		    AUTO };
+		    AUTO,
+		    GOAL };
 
   DemonstrationVisualizer(int argc, char **argv, QWidget *parent = 0);
 

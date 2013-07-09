@@ -123,6 +123,14 @@ public:
 
   void showEndEffectorWorkspaceArc();
 
+  void showInteractiveGripper(const geometry_msgs::Pose &goal_pose, double distance = 0.25);
+
+  geometry_msgs::Pose getBasePose() const;
+
+  geometry_msgs::Pose getEndEffectorPose();
+
+  geometry_msgs::Pose getEndEffectorMarkerPose();
+
 private:
   bool playing_;
 
@@ -141,10 +149,6 @@ private:
   ros::Subscriber end_effector_vel_cmd_sub_;
   ros::Subscriber end_effector_marker_vel_sub_;
   
-  ros::Publisher base_pose_pub_;
-  ros::Publisher joint_states_pub_;
-  ros::Publisher end_effector_pose_pub_;
-  ros::Publisher end_effector_marker_pose_pub_;
   ros::Publisher marker_pub_;
 
   geometry_msgs::Twist vel_cmd_;

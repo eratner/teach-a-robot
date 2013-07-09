@@ -37,7 +37,7 @@ public:
 
   bool init(int argc, char **argv);
 
-  std::string getGlobalFrame() const;
+  std::string getWorldFrame() const;
 
   void pauseSimulator();
   
@@ -53,21 +53,24 @@ public:
 
   MotionRecorder *getMotionRecorder();
   
-  void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
-
   void processKeyEvent(int key, int type);
-
-  void updateBasePose(const geometry_msgs::PoseStamped &);
   
-  geometry_msgs::Pose getBasePose() const;
+  /**
+   * Note that all poses are given in the world frame.
+   */
+  geometry_msgs::Pose getBasePose();
+
+  geometry_msgs::Pose getEndEffectorPose();
+
+  geometry_msgs::Pose getEndEffectorMarkerPose();
 
   void sendBaseCommand(const geometry_msgs::Pose &);
 
   void sendBaseVelocityCommand(const geometry_msgs::Twist &);
 
-  void updateEndEffectorMarkerPose(const geometry_msgs::Pose &);
-
   void setJointStates(const sensor_msgs::JointState &);
+
+  void showBasePath(const std::string &filename = "");
 
 Q_SIGNALS:
   void rosShutdown();
@@ -81,31 +84,13 @@ private:
   MotionRecorder *recorder_;
   PR2Simulator *simulator_;
 
-  geometry_msgs::Pose end_effector_pose_;
-  geometry_msgs::Pose base_pose_;
-  geometry_msgs::Pose end_effector_marker_pose_;
+  ros::Publisher marker_pub_;
 
-  std::string global_frame_;
-
-  ros::ServiceClient pause_simulator_client_;
-  ros::ServiceClient play_simulator_client_;
-
-  ros::ServiceClient set_joints_client_;
-
-  ros::ServiceClient reset_robot_client_;
-  ros::ServiceClient set_robot_speed_client_;
-
-  ros::ServiceClient key_event_client_;
-
-  ros::ServiceClient set_base_command_client_;
+  std::string world_frame_;
 
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher end_effector_marker_vel_pub_;
   ros::Publisher base_vel_cmd_pub_;
-
-  ros::Subscriber end_effector_pose_sub_;
-  ros::Subscriber base_pose_sub_;
-  ros::Subscriber end_effector_marker_pose_sub_;
 
 };
 

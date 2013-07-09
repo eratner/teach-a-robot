@@ -43,7 +43,9 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 
   ros::NodeHandle nh("~");
 
-  nh.param("global_frame", global_frame_, std::string("/map"));
+  nh.param("world_frame", world_frame_, std::string("/map"));
+
+  marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
 
   // Advertise topic for publishing end-effector velocity commands.
   end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 1);
@@ -52,26 +54,12 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 
   base_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/vel_cmd", 1);
 
-  // Subscribe to the pose of the (right) end effector.
-  end_effector_pose_sub_ = nh.subscribe("/end_effector_pose", 10, 
-					&DemonstrationVisualizerNode::updateEndEffectorPose,
-					this);
-
-  // Subscribe to the pose of the base in the map frame.
-  base_pose_sub_ = nh.subscribe("/base_pose", 10, 
-				&DemonstrationVisualizerNode::updateBasePose,
-				this);
-
-  end_effector_marker_pose_sub_ = nh.subscribe("/end_effector_marker_pose", 10,
-					       &DemonstrationVisualizerNode::updateEndEffectorMarkerPose,
-					       this);
-
   return true;
 }
 
-std::string DemonstrationVisualizerNode::getGlobalFrame() const
+std::string DemonstrationVisualizerNode::getWorldFrame() const
 {
-  return global_frame_;
+  return world_frame_;
 }
 
 void DemonstrationVisualizerNode::pauseSimulator()
@@ -93,18 +81,34 @@ void DemonstrationVisualizerNode::run()
 
     getSceneManager()->updateScene();
 
+    // Check to see if the end effector has reached a goal.
+    if(!getSceneManager()->editGoalsMode() || 
+       !getSceneManager()->taskDone() || 
+       getSceneManager()->getNumGoals() != 0)
+    {
+      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()) &&
+	 getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorMarkerPose()))
+      {
+	ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
+	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
+	getSceneManager()->setGoalsChanged(true);
+
+	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal() - 1);
+      }
+    }
+
     // Focus the camera according to the position of the end-effector and the 
     // current goal.
     if(!getSceneManager()->taskDone() && getSceneManager()->getNumGoals() > 0)
     {
       geometry_msgs::Pose current_goal_pose = 
 	getSceneManager()->getGoal(getSceneManager()->getCurrentGoal()).pose;
-      Q_EMIT updateCamera(end_effector_pose_, current_goal_pose);
+      Q_EMIT updateCamera(getEndEffectorPose(), current_goal_pose);
     }
     else
     {
       // @todo sort of a hack, should make this cleaner.
-      Q_EMIT updateCamera(end_effector_pose_, end_effector_pose_);
+      Q_EMIT updateCamera(getEndEffectorPose(), getEndEffectorPose());
     }
 
     ros::spinOnce();
@@ -132,29 +136,6 @@ DemonstrationSceneManager *DemonstrationVisualizerNode::getSceneManager()
 MotionRecorder *DemonstrationVisualizerNode::getMotionRecorder()
 {
   return recorder_;
-}
-
-void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::PoseStamped &pose)
-{
-  end_effector_pose_ = pose.pose;
-
-  if(getSceneManager()->editGoalsMode() || 
-     getSceneManager()->taskDone() || 
-     getSceneManager()->getNumGoals() == 0)
-    return;
-
-  // ROS_INFO("marker = (%f, %f, %f)", end_effector_marker_pose_.position.x,
-  // 	   end_effector_marker_pose_.position.y, end_effector_marker_pose_.position.z);
-
-  if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), pose.pose) &&
-     getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), end_effector_marker_pose_))
-  {
-    ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
-    getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
-    getSceneManager()->setGoalsChanged(true);
-
-    Q_EMIT goalComplete(getSceneManager()->getCurrentGoal() - 1);
-  }
 }
 
 void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
@@ -205,17 +186,19 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
   }
 }
 
-void DemonstrationVisualizerNode::updateBasePose(const geometry_msgs::PoseStamped &pose)
+geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose()
 {
-  base_pose_ = pose.pose;
-
-  // ROS_INFO("[DVizNode] Updated base orientation to %f.",
-  // 	   tf::getYaw(base_pose_.orientation));
+  return simulator_->getBasePose();
 }
 
-geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose() const
+geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorPose()
 {
-  return base_pose_;
+  return simulator_->getEndEffectorPose();
+}
+
+geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorMarkerPose()
+{
+  return simulator_->getEndEffectorMarkerPose();
 }
 
 void DemonstrationVisualizerNode::sendBaseCommand(const geometry_msgs::Pose &pose)
@@ -228,14 +211,25 @@ void DemonstrationVisualizerNode::sendBaseVelocityCommand(const geometry_msgs::T
   base_vel_cmd_pub_.publish(cmd);
 }
 
-void DemonstrationVisualizerNode::updateEndEffectorMarkerPose(const geometry_msgs::Pose &pose)
-{
-  end_effector_marker_pose_ = pose;
-}
-
 void DemonstrationVisualizerNode::setJointStates(const sensor_msgs::JointState &joints)
 {
   simulator_->setJointStates(joints);
+}
+
+void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
+{
+  visualization_msgs::Marker base_path;
+
+  if(filename.empty())
+  {
+    base_path = recorder_->getBasePath();
+  }
+  else
+  {
+    base_path = recorder_->getBasePath(filename);
+  }
+  
+  marker_pub_.publish(base_path);
 }
 
 } // namespace demonstration_visualizer

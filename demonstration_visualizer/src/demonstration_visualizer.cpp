@@ -1035,6 +1035,16 @@ void DemonstrationVisualizer::startBasicMode()
   // Reset the task.
   resetTask();
 
+  // Give the user basic instructions.
+  QMessageBox instructions_box;
+
+  instructions_box.setText("<b>Instructions:</b> For each goal in the given task, you must first place"
+			   " the gripper so that it may grasp the given object. Then, you must move the"
+			   " base and gripper of the robot to that grasp, which will appear close to "
+			   "the goal object.");
+
+  instructions_box.exec();
+
   playSimulator();
 
   setEditGoalsMode(Qt::Unchecked);
@@ -1081,8 +1091,7 @@ void DemonstrationVisualizer::endBasicMode()
   node_.getMotionRecorder()->endRecording();
 
   // Show the base path at the end.
-  // @todo fix this!.
-  //node_.showBasePath();
+  node_.showBasePath();
 
   ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %s.",
 	   user_demo_.goals_completed_, time_str.c_str());
@@ -1109,7 +1118,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != ORBIT)
       {
 	camera_buttons_[ORBIT]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
 	ROS_INFO("[DViz] Switching to rviz/Orbit view.");
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
@@ -1131,7 +1141,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != FPS)
       {
 	camera_buttons_[FPS]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
 	ROS_INFO("[DViz] Switching to rviz/FPS view.");
 	view_manager->setCurrentViewControllerType("rviz/FPS");
@@ -1210,7 +1221,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != TOP_DOWN)
       {
 	camera_buttons_[TOP_DOWN]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
 	ROS_INFO("[DViz] Switching to rviz/Orbit top-down view.");
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
@@ -1232,7 +1244,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != AUTO)
       {
         camera_buttons_[AUTO]->setEnabled(false);
-        camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
         ROS_INFO("[DViz] Switching to automatic camera control.");
         view_manager->setCurrentViewControllerType("rviz/Orbit");
@@ -1320,6 +1333,25 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       else{
         ROS_ERROR("auto camera is in a bad state");
       }
+
+      break;
+    }
+  case GOAL:
+    {
+      if(previous_camera_mode_ != GOAL)
+      {
+        camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	
+	// Set the focal point of the camera to be the goal.
+        ROS_INFO("[DViz] Switching to goal camera mode.");
+        view_manager->setCurrentViewControllerType("rviz/Orbit");
+        view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+        view_manager->getCurrent()->subProp("Distance")->setValue(1.0);
+      }
+
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(B.position.x);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(B.position.y);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(B.position.z);
 
       break;
     }
