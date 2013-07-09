@@ -7,7 +7,7 @@
 #include <tf/transform_datatypes.h>
 #include <cmath>
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
 static const char *END_EFFECTOR_STATE_NAMES[] = { "INITIAL",
                                                   "READY",
@@ -60,6 +60,6 @@ private:
   void printStateTransition(State next_state);
 };
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer
 
 #endif // END_EFFECTOR_CONTROLLER_H

@@ -19,7 +19,7 @@
 
 #define foreach BOOST_FOREACH
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
 class MotionRecorder
 {
@@ -92,6 +92,6 @@ private:
   
 };
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer
 
 #endif // MOTION_RECORDER_H

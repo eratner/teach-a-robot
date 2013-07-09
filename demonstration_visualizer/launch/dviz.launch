@@ -9,8 +9,8 @@
   <param name="robot_description_semantic" textfile="$(find pr2_description)/robots/pr2.srdf" />
 
   <!-- PR2 Simple Sim -->
-  <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" output="$(arg output)" />
-
+  <!-- <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" output="$(arg output)" /> -->
+  
   <!-- DViz -->
   <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)" />
 

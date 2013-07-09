@@ -2,45 +2,48 @@
  * @author Ellis Ratner
  * @date June 2013
  */
-#ifndef PR2_SIMPLE_SIMULATOR_H
-#define PR2_SIMPLE_SIMULATOR_H
+#ifndef PR2_SIMULATOR_H
+#define PR2_SIMULATOR_H
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/JointState.h>
-#include <std_srvs/Empty.h>
 #include <tf/transform_datatypes.h>
 #include <pviz/pviz.h>
 #include <interactive_markers/interactive_marker_server.h>
-#include <pr2_simple_simulator/base_movement_controller.h>
-#include <pr2_simple_simulator/end_effector_controller.h>
-#include <pr2_simple_simulator/motion_recorder.h>
-#include <pr2_simple_simulator/SetSpeed.h>
-#include <pr2_simple_simulator/SetPose.h>
-#include <pr2_simple_simulator/SetJoints.h>
-#include <pr2_simple_simulator/FilePath.h>
-#include <pr2_simple_simulator/KeyEvent.h>
+#include <demonstration_visualizer/base_movement_controller.h>
+#include <demonstration_visualizer/end_effector_controller.h>
+#include <demonstration_visualizer/motion_recorder.h>
 #include <sbpl_manipulation_components/kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
+
+#include <Qt>
+#include <QEvent>
 
 #include <vector>
 #include <string>
 #include <cmath>
 #include <map>
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
-class PR2SimpleSimulator
+class PR2Simulator
 {
 public:
-  PR2SimpleSimulator();
+  PR2Simulator(MotionRecorder *recorder);
 
-  ~PR2SimpleSimulator();
+  ~PR2Simulator();
 
   void setFrameRate(double);
 
   double getFrameRate() const;
+
+  void play();
+  
+  void pause();
+
+  bool isPlaying() const;
 
   void run();
 
@@ -90,49 +93,21 @@ public:
 
   void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  bool setSpeed(pr2_simple_simulator::SetSpeed::Request  &,
-		   pr2_simple_simulator::SetSpeed::Response &);
+  void setSpeed(double, double);
 
-  bool resetRobot(std_srvs::Empty::Request  &,
-		  std_srvs::Empty::Response &);
+  void resetRobot();
 
-  bool setRobotPose(pr2_simple_simulator::SetPose::Request  &,
-		    pr2_simple_simulator::SetPose::Response &);
+  void setRobotPose(const geometry_msgs::Pose &pose);
 
-  bool setJointPositions(pr2_simple_simulator::SetJoints::Request  &,
-			 pr2_simple_simulator::SetJoints::Response &);
+  void setJointStates(const sensor_msgs::JointState &joints);
 
-  bool setRobotBaseCommand(pr2_simple_simulator::SetPose::Request  &,
-			   pr2_simple_simulator::SetPose::Response &);
-
-  // Service-based controls for recording/replaying trajectories.
-  bool beginRecording(pr2_simple_simulator::FilePath::Request  &,
-		      pr2_simple_simulator::FilePath::Response &);
-
-  bool endRecording(std_srvs::Empty::Request  &,
-		    std_srvs::Empty::Response &);
-
-  bool beginReplay(pr2_simple_simulator::FilePath::Request  &,
-		   pr2_simple_simulator::FilePath::Response &);
-
-  bool endReplay(std_srvs::Empty::Request  &,
-		 std_srvs::Empty::Response &);
-
-  bool play(std_srvs::Empty::Request  &,
-	    std_srvs::Empty::Response &);
-
-  bool pause(std_srvs::Empty::Request  &,
-	     std_srvs::Empty::Response &);
+  void setRobotBaseCommand(const geometry_msgs::Pose &command);
 
   /**
    * @brief Provides a way to notify the simulator of key events recieved
    *        elsewhere.
    */
-  bool processKeyEvent(pr2_simple_simulator::KeyEvent::Request  &,
-		       pr2_simple_simulator::KeyEvent::Response &);
-
-  bool showBasePath(pr2_simple_simulator::FilePath::Request  &,
-		    pr2_simple_simulator::FilePath::Response &);
+  void processKeyEvent(int key, int type);
 
   void updateEndEffectorMarker();
 
@@ -160,7 +135,7 @@ private:
   BaseMovementController base_movement_controller_;
   EndEffectorController end_effector_controller_;
 
-  MotionRecorder recorder_;
+  MotionRecorder *recorder_;
 
   ros::Subscriber vel_cmd_sub_;
   ros::Subscriber end_effector_vel_cmd_sub_;
@@ -181,20 +156,6 @@ private:
   geometry_msgs::PoseStamped end_effector_goal_pose_;
   sensor_msgs::JointState joint_states_;
 
-  ros::ServiceServer set_speed_service_;
-  ros::ServiceServer reset_robot_service_;
-  ros::ServiceServer set_robot_pose_service_;
-  ros::ServiceServer set_joint_states_service_;
-  ros::ServiceServer set_base_command_service_;
-  ros::ServiceServer begin_rec_service_;
-  ros::ServiceServer end_rec_service_;
-  ros::ServiceServer begin_replay_service_;
-  ros::ServiceServer end_replay_service_;
-  ros::ServiceServer pause_service_;
-  ros::ServiceServer play_service_;
-  ros::ServiceServer key_event_service_;
-  ros::ServiceServer show_base_path_service_;
-
   visualization_msgs::MarkerArray robot_markers_;
 
   geometry_msgs::PoseStamped goal_pose_;
@@ -209,6 +170,6 @@ private:
 
 };
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer
 
-#endif // PR2_SIMPLE_SIMULATOR_H
+#endif // PR2_SIMULATOR_H

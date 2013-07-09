@@ -7,13 +7,6 @@
 
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
-
-#include <pr2_simple_simulator/FilePath.h>
-#include <pr2_simple_simulator/SetSpeed.h>
-#include <pr2_simple_simulator/SetPose.h>
-#include <pr2_simple_simulator/SetJoints.h>
-#include <pr2_simple_simulator/KeyEvent.h>
-#include <std_srvs/Empty.h>
 #include <visualization_msgs/Marker.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -21,6 +14,7 @@
 
 #include "demonstration_visualizer/visualization_helpers.h"
 #include "demonstration_visualizer/demonstration_scene_manager.h"
+#include "demonstration_visualizer/pr2_simulator.h"
 #include <cmath>
 
 #include <QThread>
@@ -45,19 +39,9 @@ public:
 
   std::string getGlobalFrame() const;
 
-  bool beginRecording(pr2_simple_simulator::FilePath &srv);
-
-  bool endRecording(std_srvs::Empty &srv);
-
-  bool beginReplay(pr2_simple_simulator::FilePath &srv);
-
-  bool endReplay(std_srvs::Empty &srv);
-
-  bool pauseSimulator(std_srvs::Empty &srv);
+  void pauseSimulator();
   
-  bool playSimulator(std_srvs::Empty &srv);
-
-  bool setJoints(pr2_simple_simulator::SetJoints &srv);
+  void playSimulator();
 
   void run();
 
@@ -66,12 +50,12 @@ public:
   void resetRobot();
 
   DemonstrationSceneManager *getSceneManager();
+
+  MotionRecorder *getMotionRecorder();
   
   void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
 
   void processKeyEvent(int key, int type);
-
-  void showBasePath(const std::string &filename = "");
 
   void updateBasePose(const geometry_msgs::PoseStamped &);
   
@@ -83,13 +67,19 @@ public:
 
   void updateEndEffectorMarkerPose(const geometry_msgs::Pose &);
 
+  void setJointStates(const sensor_msgs::JointState &);
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
   void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
 private:
+  void runSimulator();
+
   DemonstrationSceneManager *demonstration_scene_manager_;
+  MotionRecorder *recorder_;
+  PR2Simulator *simulator_;
 
   geometry_msgs::Pose end_effector_pose_;
   geometry_msgs::Pose base_pose_;
@@ -97,10 +87,6 @@ private:
 
   std::string global_frame_;
 
-  ros::ServiceClient begin_recording_client_;
-  ros::ServiceClient end_recording_client_;
-  ros::ServiceClient begin_replay_client_;
-  ros::ServiceClient end_replay_client_;
   ros::ServiceClient pause_simulator_client_;
   ros::ServiceClient play_simulator_client_;
 
@@ -110,8 +96,6 @@ private:
   ros::ServiceClient set_robot_speed_client_;
 
   ros::ServiceClient key_event_client_;
-
-  ros::ServiceClient show_base_path_client_;
 
   ros::ServiceClient set_base_command_client_;
 

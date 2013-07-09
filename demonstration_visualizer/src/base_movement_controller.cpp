@@ -1,6 +1,6 @@
-#include "pr2_simple_simulator/base_movement_controller.h"
+#include "demonstration_visualizer/base_movement_controller.h"
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0),
@@ -262,4 +262,4 @@ void BaseMovementController::printStateTransition(State next_state)
   }
 }
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer

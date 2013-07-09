@@ -535,31 +535,20 @@ void DemonstrationVisualizer::beginRecording()
     return;
   }
 
-  pr2_simple_simulator::FilePath srv;
-  srv.request.file_path = directory.toStdString();
-  if(!node_.beginRecording(srv))
-  {
-    ROS_ERROR("Failed to call service /motion_recorder/begin_recording.");
-    return;
-  }
+  node_.getMotionRecorder()->beginRecording(directory.toStdString());
 
   recording_icon_->show();
 
-  ROS_INFO("Recording to %s", directory.toLocal8Bit().data());
+  ROS_INFO("[DViz] Recording to %s", directory.toLocal8Bit().data());
 }
 
 void DemonstrationVisualizer::endRecording()
 {
-  std_srvs::Empty srv;
-  if(!node_.endRecording(srv))
-  {
-    ROS_ERROR("Failed to call service /motion_recorder/end_recording.");
-    return;
-  }
+  node_.getMotionRecorder()->endRecording();
 
   recording_icon_->hide();
 
-  ROS_INFO("Recording has ended.");
+  ROS_INFO("[DViz] Recording has ended.");
 }
 
 void DemonstrationVisualizer::beginReplay()
@@ -575,19 +564,9 @@ void DemonstrationVisualizer::beginReplay()
     return;
   }
 
-  pr2_simple_simulator::FilePath srv;
-  srv.request.file_path = filename.toStdString();
-  if(!node_.beginReplay(srv))
-  {
-    ROS_ERROR("Failed to call service /motion_recorder/begin_replay.");
-    return;
-  }
+  node_.getMotionRecorder()->beginReplay(filename.toStdString());
 
-  std_srvs::Empty empty;
-  if(!node_.playSimulator(empty))
-  {
-    ROS_ERROR("Failed to call service to play simulator.");
-  }
+  node_.playSimulator();
 
   replaying_icon_->show();
 
@@ -596,11 +575,7 @@ void DemonstrationVisualizer::beginReplay()
 
 void DemonstrationVisualizer::endReplay()
 {
-  std_srvs::Empty empty;
-  if(!node_.endReplay(empty))
-  {
-    ROS_ERROR("[DViz] Failed to end replay!");
-  }
+  node_.getMotionRecorder()->endReplay();
 
   replaying_icon_->hide();
 }
@@ -1078,13 +1053,8 @@ void DemonstrationVisualizer::startBasicMode()
     ROS_ERROR("[DViz] Failed to find path to package demonstration_visualizer!");
     return;
   }
-  pr2_simple_simulator::FilePath srv;
-  srv.request.file_path = package_path;
-  if(!node_.beginRecording(srv))
-  {
-    ROS_ERROR("Failed to call service /motion_recorder/begin_recording.");
-    return;
-  }
+
+  node_.getMotionRecorder()->beginRecording(package_path);
 }
 
 void DemonstrationVisualizer::endBasicMode()
@@ -1107,11 +1077,11 @@ void DemonstrationVisualizer::endBasicMode()
   std::string time_str = time.str().substr(0, 8);
 
   // End recording.
-  std_srvs::Empty empty;
-  node_.endRecording(empty);
+  node_.getMotionRecorder()->endRecording();
 
   // Show the base path at the end.
-  node_.showBasePath();
+  // @todo fix this!.
+  //node_.showBasePath();
 
   ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %s.",
 	   user_demo_.goals_completed_, time_str.c_str());
@@ -1356,7 +1326,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     break;
   }
 
-    previous_camera_mode_ = camera_mode_;
+  previous_camera_mode_ = camera_mode_;
 }
 
 void DemonstrationVisualizer::changeCameraMode(int mode)
@@ -1377,9 +1347,7 @@ void DemonstrationVisualizer::pauseSimulator()
   if(play_button)
     play_button->setEnabled(true);
 
-  std_srvs::Empty empty;
-  if(!node_.pauseSimulator(empty))
-    ROS_ERROR("[DViz] Failed to pause simulation!");
+  node_.pauseSimulator();
 }
 
 void DemonstrationVisualizer::playSimulator()
@@ -1391,9 +1359,7 @@ void DemonstrationVisualizer::playSimulator()
   if(play_button)
     play_button->setEnabled(false);
 
-  std_srvs::Empty empty;
-  if(!node_.playSimulator(empty))
-    ROS_ERROR("[DViz] Failed to play simulation!");
+  node_.playSimulator();
 }
 
 void DemonstrationVisualizer::toggleZMode()
@@ -1409,7 +1375,7 @@ void DemonstrationVisualizer::enableZMode()
   ROS_INFO("[DViz] Enabling Z-mode.");
   z_mode_ = true;
   z_mode_button_->setText("Disable Z-Mode");
-  node_.processKeyEvent(pr2_simple_simulator::KeyEvent::Request::KEY_Z,
+  node_.processKeyEvent(Qt::Key_Z,
 			QEvent::KeyPress);
 }
 
@@ -1418,7 +1384,7 @@ void DemonstrationVisualizer::disableZMode()
   ROS_INFO("[DViz] Disabling Z-mode.");
   z_mode_ = false;
   z_mode_button_->setText("Enable Z-Mode");
-  node_.processKeyEvent(pr2_simple_simulator::KeyEvent::Request::KEY_Z,
+  node_.processKeyEvent(Qt::Key_Z,
 			QEvent::KeyRelease);
 }
 
@@ -1444,13 +1410,11 @@ void DemonstrationVisualizer::setGripperPosition(int position)
 {
   double p = (double)position/1000.0;
 
-  pr2_simple_simulator::SetJoints srv;
-  srv.request.name.push_back("r_gripper_joint");
-  srv.request.position.push_back(p);
-  if(!node_.setJoints(srv))
-  {
-    ROS_INFO("[DViz] Failed to set gripper to position %f!", p);
-  }
+  sensor_msgs::JointState joints;
+  joints.name.push_back("r_gripper_joint");
+  joints.position.push_back(p);
+
+  node_.setJointStates(joints);
 }
 
 } // namespace demonstration_visualizer

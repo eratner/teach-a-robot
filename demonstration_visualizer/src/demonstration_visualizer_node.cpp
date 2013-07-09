@@ -9,6 +9,10 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 
   demonstration_scene_manager_ = new DemonstrationSceneManager();
 
+  recorder_ = new MotionRecorder();
+
+  simulator_ = new PR2Simulator(recorder_);
+
   // Start the thread.
   start();
 }
@@ -16,6 +20,8 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 {
   delete demonstration_scene_manager_;
+  delete recorder_;
+  delete simulator_;
 
   if(ros::isStarted())
   {
@@ -39,30 +45,6 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 
   nh.param("global_frame", global_frame_, std::string("/map"));
 
-  // Services for communicating with the motion recording service provider.
-  begin_recording_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/motion_recorder/begin_recording");
-  end_recording_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_recording");
-  begin_replay_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/motion_recorder/begin_replay");
-  end_replay_client_ = nh.serviceClient<std_srvs::Empty>("/motion_recorder/end_replay");
-
-  // Services for playing/pausing the simulation.
-  pause_simulator_client_ = nh.serviceClient<std_srvs::Empty>("/pause");
-  play_simulator_client_ = nh.serviceClient<std_srvs::Empty>("/play");
-
-  // Service for resetting the state of the robot and environment.
-  reset_robot_client_ = nh.serviceClient<std_srvs::Empty>("/reset_robot");
-  // Service for setting the speed of the robot.
-  set_robot_speed_client_ = nh.serviceClient<pr2_simple_simulator::SetSpeed>("/set_speed");
-
-  // Service for passing keyboard events to the simulator.
-  key_event_client_ = nh.serviceClient<pr2_simple_simulator::KeyEvent>("/key_event");
-
-  // Service for visualizing the path of the base in a recorded motion.
-  show_base_path_client_ = nh.serviceClient<pr2_simple_simulator::FilePath>("/show_base_path");
-
-  // Service for setting the base command (i.e. the location of the carrot marker.)
-  set_base_command_client_ = nh.serviceClient<pr2_simple_simulator::SetPose>("/set_base_command");
-
   // Advertise topic for publishing end-effector velocity commands.
   end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 1);
 
@@ -84,8 +66,6 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 					       &DemonstrationVisualizerNode::updateEndEffectorMarkerPose,
 					       this);
 
-  set_joints_client_ = nh.serviceClient<pr2_simple_simulator::SetJoints>("/set_joints");
-
   return true;
 }
 
@@ -94,53 +74,23 @@ std::string DemonstrationVisualizerNode::getGlobalFrame() const
   return global_frame_;
 }
 
-bool DemonstrationVisualizerNode::beginRecording(pr2_simple_simulator::FilePath &srv)
+void DemonstrationVisualizerNode::pauseSimulator()
 {
-  return begin_recording_client_.call(srv);
+  return simulator_->pause();
 }
 
-bool DemonstrationVisualizerNode::endRecording(std_srvs::Empty &srv)
+void DemonstrationVisualizerNode::playSimulator()
 {
-  return end_recording_client_.call(srv);
-}
-
-bool DemonstrationVisualizerNode::beginReplay(pr2_simple_simulator::FilePath &srv)
-{
-  std_srvs::Empty empty;
-  if(!reset_robot_client_.call(empty))
-  {
-    ROS_ERROR("[DVizNode] Error resetting the world!");
-    return false;
-  }
-
-  return begin_replay_client_.call(srv);
-}
-
-bool DemonstrationVisualizerNode::endReplay(std_srvs::Empty &srv)
-{
-  return end_replay_client_.call(srv);
-}
-
-bool DemonstrationVisualizerNode::pauseSimulator(std_srvs::Empty &srv)
-{
-  return pause_simulator_client_.call(srv);
-}
-
-bool DemonstrationVisualizerNode::playSimulator(std_srvs::Empty &srv)
-{
-  return play_simulator_client_.call(srv);
-}
-
-bool DemonstrationVisualizerNode::setJoints(pr2_simple_simulator::SetJoints &srv)
-{
-  return set_joints_client_.call(srv);
+  return simulator_->play();
 }
 
 void DemonstrationVisualizerNode::run()
 {
-  ros::Rate rate(30.0/*10.0*/);
+  ros::Rate rate(10.0);
   while(ros::ok())
   {
+    simulator_->run();
+
     getSceneManager()->updateScene();
 
     // Focus the camera according to the position of the end-effector and the 
@@ -166,29 +116,22 @@ void DemonstrationVisualizerNode::run()
 
 void DemonstrationVisualizerNode::setRobotSpeed(double linear, double angular)
 {
-  pr2_simple_simulator::SetSpeed speed;
-  speed.request.linear = linear;
-  speed.request.angular = angular;
-
-  if(!set_robot_speed_client_.call(speed))
-  {
-    ROS_ERROR("[DVizNode] Error setting the robot speed!");
-  }
+  simulator_->setSpeed(linear, angular);
 }
 
 void DemonstrationVisualizerNode::resetRobot()
 {
-  std_srvs::Empty empty;
-  
-  if(!reset_robot_client_.call(empty))
-  {
-    ROS_ERROR("[DVizNode] Failed to reset the robot!");
-  }
+  simulator_->resetRobot();
 }
 
 DemonstrationSceneManager *DemonstrationVisualizerNode::getSceneManager()
 {
   return demonstration_scene_manager_;
+}
+
+MotionRecorder *DemonstrationVisualizerNode::getMotionRecorder()
+{
+  return recorder_;
 }
 
 void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::PoseStamped &pose)
@@ -217,18 +160,7 @@ void DemonstrationVisualizerNode::updateEndEffectorPose(const geometry_msgs::Pos
 void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
 {
   // Pass along the key event to the simulator.
-  pr2_simple_simulator::KeyEvent event;
-  if(type == QEvent::KeyPress)
-    event.request.type = pr2_simple_simulator::KeyEvent::Request::KEY_PRESS;
-  else if(type == QEvent::KeyRelease)
-    event.request.type = pr2_simple_simulator::KeyEvent::Request::KEY_RELEASE;
-  else
-    event.request.type = -1;
-  event.request.key = key;
-  if(!key_event_client_.call(event))
-  {
-    ROS_ERROR("[DVizNode] Error sending key event to simulator!");
-  }
+  simulator_->processKeyEvent(key, type);
 
   switch(key)
   {
@@ -273,16 +205,6 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
   }
 }
 
-void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
-{
-  pr2_simple_simulator::FilePath path;
-  path.request.file_path = filename;
-  if(!show_base_path_client_.call(path))
-  {
-    ROS_ERROR("[DVizNode] Failed to show base path!");
-  }
-}
-
 void DemonstrationVisualizerNode::updateBasePose(const geometry_msgs::PoseStamped &pose)
 {
   base_pose_ = pose.pose;
@@ -298,13 +220,7 @@ geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose() const
 
 void DemonstrationVisualizerNode::sendBaseCommand(const geometry_msgs::Pose &pose)
 {
-  pr2_simple_simulator::SetPose set;
-  set.request.pose.pose = pose;
-  set.request.pose.header.frame_id = "/map";
-  if(!set_base_command_client_.call(set))
-  {
-    ROS_ERROR("[DVizNode] Failed to set the base command!");
-  }
+  simulator_->setRobotBaseCommand(pose);
 }
 
 void DemonstrationVisualizerNode::sendBaseVelocityCommand(const geometry_msgs::Twist &cmd)
@@ -315,6 +231,11 @@ void DemonstrationVisualizerNode::sendBaseVelocityCommand(const geometry_msgs::T
 void DemonstrationVisualizerNode::updateEndEffectorMarkerPose(const geometry_msgs::Pose &pose)
 {
   end_effector_marker_pose_ = pose;
+}
+
+void DemonstrationVisualizerNode::setJointStates(const sensor_msgs::JointState &joints)
+{
+  simulator_->setJointStates(joints);
 }
 
 } // namespace demonstration_visualizer

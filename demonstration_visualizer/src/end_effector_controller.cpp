@@ -1,6 +1,6 @@
-#include "pr2_simple_simulator/end_effector_controller.h"
+#include "demonstration_visualizer/end_effector_controller.h"
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
 EndEffectorController::EndEffectorController()
  : last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(0.05)
@@ -142,4 +142,4 @@ void EndEffectorController::printStateTransition(State next_state)
   }
 }
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer

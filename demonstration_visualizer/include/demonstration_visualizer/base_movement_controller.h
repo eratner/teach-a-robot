@@ -12,7 +12,7 @@
 #include <tf/transform_datatypes.h>
 #include <cmath>
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
 static const char *STATE_NAMES[] = { "INITIAL",
                                      "READY",
@@ -101,6 +101,6 @@ private:
 
 };
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer
 
 #endif // BASE_MOVEMENT_CONTROLLER_H

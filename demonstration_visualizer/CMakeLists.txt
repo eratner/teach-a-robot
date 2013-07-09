@@ -24,6 +24,12 @@ rosbuild_add_executable(dviz
   src/demonstration_visualizer_node.cpp
   src/visualization_helpers.cpp
   src/demonstration_scene_manager.cpp
+  src/pr2_simulator.cpp
+  src/base_movement_controller.cpp
+  src/end_effector_controller.cpp
+  src/motion_recorder.cpp
+  src/robot_model.cpp
+  src/kdl_robot_model.cpp
   ${RCC_FILES}
   ${MOC_FILES}
 )

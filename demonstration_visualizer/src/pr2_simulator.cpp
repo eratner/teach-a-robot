@@ -1,14 +1,15 @@
-#include "pr2_simple_simulator/pr2_simple_simulator.h"
+#include "demonstration_visualizer/pr2_simulator.h"
 
-namespace pr2_simple_simulator {
+namespace demonstration_visualizer {
 
-PR2SimpleSimulator::PR2SimpleSimulator()
+PR2Simulator::PR2Simulator(MotionRecorder *recorder)
   : playing_(true), 
     frame_rate_(10.0), 
     pviz_(), 
     int_marker_server_("simple_sim_marker"), 
     base_movement_controller_(),
-    end_effector_controller_()
+    end_effector_controller_(),
+    recorder_(recorder)
 {
   ros::NodeHandle nh;
 
@@ -71,17 +72,17 @@ PR2SimpleSimulator::PR2SimpleSimulator()
 
   vel_cmd_sub_ = nh.subscribe("vel_cmd",
 			      100,
-			      &PR2SimpleSimulator::updateVelocity,
+			      &PR2Simulator::updateVelocity,
 			      this);
 
   end_effector_vel_cmd_sub_ = nh.subscribe("end_effector_vel_cmd",
 					   100,
-					   &PR2SimpleSimulator::updateEndEffectorVelocity,
+					   &PR2Simulator::updateEndEffectorVelocity,
 					   this);
 
   end_effector_marker_vel_sub_ = nh.subscribe("end_effector_marker_vel",
 					      1,
-					      &PR2SimpleSimulator::updateEndEffectorMarkerVelocity,
+					      &PR2Simulator::updateEndEffectorMarkerVelocity,
 					      this);
 
   base_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("base_pose", 20);
@@ -90,64 +91,10 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   end_effector_marker_pose_pub_ = nh.advertise<geometry_msgs::Pose>("end_effector_marker_pose", 20);
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
 
-  // Clients can change the speed (linear and angular) at which the robot moves.
-  set_speed_service_ = nh.advertiseService("set_speed",
-					   &PR2SimpleSimulator::setSpeed,
-					   this);
-  // Clients can reset the robot (useful for replay).
-  reset_robot_service_ = nh.advertiseService("reset_robot",
-					     &PR2SimpleSimulator::resetRobot,
-					     this);
-  // Clients can set the pose of the robot (also useful for replay).
-  set_robot_pose_service_ = nh.advertiseService("set_robot_pose",
-						&PR2SimpleSimulator::setRobotPose,
-						this);
-  // Clients can set the state of the joints (also useful for replay).
-  set_joint_states_service_ = nh.advertiseService("set_joints",
-						  &PR2SimpleSimulator::setJointPositions,
-						  this);
-
-  set_base_command_service_ = nh.advertiseService("set_base_command",
-						  &PR2SimpleSimulator::setRobotBaseCommand,
-						  this);
-
-  begin_rec_service_ = nh.advertiseService("/motion_recorder/begin_recording", 
-					   &PR2SimpleSimulator::beginRecording,
-					   this);
-
-  end_rec_service_ = nh.advertiseService("/motion_recorder/end_recording",
-					 &PR2SimpleSimulator::endRecording,
-					 this);
-
-  begin_replay_service_ = nh.advertiseService("/motion_recorder/begin_replay",
-					      &PR2SimpleSimulator::beginReplay,
-					      this);
-
-  end_replay_service_ = nh.advertiseService("/motion_recorder/end_replay",
-					    &PR2SimpleSimulator::endReplay,
-					    this);
-
-  pause_service_ = nh.advertiseService("pause",
-				       &PR2SimpleSimulator::pause,
-				       this);
-  
-  play_service_ = nh.advertiseService("play",
-				      &PR2SimpleSimulator::play,
-				      this);
-
-  key_event_service_ = nh.advertiseService("key_event",
-					   &PR2SimpleSimulator::processKeyEvent,
-					   this);
-
-  show_base_path_service_ = nh.advertiseService("show_base_path",
-						&PR2SimpleSimulator::showBasePath,
-						this);
-
   // Attach an interactive marker to the base of the robot.
   visualizeRobot();
   
   // Initialize the end-effector pose.
-  //end_effector_pose_.header.frame_id = "/map";
   end_effector_pose_.header.frame_id = "/base_footprint";
   end_effector_pose_.header.stamp = ros::Time();
   end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
@@ -182,7 +129,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   int_marker.controls.push_back(control);
 
   int_marker_server_.insert(int_marker,
-			    boost::bind(&PR2SimpleSimulator::baseMarkerFeedback,
+			    boost::bind(&PR2Simulator::baseMarkerFeedback,
 					this,
 					_1)
 			    );
@@ -216,7 +163,7 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   int_marker.controls.push_back(control);
   
   int_marker_server_.insert(int_marker,
-			    boost::bind(&PR2SimpleSimulator::gripperMarkerFeedback,
+			    boost::bind(&PR2Simulator::gripperMarkerFeedback,
 					this,
 					_1)
 			    );
@@ -239,120 +186,102 @@ PR2SimpleSimulator::PR2SimpleSimulator()
   is_moving_r_gripper_ = false;
 }
 
-PR2SimpleSimulator::~PR2SimpleSimulator()
+PR2Simulator::~PR2Simulator()
 {
 
 }
 
-void PR2SimpleSimulator::setFrameRate(double rate)
+void PR2Simulator::setFrameRate(double rate)
 {
   frame_rate_ = rate;
 }
 
-double PR2SimpleSimulator::getFrameRate() const
+double PR2Simulator::getFrameRate() const
 {
   return frame_rate_;
 }
 
-void PR2SimpleSimulator::run()
+void PR2Simulator::play()
 {
-  ros::Rate loop(getFrameRate());
-  while(ros::ok())
+  playing_ = true;
+}
+
+void PR2Simulator::pause()
+{
+  playing_ = false;
+
+  // Set all velocity commands to zero.
+  key_vel_cmd_.linear.x = 0;
+  key_vel_cmd_.linear.y = 0;
+  key_vel_cmd_.linear.z = 0;
+
+  end_effector_marker_vel_.linear.x = 0;
+  end_effector_marker_vel_.linear.y = 0;
+  end_effector_marker_vel_.linear.z = 0;
+}
+
+bool PR2Simulator::isPlaying() const
+{
+  return playing_;
+}
+
+void PR2Simulator::run()
+{
+  if(isPlaying())
   {
-    if(playing_)
+    if(!recorder_->isReplaying())
+      moveRobot();
+
+    visualizeRobot();
+
+    updateTransforms();
+
+    updateEndEffectorPose();
+
+    updateEndEffectorMarker();
+
+    if(!recorder_->isReplaying())
+      moveEndEffectors();
+
+    // Record motion.
+    if(recorder_->isRecording())
     {
-      if(!recorder_.isReplaying())
-	moveRobot();
-
-      visualizeRobot();
-
-      updateTransforms();
-
-      updateEndEffectorPose();
-
-      updateEndEffectorMarker();
-
-      if(!recorder_.isReplaying())
-	moveEndEffectors();
-
-      // Record motion.
-      if(recorder_.isRecording())
-      {
-	recorder_.recordBasePose(base_pose_);
-	recorder_.recordJoints(joint_states_);
-      }
+      recorder_->recordBasePose(base_pose_);
+      recorder_->recordJoints(joint_states_);
     }
-
-    // Update and publish the pose of the end-effector marker. Note that it must 
-    // first be transformed into the map frame, as it is in the base footprint frame.
-    visualization_msgs::InteractiveMarker marker;
-    int_marker_server_.get("r_gripper_marker", marker);
-    geometry_msgs::Pose marker_pose = marker.pose;
-
-    tf::Transform base_footprint_in_map(tf::Quaternion(base_pose_.pose.orientation.x,
-						       base_pose_.pose.orientation.y,
-						       base_pose_.pose.orientation.z,
-						       base_pose_.pose.orientation.w),
-					tf::Vector3(base_pose_.pose.position.x,
-						    base_pose_.pose.position.y,
-						    base_pose_.pose.position.z)
-					);
-  
-    tf::Transform marker_in_base(tf::Quaternion(marker_pose.orientation.x,
-						marker_pose.orientation.y,
-						marker_pose.orientation.z,
-						marker_pose.orientation.w),
-				 tf::Vector3(marker_pose.position.x,
-					     marker_pose.position.y,
-					     marker_pose.position.z)
-				 );
-
-    tf::Transform marker_in_map = base_footprint_in_map * marker_in_base;
-
-    geometry_msgs::Pose end_effector_marker_pose;
-    tf::quaternionTFToMsg(marker_in_map.getRotation(), end_effector_marker_pose.orientation);
-    geometry_msgs::Vector3 position;
-    tf::vector3TFToMsg(marker_in_map.getOrigin(), position);
-    end_effector_marker_pose.position.x = position.x;
-    end_effector_marker_pose.position.y = position.y;
-    end_effector_marker_pose.position.z = position.z;
-    end_effector_marker_pose_pub_.publish(end_effector_marker_pose);
 
     showEndEffectorWorkspaceArc();
 
     // Replay motion.
-    if(recorder_.isReplaying() && playing_)
+    if(recorder_->isReplaying() && isPlaying())
     {
-      if(recorder_.getJointsRemaining() == 0 && recorder_.getPosesRemaining() == 0)
+      if(recorder_->getJointsRemaining() == 0 && recorder_->getPosesRemaining() == 0)
       {
-	recorder_.endReplay();
-	marker_pub_.publish(recorder_.getBasePath());
-	ROS_INFO("[PR2SimpleSim] Done replaying.");
+	recorder_->endReplay();
+	marker_pub_.publish(recorder_->getBasePath());
+	ROS_INFO("[PR2Sim] Done replaying.");
       }
 
-      if(recorder_.getJointsRemaining() > 0)
-	joint_states_ = recorder_.getNextJoints();
+      if(recorder_->getJointsRemaining() > 0)
+	joint_states_ = recorder_->getNextJoints();
 
-      if(recorder_.getPosesRemaining() > 0)
+      if(recorder_->getPosesRemaining() > 0)
       {
-	base_pose_ = recorder_.getNextBasePose();
+	base_pose_ = recorder_->getNextBasePose();
 
 	int_marker_server_.setPose("base_marker", base_pose_.pose);
 	int_marker_server_.applyChanges();
       }
     }
-  
-    ros::spinOnce();
-    loop.sleep();
   }
 }
 
-void PR2SimpleSimulator::updateVelocity(const geometry_msgs::Twist &vel)
+void PR2Simulator::updateVelocity(const geometry_msgs::Twist &vel)
 {
   vel_cmd_ = vel;
 }
 
-void PR2SimpleSimulator::moveRobot()
+void PR2Simulator::moveRobot()
 {
   if(base_movement_controller_.getState() == BaseMovementController::DONE ||
      (base_movement_controller_.getState() == BaseMovementController::INITIAL &&
@@ -390,7 +319,7 @@ void PR2SimpleSimulator::moveRobot()
   base_pose_pub_.publish(base_pose_);
 }
 
-void PR2SimpleSimulator::moveEndEffectors()
+void PR2Simulator::moveEndEffectors()
 {
   updateEndEffectorVelocity(end_effector_controller_.moveTo(end_effector_pose_.pose,
 							    end_effector_goal_pose_.pose)
@@ -419,7 +348,7 @@ void PR2SimpleSimulator::moveEndEffectors()
   }
 }
 
-void PR2SimpleSimulator::visualizeRobot()
+void PR2Simulator::visualizeRobot()
 {
   std::vector<double> l_joints_pos(7, 0);
   std::vector<double> r_joints_pos(8, 0);
@@ -447,7 +376,7 @@ void PR2SimpleSimulator::visualizeRobot()
   joint_states_pub_.publish(joint_states_);
 }
 
-void PR2SimpleSimulator::updateEndEffectorPose()
+void PR2Simulator::updateEndEffectorPose()
 {
   std::vector<double> r_arm_joints(7, 0);
   for(int i = 0; i < 7; ++i)
@@ -501,7 +430,7 @@ void PR2SimpleSimulator::updateEndEffectorPose()
   end_effector_pose_pub_.publish(end_effector_pose);
 }
 
-bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
+bool PR2Simulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
 {
   // Attempt to find joint angles for the arm using the arm IK solver.
   std::vector<double> r_arm_joints(7, 0);
@@ -535,7 +464,7 @@ bool PR2SimpleSimulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose
   return true;
 }
 
-void PR2SimpleSimulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
+void PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
 {
   end_effector_goal_pose_.pose = goal_pose;
 
@@ -545,12 +474,12 @@ void PR2SimpleSimulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_
     end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
 }
 
-void PR2SimpleSimulator::updateEndEffectorVelocity(const geometry_msgs::Twist &vel)
+void PR2Simulator::updateEndEffectorVelocity(const geometry_msgs::Twist &vel)
 {
   end_effector_vel_cmd_ = vel;
 }
 
-void PR2SimpleSimulator::baseMarkerFeedback(
+void PR2Simulator::baseMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
 )
 {
@@ -576,7 +505,7 @@ void PR2SimpleSimulator::baseMarkerFeedback(
   }
 }
 
-void PR2SimpleSimulator::gripperMarkerFeedback(
+void PR2Simulator::gripperMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
 )
 {
@@ -599,28 +528,24 @@ void PR2SimpleSimulator::gripperMarkerFeedback(
   }
 }
 
-bool PR2SimpleSimulator::setSpeed(pr2_simple_simulator::SetSpeed::Request  &req,
-				  pr2_simple_simulator::SetSpeed::Response &res)
+void PR2Simulator::setSpeed(double linear, double angular)
 {
-  if(req.linear > 0)
+  if(linear != 0)
   {
-    ROS_INFO("[PR2SimpleSim] Setting linear speed to %f.", req.linear);
-    base_movement_controller_.setLinearSpeed(req.linear);
+    ROS_INFO("[PR2Sim] Setting linear speed to %f.", linear);
+    base_movement_controller_.setLinearSpeed(linear);
   }
 
-  if(req.angular > 0)
+  if(angular != 0)
   {
-    ROS_INFO("[PR2SimpleSim] Setting angular speed to %f.", req.angular);
-    base_movement_controller_.setAngularSpeed(req.angular);
+    ROS_INFO("[PR2Sim] Setting angular speed to %f.", angular);
+    base_movement_controller_.setAngularSpeed(angular);
   }
-
-  return true;
 }
 
-bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
-				    std_srvs::Empty::Response &res)
+void PR2Simulator::resetRobot()
 {
-  ROS_INFO("[PR2SimpleSim] Resetting robot...");
+  ROS_INFO("[PR2Sim] Resetting robot...");
 
   // Reset the base pose.
   base_pose_.pose.position.x = 0;
@@ -664,14 +589,11 @@ bool PR2SimpleSimulator::resetRobot(std_srvs::Empty::Request  &req,
   base_path.action = visualization_msgs::Marker::DELETE;
   base_path.type = visualization_msgs::Marker::LINE_STRIP;
   marker_pub_.publish(base_path);
-
-  return true;
 }
 
-bool PR2SimpleSimulator::setRobotPose(pr2_simple_simulator::SetPose::Request  &req,
-				      pr2_simple_simulator::SetPose::Response &res)
+void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
 {
-  base_pose_ = req.pose;
+  base_pose_.pose = pose;
 
   if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
      base_movement_controller_.getState() == BaseMovementController::DONE)
@@ -679,36 +601,28 @@ bool PR2SimpleSimulator::setRobotPose(pr2_simple_simulator::SetPose::Request  &r
     int_marker_server_.setPose("base_marker", base_pose_.pose);
     int_marker_server_.applyChanges();
   }
-
-  return true;
 }
 
-bool PR2SimpleSimulator::setJointPositions(pr2_simple_simulator::SetJoints::Request  &req,
-					   pr2_simple_simulator::SetJoints::Response &res)
+void PR2Simulator::setJointStates(const sensor_msgs::JointState &joints)
 {
-  ROS_ASSERT(req.name.size() == req.position.size());
+  ROS_ASSERT(joints.name.size() == joints.position.size());
 
-  for(int i = 0; i < req.name.size(); ++i)
+  for(int i = 0; i < joints.name.size(); ++i)
   {
-    if(joints_map_.find(req.name[i]) != joints_map_.end())
+    if(joints_map_.find(joints.name[i]) != joints_map_.end())
     {
-      joint_states_.position[joints_map_[req.name[i]]] = req.position[i];
+      joint_states_.position[joints_map_[joints.name[i]]] = joints.position[i];
     }
     else
-      ROS_ERROR("[PR2SimpleSim] Failed to find index for joint \"%s\"!", req.name[i].c_str());
+      ROS_ERROR("[PR2Sim] Failed to find index for joint \"%s\"!", joints.name[i].c_str());
   }
-
-  return true;
 }
 
-bool PR2SimpleSimulator::setRobotBaseCommand(pr2_simple_simulator::SetPose::Request  &req,
-					     pr2_simple_simulator::SetPose::Response &res)
+void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
 {
-  ROS_INFO("[PR2SimpleSim] Setting robot to yaw %f.", tf::getYaw(req.pose.pose.orientation));
+  goal_pose_.pose = command;
 
-  goal_pose_ = req.pose;
-
-  int_marker_server_.setPose("base_marker", req.pose.pose);
+  int_marker_server_.setPose("base_marker", command);
   int_marker_server_.applyChanges();
 
   if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
@@ -716,179 +630,111 @@ bool PR2SimpleSimulator::setRobotBaseCommand(pr2_simple_simulator::SetPose::Requ
   {
     base_movement_controller_.setState(BaseMovementController::READY);
   }
-
-  return true;
 }
 
-bool PR2SimpleSimulator::beginRecording(pr2_simple_simulator::FilePath::Request  &req,
-					pr2_simple_simulator::FilePath::Response &res)
+void PR2Simulator::processKeyEvent(int key, int type)
 {
-  recorder_.beginRecording(req.file_path);
-
-  return true;
-}
-
-bool PR2SimpleSimulator::endRecording(std_srvs::Empty::Request  &,
-				      std_srvs::Empty::Response &)
-{
-  recorder_.endRecording();
-
-  return true;
-}
-
-bool PR2SimpleSimulator::beginReplay(pr2_simple_simulator::FilePath::Request  &req,
-				     pr2_simple_simulator::FilePath::Response &res)
-{
-  std_srvs::Empty empty;
-  if(!resetRobot(empty.request, empty.response))
-    return false;
-
-  recorder_.beginReplay(req.file_path);
-
-  return true;
-}
-
-bool PR2SimpleSimulator::endReplay(std_srvs::Empty::Request  &,
-				   std_srvs::Empty::Response &)
-{
-  recorder_.endReplay();
-
-  return true;
-}
-
-bool PR2SimpleSimulator::play(std_srvs::Empty::Request  &,
-			      std_srvs::Empty::Response &)
-{
-  ROS_INFO("[PR2SimpleSim] Playing.");
-
-  playing_ = true;
-
-  return true;
-}
-
-bool PR2SimpleSimulator::pause(std_srvs::Empty::Request  &,
-			       std_srvs::Empty::Response &)
-{
-  ROS_INFO("[PR2SimpleSim] Paused.");
-
-  playing_ = false;
-
-  // Set all velocity commands to zero.
-  key_vel_cmd_.linear.x = 0;
-  key_vel_cmd_.linear.y = 0;
-  key_vel_cmd_.linear.z = 0;
-
-  end_effector_marker_vel_.linear.x = 0;
-  end_effector_marker_vel_.linear.y = 0;
-  end_effector_marker_vel_.linear.z = 0;
-
-  return true;
-}
-
-bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request  &req,
-					 pr2_simple_simulator::KeyEvent::Response &res)
-{
-  if(req.type == pr2_simple_simulator::KeyEvent::Request::KEY_PRESS)
+  if(type == QEvent::KeyPress)
   {
-    switch(req.key)
+    switch(key)
     {
-    case pr2_simple_simulator::KeyEvent::Request::KEY_Z:
+    case Qt::Key_Z:
       {
-	// Change the marker to only move in the +/- z-directions.
-	visualization_msgs::InteractiveMarker gripper_marker;
-	int_marker_server_.get("r_gripper_marker", gripper_marker);
+  	// Change the marker to only move in the +/- z-directions.
+  	visualization_msgs::InteractiveMarker gripper_marker;
+  	int_marker_server_.get("r_gripper_marker", gripper_marker);
 
-	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
-	   end_effector_controller_.getState() == EndEffectorController::DONE)
-	{
-	  gripper_marker.pose = end_effector_pose_.pose;
-	}
-	else
-	{
-	  gripper_marker.pose = end_effector_goal_pose_.pose;
-	}
+  	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+  	   end_effector_controller_.getState() == EndEffectorController::DONE)
+  	{
+  	  gripper_marker.pose = end_effector_pose_.pose;
+  	}
+  	else
+  	{
+  	  gripper_marker.pose = end_effector_goal_pose_.pose;
+  	}
 
-	gripper_marker.controls.at(0).interaction_mode = 
-	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+  	gripper_marker.controls.at(0).interaction_mode = 
+  	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
 
-	int_marker_server_.insert(gripper_marker);
-	int_marker_server_.applyChanges();
+  	int_marker_server_.insert(gripper_marker);
+  	int_marker_server_.applyChanges();
 
-	break;
+  	break;
       }
-    case pr2_simple_simulator::KeyEvent::Request::KEY_R:
+    case Qt::Key_R:
       {
-	// Reset the interactive marker on the gripper to the actual position
-	// of the gripper.
-	updateEndEffectorPose();
+  	// Reset the interactive marker on the gripper to the actual position
+  	// of the gripper.
+  	updateEndEffectorPose();
 
-	int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
-	int_marker_server_.applyChanges();
+  	int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
+  	int_marker_server_.applyChanges();
 
-	end_effector_goal_pose_ = end_effector_pose_;
+  	end_effector_goal_pose_ = end_effector_pose_;
 
-	end_effector_controller_.setState(EndEffectorController::DONE);
+  	end_effector_controller_.setState(EndEffectorController::DONE);
 
-	updateEndEffectorMarker();
+  	updateEndEffectorMarker();
 
-	ROS_INFO("[PR2SimpleSim] Resetting the end-effector marker pose.");
+  	ROS_INFO("[PR2SimpleSim] Resetting the end-effector marker pose.");
 
-	break;
+  	break;
       }
-    case pr2_simple_simulator::KeyEvent::Request::KEY_W:
+    case Qt::Key_W:
       key_vel_cmd_.linear.x = 0.2;
       break;
-    case pr2_simple_simulator::KeyEvent::Request::KEY_A:
+    case Qt::Key_A:
       key_vel_cmd_.linear.y = 0.2;
       break;
-    case pr2_simple_simulator::KeyEvent::Request::KEY_S:
+    case Qt::Key_S:
       key_vel_cmd_.linear.x = -0.2;
       break;
-    case pr2_simple_simulator::KeyEvent::Request::KEY_D:
+    case Qt::Key_D:
       key_vel_cmd_.linear.y = -0.2;
       break;
     default:
       break;
     }
   }
-  else if(req.type == pr2_simple_simulator::KeyEvent::Request::KEY_RELEASE)
+  else if(type == QEvent::KeyRelease)
   {
-    switch(req.key)
+    switch(key)
     {
-    case pr2_simple_simulator::KeyEvent::Request::KEY_Z:
+    case Qt::Key_Z:
       {
-	// Change the marker back to moving in the xy-plane.
-	visualization_msgs::InteractiveMarker gripper_marker;
-	int_marker_server_.get("r_gripper_marker", gripper_marker);
+  	// Change the marker back to moving in the xy-plane.
+  	visualization_msgs::InteractiveMarker gripper_marker;
+  	int_marker_server_.get("r_gripper_marker", gripper_marker);
 
-	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
-	   end_effector_controller_.getState() == EndEffectorController::DONE)
-	{
-	  gripper_marker.pose = end_effector_pose_.pose;
-	}
-	else
-	{
-	  gripper_marker.pose = end_effector_goal_pose_.pose;
-	}
+  	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+  	   end_effector_controller_.getState() == EndEffectorController::DONE)
+  	{
+  	  gripper_marker.pose = end_effector_pose_.pose;
+  	}
+  	else
+  	{
+  	  gripper_marker.pose = end_effector_goal_pose_.pose;
+  	}
 
-	gripper_marker.controls.at(0).interaction_mode = 
-	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+  	gripper_marker.controls.at(0).interaction_mode = 
+  	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
 
-	int_marker_server_.insert(gripper_marker);
-	int_marker_server_.applyChanges();
+  	int_marker_server_.insert(gripper_marker);
+  	int_marker_server_.applyChanges();
 
-	break;
+  	break;
       }
-    case pr2_simple_simulator::KeyEvent::Request::KEY_W:
+    case Qt::Key_W:
       key_vel_cmd_.linear.x = 0;
       break;
-    case pr2_simple_simulator::KeyEvent::Request::KEY_A:
+    case Qt::Key_A:
       key_vel_cmd_.linear.y = 0;
       break;
-    case pr2_simple_simulator::KeyEvent::Request::KEY_S:
+    case Qt::Key_S:
       key_vel_cmd_.linear.x = 0;
       break;
-    case pr2_simple_simulator::KeyEvent::Request::KEY_D:
+    case Qt::Key_D:
       key_vel_cmd_.linear.y = 0;
       break;
     default:
@@ -896,31 +742,46 @@ bool PR2SimpleSimulator::processKeyEvent(pr2_simple_simulator::KeyEvent::Request
     }
   }
   else
-    ROS_ERROR("[PR2SimpleSim] Invalid key event type!");
-
-  return true;
+    ROS_ERROR("[PR2Sim] Invalid key event type!");
 }
 
-bool PR2SimpleSimulator::showBasePath(pr2_simple_simulator::FilePath::Request  &req,
-				      pr2_simple_simulator::FilePath::Response &res)
+void PR2Simulator::updateEndEffectorMarker()
 {
-  visualization_msgs::Marker base_path_marker;
-  if(req.file_path.empty())
-  {
-    base_path_marker = recorder_.getBasePath();
-  }
-  else
-  {
-    base_path_marker = recorder_.getBasePath(req.file_path);
-  }
+  // Update and publish the pose of the end-effector marker. Note that it must 
+  // first be transformed into the map frame, as it is in the base footprint frame.
+  visualization_msgs::InteractiveMarker marker;
+  int_marker_server_.get("r_gripper_marker", marker);
+  geometry_msgs::Pose marker_pose = marker.pose;
 
-  marker_pub_.publish(base_path_marker);
+  tf::Transform base_footprint_in_map(tf::Quaternion(base_pose_.pose.orientation.x,
+						     base_pose_.pose.orientation.y,
+						     base_pose_.pose.orientation.z,
+						     base_pose_.pose.orientation.w),
+				      tf::Vector3(base_pose_.pose.position.x,
+						  base_pose_.pose.position.y,
+						  base_pose_.pose.position.z)
+				      );
+  
+  tf::Transform marker_in_base(tf::Quaternion(marker_pose.orientation.x,
+					      marker_pose.orientation.y,
+					      marker_pose.orientation.z,
+					      marker_pose.orientation.w),
+			       tf::Vector3(marker_pose.position.x,
+					   marker_pose.position.y,
+					   marker_pose.position.z)
+			       );
 
-  return true;
-}
+  tf::Transform marker_in_map = base_footprint_in_map * marker_in_base;
 
-void PR2SimpleSimulator::updateEndEffectorMarker()
-{
+  geometry_msgs::Pose end_effector_marker_pose;
+  tf::quaternionTFToMsg(marker_in_map.getRotation(), end_effector_marker_pose.orientation);
+  geometry_msgs::Vector3 position;
+  tf::vector3TFToMsg(marker_in_map.getOrigin(), position);
+  end_effector_marker_pose.position.x = position.x;
+  end_effector_marker_pose.position.y = position.y;
+  end_effector_marker_pose.position.z = position.z;
+  end_effector_marker_pose_pub_.publish(end_effector_marker_pose);
+
   // If the gripper marker is at an invalid pose, it should turn red.
   if(end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL &&
      end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
@@ -949,7 +810,7 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
 
   if(!is_moving_r_gripper_ 
      && end_effector_controller_.getState() == EndEffectorController::DONE
-     || recorder_.isReplaying())
+     || recorder_->isReplaying())
   {
     int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_.applyChanges();
@@ -962,7 +823,7 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
     return;
 
   // Get the current pose of the end-effector interactive marker.
-  visualization_msgs::InteractiveMarker marker;
+  //visualization_msgs::InteractiveMarker marker;
   int_marker_server_.get("r_gripper_marker", marker);
   geometry_msgs::Pose pose = marker.pose;
 
@@ -981,12 +842,12 @@ void PR2SimpleSimulator::updateEndEffectorMarker()
 }
 
 
-void PR2SimpleSimulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
+void PR2Simulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
 {
   end_effector_marker_vel_ = vel;
 }
 
-void PR2SimpleSimulator::updateTransforms()
+void PR2Simulator::updateTransforms()
 {
   // Broadcast the coordinate frame of the base footprint.
   tf::Transform transform;
@@ -1016,7 +877,7 @@ void PR2SimpleSimulator::updateTransforms()
   kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), "base_footprint");
 }
 
-bool PR2SimpleSimulator::isBaseMoving() const
+bool PR2Simulator::isBaseMoving() const
 {
   if((base_movement_controller_.getState() == BaseMovementController::DONE ||
      base_movement_controller_.getState() == BaseMovementController::INITIAL) &&
@@ -1027,7 +888,7 @@ bool PR2SimpleSimulator::isBaseMoving() const
   return true;
 }
 
-bool PR2SimpleSimulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
+bool PR2Simulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
 {
   // Attempt to compute IK for the arm given a goal pose and the current 
   // configuration.
@@ -1057,7 +918,7 @@ bool PR2SimpleSimulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
   return true;
 }
 
-void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
+void PR2Simulator::showEndEffectorWorkspaceArc()
 {
   visualization_msgs::Marker arc;
 
@@ -1095,4 +956,4 @@ void PR2SimpleSimulator::showEndEffectorWorkspaceArc()
   marker_pub_.publish(arc);
 }
 
-} // namespace pr2_simple_simulator
+} // namespace demonstration_visualizer
