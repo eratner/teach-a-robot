@@ -78,8 +78,11 @@ void DemonstrationSceneManager::updateScene()
 
 	int_marker_server_.erase(marker_name.str());
 
+	ROS_INFO_STREAM("current goal = " << current_goal_);
 	if(it->id != current_goal_)
 	  it->action = visualization_msgs::Marker::DELETE;
+	else
+	  it->action = visualization_msgs::Marker::ADD;
 
 	marker_pub_.publish(*it);
       }

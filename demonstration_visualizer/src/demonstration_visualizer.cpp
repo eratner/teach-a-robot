@@ -1000,6 +1000,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   else
   {
     text << " Next goal:\n" << node_.getSceneManager()->getGoalDescription(goal_number+1);
+    node_.getSceneManager()->setCurrentGoal(node_.getSceneManager()->getCurrentGoal()+1);
   }
   
   box.setText(QString(text.str().c_str()));
