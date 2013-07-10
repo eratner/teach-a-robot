@@ -209,6 +209,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QVBoxLayout *user_controls_layout = new QVBoxLayout();
   z_mode_button_ = new QPushButton("Enable Z-Mode");
   user_controls_layout->addWidget(z_mode_button_);
+  accept_pregrasp_button_ = new QPushButton("Accept Pre-Grasp");
+  user_controls_layout->addWidget(accept_pregrasp_button_);
+  accept_pregrasp_button_->setEnabled(false);
 
   QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
   QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
@@ -291,12 +294,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   ROS_ASSERT(robot_model_ != NULL);
   robot_model_->subProp("Marker Topic")->setValue("/visualization_marker_array");
   
-  // Create an interactive markers display for controlling the robot. 
+  // Create an interactive markers display.
   robot_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers", 
-								     "PR2 Interactive Markers", 
+								     "DViz Interactive Markers", 
 								     true);
   ROS_ASSERT(robot_interactive_markers_ != NULL);
-  robot_interactive_markers_->subProp("Update Topic")->setValue("/simple_sim_marker/update");
+  robot_interactive_markers_->subProp("Update Topic")->setValue("/dviz_interactive_markers/update");
 
   // Create a visualization markers display for scenes of demonstration environments.
   visualization_marker_ = visualization_manager_->createDisplay("rviz/Marker", "Scene", true);
@@ -304,11 +307,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   ROS_ASSERT(visualization_marker_ != NULL);
 
   // Create an interactive markers display for moving meshes and goals within a scene.
-  scene_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
-  								     "Scene Interactive Markers",
-  								     true);
-  ROS_ASSERT(scene_interactive_markers_ != NULL);
-  scene_interactive_markers_->subProp("Update Topic")->setValue("/scene_marker/update");
+  // scene_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
+  // 								     "Scene Interactive Markers",
+  // 								     true);
+  // ROS_ASSERT(scene_interactive_markers_ != NULL);
+  // scene_interactive_markers_->subProp("Update Topic")->setValue("/scene_marker/update");
 
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
@@ -361,6 +364,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
 
   connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
+  connect(accept_pregrasp_button_, SIGNAL(clicked()), this, SLOT(endPregraspSelection()));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -813,11 +817,11 @@ void DemonstrationVisualizer::loadTask()
       // Load the task into the demonstration scene manager.
       node_.getSceneManager()->loadTask(filename.toStdString());
       goals_list_->clear();
-      std::vector<visualization_msgs::Marker> goals = node_.getSceneManager()->getGoals();
-      for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
+      std::vector<Goal *> goals = node_.getSceneManager()->getGoals();
+      for(int i = 0; i < goals.size(); ++i)
       {
 	std::stringstream goal_desc;
-	goal_desc << "Goal " << i+1 << ": " << node_.getSceneManager()->getGoalDescription(i);
+	goal_desc << "Goal " << i+1 << ": " << goals[i]->getDescription();
 	goals_list_->addItem(QString(goal_desc.str().c_str()));
       }
       
@@ -1034,7 +1038,21 @@ void DemonstrationVisualizer::startBasicMode()
   // Reset the task.
   resetTask();
 
+  // Give the user basic instructions.
+  QMessageBox instructions_box;
+
+  instructions_box.setText("<b>Instructions:</b> For each goal in the given task:"
+			   "<ul>"
+			   "<li>Place the gripper so that it may grasp the object.</li>"
+			   "<li>Press <b>Accept Pre-Grasp</b>.</li>"
+			   "<li>Move the base and gripper to that grasp.</li>"
+			   "</ul>");
+
+  instructions_box.exec();
+
   playSimulator();
+
+  beginPregraspSelection();
 
   setEditGoalsMode(Qt::Unchecked);
 
@@ -1080,8 +1098,7 @@ void DemonstrationVisualizer::endBasicMode()
   node_.getMotionRecorder()->endRecording();
 
   // Show the base path at the end.
-  // @todo fix this!.
-  //node_.showBasePath();
+  node_.showBasePath();
 
   ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %s.",
 	   user_demo_.goals_completed_, time_str.c_str());
@@ -1108,7 +1125,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != ORBIT)
       {
 	camera_buttons_[ORBIT]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
 	ROS_INFO("[DViz] Switching to rviz/Orbit view.");
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
@@ -1130,7 +1148,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != FPS)
       {
 	camera_buttons_[FPS]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
 	ROS_INFO("[DViz] Switching to rviz/FPS view.");
 	view_manager->setCurrentViewControllerType("rviz/FPS");
@@ -1209,7 +1228,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != TOP_DOWN)
       {
 	camera_buttons_[TOP_DOWN]->setEnabled(false);
-	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
 	ROS_INFO("[DViz] Switching to rviz/Orbit top-down view.");
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
@@ -1231,7 +1251,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(previous_camera_mode_ != AUTO)
       {
         camera_buttons_[AUTO]->setEnabled(false);
-        camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
         ROS_INFO("[DViz] Switching to automatic camera control.");
         view_manager->setCurrentViewControllerType("rviz/Orbit");
@@ -1319,6 +1340,25 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       else{
         ROS_ERROR("auto camera is in a bad state");
       }
+
+      break;
+    }
+  case GOAL:
+    {
+      if(previous_camera_mode_ != GOAL)
+      {
+        camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	
+	// Set the focal point of the camera to be the goal.
+        ROS_INFO("[DViz] Switching to goal camera mode.");
+        view_manager->setCurrentViewControllerType("rviz/Orbit");
+        view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+        view_manager->getCurrent()->subProp("Distance")->setValue(1.5);
+      }
+
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(B.position.x);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(B.position.y);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(B.position.z);
 
       break;
     }
@@ -1415,6 +1455,41 @@ void DemonstrationVisualizer::setGripperPosition(int position)
   joints.position.push_back(p);
 
   node_.setJointStates(joints);
+}
+
+void DemonstrationVisualizer::beginPregraspSelection()
+{
+  accept_pregrasp_button_->setEnabled(true);
+  camera_before_pregrasp_ = camera_mode_;
+  changeCameraMode(GOAL);
+  node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
+}
+
+void DemonstrationVisualizer::endPregraspSelection()
+{
+  switch(QMessageBox::warning(this,
+			      "Accept this pre-grasp?",
+			      "Are you sure this is the grasp you want? If not, press no to continue!",
+			      QMessageBox::Yes, QMessageBox::No))
+  {
+  case QMessageBox::Yes:
+    {
+      int current_goal = node_.getSceneManager()->getCurrentGoal();
+      std::stringstream s; 
+      s << "pregrasp_marker_goal_" << current_goal;
+      node_.getInteractiveMarkerServer()->erase(s.str());
+      node_.getInteractiveMarkerServer()->applyChanges();
+      changeCameraMode(camera_before_pregrasp_);
+      accept_pregrasp_button_->setEnabled(false);
+
+      break;
+    }
+  case QMessageBox::No:
+    break;
+  default:
+    ROS_ERROR("[DViz] An error has occured in the pregrasp selection!");
+    break;
+  }
 }
 
 } // namespace demonstration_visualizer

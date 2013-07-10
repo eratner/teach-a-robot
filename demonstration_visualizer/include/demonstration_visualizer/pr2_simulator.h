@@ -31,7 +31,9 @@ namespace demonstration_visualizer {
 class PR2Simulator
 {
 public:
-  PR2Simulator(MotionRecorder *recorder);
+  PR2Simulator(MotionRecorder *recorder, 
+	       PViz *pviz, 
+	       interactive_markers::InteractiveMarkerServer *int_marker_server);
 
   ~PR2Simulator();
 
@@ -123,6 +125,12 @@ public:
 
   void showEndEffectorWorkspaceArc();
 
+  geometry_msgs::Pose getBasePose() const;
+
+  geometry_msgs::Pose getEndEffectorPose();
+
+  geometry_msgs::Pose getEndEffectorMarkerPose();
+
 private:
   bool playing_;
 
@@ -130,8 +138,8 @@ private:
 
   double frame_rate_;
 
-  PViz pviz_;
-  interactive_markers::InteractiveMarkerServer int_marker_server_;
+  PViz *pviz_;
+  interactive_markers::InteractiveMarkerServer *int_marker_server_;
   BaseMovementController base_movement_controller_;
   EndEffectorController end_effector_controller_;
 
@@ -141,10 +149,6 @@ private:
   ros::Subscriber end_effector_vel_cmd_sub_;
   ros::Subscriber end_effector_marker_vel_sub_;
   
-  ros::Publisher base_pose_pub_;
-  ros::Publisher joint_states_pub_;
-  ros::Publisher end_effector_pose_pub_;
-  ros::Publisher end_effector_marker_pose_pub_;
   ros::Publisher marker_pub_;
 
   geometry_msgs::Twist vel_cmd_;

@@ -30,6 +30,7 @@ rosbuild_add_executable(dviz
   src/motion_recorder.cpp
   src/robot_model.cpp
   src/kdl_robot_model.cpp
+  src/goal.cpp
   ${RCC_FILES}
   ${MOC_FILES}
 )

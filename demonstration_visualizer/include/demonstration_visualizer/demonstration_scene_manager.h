@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <demonstration_visualizer/visualization_helpers.h>
+#include <demonstration_visualizer/goal.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
 #include <tinyxml.h>
@@ -26,7 +27,9 @@ namespace demonstration_visualizer {
 class DemonstrationSceneManager
 {
 public:
-  DemonstrationSceneManager();
+  static const std::string GOAL_MARKER_NAMESPACE;
+
+  DemonstrationSceneManager(interactive_markers::InteractiveMarkerServer *int_marker_server);
 
   ~DemonstrationSceneManager();
 
@@ -66,11 +69,12 @@ public:
   // Adds an additional goal to the current task, at the end. 
   void addGoal(const geometry_msgs::Pose &pose = geometry_msgs::Pose(), 
 	       const std::string &desc = "",
-	       const std::string &frame = "/map");
+	       const std::string &frame = "/map",
+	       Goal::GoalType type = Goal::PICK_UP);
 
   bool moveGoal(int goal_number, const geometry_msgs::Pose &pose);
 
-  visualization_msgs::Marker getGoal(int goal_number);
+  Goal *getGoal(int goal_number);
 
   /**
    * @brief Determines whether the given position is at the position of the given goal, 
@@ -80,7 +84,7 @@ public:
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 
-  std::vector<visualization_msgs::Marker> getGoals() const;
+  std::vector<Goal *> getGoals() const;
 
   int getNumGoals() const;
 
@@ -91,6 +95,12 @@ public:
   void setGoalDescription(int goal_number, const std::string &desc);
 
   std::string getGoalDescription(int goal_number) const;
+
+  bool setPregraspPose(int goal_number, const geometry_msgs::Pose &pregrasp);
+
+  geometry_msgs::Pose getPregraspPose(int goal_number);
+
+  geometry_msgs::Pose getCurrentGoalPose();
 
   int getCurrentGoal() const;
 
@@ -129,11 +139,14 @@ private:
 
   void processMeshFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  std::vector<visualization_msgs::Marker> meshes_;
-  std::vector<visualization_msgs::Marker> goals_;
-  std::vector<std::string> goal_descriptions_;
+  void drawGoal(Goal *goal, bool attach_interactive_marker = false);
 
-  interactive_markers::InteractiveMarkerServer int_marker_server_;
+  void hideGoal(Goal *goal);
+
+  std::vector<visualization_msgs::Marker> meshes_;
+  std::vector<Goal *> goals_;
+
+  interactive_markers::InteractiveMarkerServer *int_marker_server_;
   interactive_markers::InteractiveMarkerServer::FeedbackCallback goal_feedback_;
   interactive_markers::InteractiveMarkerServer::FeedbackCallback mesh_feedback_;
 

@@ -37,7 +37,7 @@ public:
 
   bool init(int argc, char **argv);
 
-  std::string getGlobalFrame() const;
+  std::string getWorldFrame() const;
 
   void pauseSimulator();
   
@@ -52,22 +52,31 @@ public:
   DemonstrationSceneManager *getSceneManager();
 
   MotionRecorder *getMotionRecorder();
-  
-  void updateEndEffectorPose(const geometry_msgs::PoseStamped &pose);
 
+  interactive_markers::InteractiveMarkerServer *getInteractiveMarkerServer();
+  
   void processKeyEvent(int key, int type);
-
-  void updateBasePose(const geometry_msgs::PoseStamped &);
   
-  geometry_msgs::Pose getBasePose() const;
+  /**
+   * Note that all poses are given in the world frame.
+   */
+  geometry_msgs::Pose getBasePose();
+
+  geometry_msgs::Pose getEndEffectorPose();
+
+  geometry_msgs::Pose getEndEffectorMarkerPose();
 
   void sendBaseCommand(const geometry_msgs::Pose &);
 
   void sendBaseVelocityCommand(const geometry_msgs::Twist &);
 
-  void updateEndEffectorMarkerPose(const geometry_msgs::Pose &);
-
   void setJointStates(const sensor_msgs::JointState &);
+
+  void showBasePath(const std::string &filename = "");
+
+  void showInteractiveGripper(int goal_number);
+
+  void pregraspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 Q_SIGNALS:
   void rosShutdown();
@@ -75,37 +84,20 @@ Q_SIGNALS:
   void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
 private:
-  void runSimulator();
-
   DemonstrationSceneManager *demonstration_scene_manager_;
   MotionRecorder *recorder_;
+  PViz *pviz_;
   PR2Simulator *simulator_;
 
-  geometry_msgs::Pose end_effector_pose_;
-  geometry_msgs::Pose base_pose_;
-  geometry_msgs::Pose end_effector_marker_pose_;
+  ros::Publisher marker_pub_;
 
-  std::string global_frame_;
-
-  ros::ServiceClient pause_simulator_client_;
-  ros::ServiceClient play_simulator_client_;
-
-  ros::ServiceClient set_joints_client_;
-
-  ros::ServiceClient reset_robot_client_;
-  ros::ServiceClient set_robot_speed_client_;
-
-  ros::ServiceClient key_event_client_;
-
-  ros::ServiceClient set_base_command_client_;
+  std::string world_frame_;
 
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher end_effector_marker_vel_pub_;
   ros::Publisher base_vel_cmd_pub_;
 
-  ros::Subscriber end_effector_pose_sub_;
-  ros::Subscriber base_pose_sub_;
-  ros::Subscriber end_effector_marker_pose_sub_;
+  interactive_markers::InteractiveMarkerServer *int_marker_server_;
 
 };
 
