@@ -1,0 +1,12 @@
+<task>
+    <goal number="0" type="0" ns="demonstration_visualizer_goal" desc="Next to the sink." position_x="1.96147" position_y="-0.977929" position_z="1.17268" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="1" type="0" ns="demonstration_visualizer_goal" desc="Next to the small car." position_x="0.517735" position_y="0.712249" position_z="1.15564" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="2" type="0" ns="demonstration_visualizer_goal" desc="On the desk." position_x="-2.0703" position_y="2.93248" position_z="0.811934" orientation_x="-1.81607e-08" orientation_y="-1.06216e-12" orientation_z="0.304752" orientation_w="0.952432" />
+    <goal number="3" type="0" ns="demonstration_visualizer_goal" desc="Between the kitchen and the desk." position_x="-0.590385" position_y="2.8799" position_z="0.514192" orientation_x="1.18872e-08" orientation_y="-1.27402e-10" orientation_z="-0.202956" orientation_w="0.979188" />
+    <goal number="4" type="0" ns="demonstration_visualizer_goal" desc="Behind the sofa." position_x="-3.04661" position_y="-2.2394" position_z="0.989308" orientation_x="-2.57874e-08" orientation_y="-1.33428e-08" orientation_z="0.335732" orientation_w="0.941957" />
+    <goal number="5" type="0" ns="demonstration_visualizer_goal" desc="In front of the oven." position_x="0.335121" position_y="-1.10385" position_z="0.973714" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="6" type="0" ns="demonstration_visualizer_goal" desc="On the top shelf." position_x="-5.19892" position_y="0.308032" position_z="1.18944" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="7" type="0" ns="demonstration_visualizer_goal" desc="At the edge of the desk" position_x="-3.08074" position_y="2.14189" position_z="0.655953" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="8" type="0" ns="demonstration_visualizer_goal" desc="On the middle shelf." position_x="-5.16989" position_y="0.601006" position_z="0.768374" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="9" type="0" ns="demonstration_visualizer_goal" desc="In front of the door." position_x="-4.68309" position_y="-2.2604" position_z="0.83231" orientation_x="-2.62014e-08" orientation_y="-7.98975e-09" orientation_z="0.35926" orientation_w="0.933238" />
+</task>
