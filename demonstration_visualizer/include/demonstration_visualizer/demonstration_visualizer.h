@@ -186,6 +186,10 @@ private slots:
   void setFPSZOffset(int);
 
   void setGripperPosition(int);
+
+  // For controlling the pregrasp selection mode.
+  void beginPregraspSelection();
+  void endPregraspSelection();
   
 private:
   DemonstrationVisualizerNode node_;
@@ -216,11 +220,13 @@ private:
   QPushButton                *start_button_;
   QPushButton                *end_button_;
   QPushButton                *z_mode_button_;
+  QPushButton                *accept_pregrasp_button_;
 
   std::vector<QPushButton *> camera_buttons_;
 
   CameraMode                 camera_mode_;
   CameraMode                 previous_camera_mode_;
+  CameraMode                 camera_before_pregrasp_;
 
   std::string                auto_camera_state_;
   double                     auto_camera_cached_yaw_;

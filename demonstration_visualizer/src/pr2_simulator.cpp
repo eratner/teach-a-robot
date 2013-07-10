@@ -2,11 +2,13 @@
 
 namespace demonstration_visualizer {
 
-PR2Simulator::PR2Simulator(MotionRecorder *recorder)
+PR2Simulator::PR2Simulator(MotionRecorder *recorder, 
+			   PViz *pviz,
+			   interactive_markers::InteractiveMarkerServer *int_marker_server)
   : playing_(true), 
     frame_rate_(10.0), 
-    pviz_(), 
-    int_marker_server_("simple_sim_marker"), 
+    pviz_(pviz), 
+    int_marker_server_(int_marker_server), 
     base_movement_controller_(),
     end_effector_controller_(),
     recorder_(recorder)
@@ -124,12 +126,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder)
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
   int_marker.controls.push_back(control);
 
-  int_marker_server_.insert(int_marker,
-			    boost::bind(&PR2Simulator::baseMarkerFeedback,
-					this,
-					_1)
-			    );
-  int_marker_server_.applyChanges();
+  int_marker_server_->insert(int_marker,
+			     boost::bind(&PR2Simulator::baseMarkerFeedback,
+					 this,
+					 _1)
+			     );
+  int_marker_server_->applyChanges();
 
   // Attach an interactive marker to the end effectors of the robot.
   visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
@@ -158,12 +160,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder)
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
   
-  int_marker_server_.insert(int_marker,
-			    boost::bind(&PR2Simulator::gripperMarkerFeedback,
-					this,
-					_1)
-			    );
-  int_marker_server_.applyChanges();
+  int_marker_server_->insert(int_marker,
+			     boost::bind(&PR2Simulator::gripperMarkerFeedback,
+					 this,
+					 _1)
+			     );
+  int_marker_server_->applyChanges();
 
   std::string robot_description;
   std::string robot_param = "";
@@ -265,8 +267,8 @@ void PR2Simulator::run()
       {
 	base_pose_ = recorder_->getNextBasePose();
 
-	int_marker_server_.setPose("base_marker", base_pose_.pose);
-	int_marker_server_.applyChanges();
+	int_marker_server_->setPose("base_marker", base_pose_.pose);
+	int_marker_server_->applyChanges();
       }
     }
   }
@@ -284,8 +286,8 @@ void PR2Simulator::moveRobot()
       isBaseMoving() == true)
      )
   {
-    int_marker_server_.setPose("base_marker", base_pose_.pose);
-    int_marker_server_.applyChanges();
+    int_marker_server_->setPose("base_marker", base_pose_.pose);
+    int_marker_server_->applyChanges();
     base_movement_controller_.setState(BaseMovementController::INITIAL);
     //return;
   }
@@ -321,8 +323,8 @@ void PR2Simulator::moveEndEffectors()
 
   if(isBaseMoving() && end_effector_controller_.getState() == EndEffectorController::INITIAL)
   {
-    int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
-    int_marker_server_.applyChanges();
+    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_->applyChanges();
     return;
   }
 
@@ -358,13 +360,13 @@ void PR2Simulator::visualizeRobot()
   body_pos[1] = base_pose_.pose.position.y;
   body_pos[2] = tf::getYaw(base_pose_.pose.orientation);
 
-  pviz_.visualizeRobot(r_joints_pos, l_joints_pos, body_pos, 0, 0.3, "simple_sim", 0, true);
+  pviz_->visualizeRobot(r_joints_pos, l_joints_pos, body_pos, 0, 0.3, "simple_sim", 0, true);
 
   BodyPose body;
   body.x = body_pos[0];
   body.y = body_pos[1];
   body.theta = body_pos[2];
-  robot_markers_ = pviz_.getRobotMarkerMsg(r_joints_pos, l_joints_pos, body, 0.3, "simple_sim", 0);
+  robot_markers_ = pviz_->getRobotMarkerMsg(r_joints_pos, l_joints_pos, body, 0.3, "simple_sim", 0);
 }
 
 void PR2Simulator::updateEndEffectorPose()
@@ -518,8 +520,8 @@ void PR2Simulator::resetRobot()
   goal_pose_ = base_pose_;
   
   // Reset the base pose interactive marker.
-  int_marker_server_.setPose("base_marker", base_pose_.pose);
-  int_marker_server_.applyChanges();
+  int_marker_server_->setPose("base_marker", base_pose_.pose);
+  int_marker_server_->applyChanges();
 
   // Reset the joints. (Leave the left arm joints as they were.)
   for(int i = 7; i < joint_states_.position.size(); ++i)
@@ -536,8 +538,8 @@ void PR2Simulator::resetRobot()
   end_effector_controller_.setState(EndEffectorController::INITIAL);
 
   // Reset the pose of the end-effector.
-  int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
-  int_marker_server_.applyChanges();
+  int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+  int_marker_server_->applyChanges();
 
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
@@ -556,8 +558,8 @@ void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
   if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
      base_movement_controller_.getState() == BaseMovementController::DONE)
   {
-    int_marker_server_.setPose("base_marker", base_pose_.pose);
-    int_marker_server_.applyChanges();
+    int_marker_server_->setPose("base_marker", base_pose_.pose);
+    int_marker_server_->applyChanges();
   }
 }
 
@@ -580,8 +582,8 @@ void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
 {
   goal_pose_.pose = command;
 
-  int_marker_server_.setPose("base_marker", command);
-  int_marker_server_.applyChanges();
+  int_marker_server_->setPose("base_marker", command);
+  int_marker_server_->applyChanges();
 
   if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
      base_movement_controller_.getState() == BaseMovementController::DONE)
@@ -600,7 +602,7 @@ void PR2Simulator::processKeyEvent(int key, int type)
       {
   	// Change the marker to only move in the +/- z-directions.
   	visualization_msgs::InteractiveMarker gripper_marker;
-  	int_marker_server_.get("r_gripper_marker", gripper_marker);
+  	int_marker_server_->get("r_gripper_marker", gripper_marker);
 
   	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
   	   end_effector_controller_.getState() == EndEffectorController::DONE)
@@ -615,8 +617,8 @@ void PR2Simulator::processKeyEvent(int key, int type)
   	gripper_marker.controls.at(0).interaction_mode = 
   	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
 
-  	int_marker_server_.insert(gripper_marker);
-  	int_marker_server_.applyChanges();
+  	int_marker_server_->insert(gripper_marker);
+  	int_marker_server_->applyChanges();
 
   	break;
       }
@@ -626,8 +628,8 @@ void PR2Simulator::processKeyEvent(int key, int type)
   	// of the gripper.
   	updateEndEffectorPose();
 
-  	int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
-  	int_marker_server_.applyChanges();
+  	int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+  	int_marker_server_->applyChanges();
 
   	end_effector_goal_pose_ = end_effector_pose_;
 
@@ -663,7 +665,7 @@ void PR2Simulator::processKeyEvent(int key, int type)
       {
   	// Change the marker back to moving in the xy-plane.
   	visualization_msgs::InteractiveMarker gripper_marker;
-  	int_marker_server_.get("r_gripper_marker", gripper_marker);
+  	int_marker_server_->get("r_gripper_marker", gripper_marker);
 
   	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
   	   end_effector_controller_.getState() == EndEffectorController::DONE)
@@ -678,8 +680,8 @@ void PR2Simulator::processKeyEvent(int key, int type)
   	gripper_marker.controls.at(0).interaction_mode = 
   	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
 
-  	int_marker_server_.insert(gripper_marker);
-  	int_marker_server_.applyChanges();
+  	int_marker_server_->insert(gripper_marker);
+  	int_marker_server_->applyChanges();
 
   	break;
       }
@@ -710,33 +712,33 @@ void PR2Simulator::updateEndEffectorMarker()
      end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
   {
     visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_.get("r_gripper_marker", gripper_marker);
+    int_marker_server_->get("r_gripper_marker", gripper_marker);
     gripper_marker.controls[0].markers[0].color.r = 1;
     gripper_marker.controls[0].markers[0].color.g = 0;
     gripper_marker.controls[0].markers[0].color.b = 0;
     gripper_marker.pose = end_effector_goal_pose_.pose;
-    int_marker_server_.insert(gripper_marker);
-    int_marker_server_.applyChanges();
+    int_marker_server_->insert(gripper_marker);
+    int_marker_server_->applyChanges();
   }
   else if(end_effector_controller_.getState() != EndEffectorController::INVALID_GOAL &&
 	  end_effector_controller_.getLastState() == EndEffectorController::INVALID_GOAL)
   {
     visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_.get("r_gripper_marker", gripper_marker);
+    int_marker_server_->get("r_gripper_marker", gripper_marker);
     gripper_marker.controls[0].markers[0].color.r = 0;
     gripper_marker.controls[0].markers[0].color.g = 1;
     gripper_marker.controls[0].markers[0].color.b = 0;
     gripper_marker.pose = end_effector_goal_pose_.pose;
-    int_marker_server_.insert(gripper_marker);
-    int_marker_server_.applyChanges();
+    int_marker_server_->insert(gripper_marker);
+    int_marker_server_->applyChanges();
   }
 
   if(!is_moving_r_gripper_ 
      && end_effector_controller_.getState() == EndEffectorController::DONE
      || recorder_->isReplaying())
   {
-    int_marker_server_.setPose("r_gripper_marker", end_effector_pose_.pose);
-    int_marker_server_.applyChanges();
+    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_->applyChanges();
     end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 
@@ -747,7 +749,7 @@ void PR2Simulator::updateEndEffectorMarker()
 
   // Get the current pose of the end-effector interactive marker.
   visualization_msgs::InteractiveMarker marker;
-  int_marker_server_.get("r_gripper_marker", marker);
+  int_marker_server_->get("r_gripper_marker", marker);
   geometry_msgs::Pose pose = marker.pose;
 
   pose.position.x += (1/getFrameRate())*end_effector_marker_vel_.linear.x;
@@ -755,8 +757,8 @@ void PR2Simulator::updateEndEffectorMarker()
   pose.position.z += (1/getFrameRate())*end_effector_marker_vel_.linear.z;
 
   // Update the pose according to the current velocity command.
-  int_marker_server_.setPose("r_gripper_marker", pose);
-  int_marker_server_.applyChanges();
+  int_marker_server_->setPose("r_gripper_marker", pose);
+  int_marker_server_->applyChanges();
 
   // Update the goal pose.
   setEndEffectorGoalPose(pose);
@@ -879,55 +881,6 @@ void PR2Simulator::showEndEffectorWorkspaceArc()
   marker_pub_.publish(arc);
 }
 
-visualization_msgs::InteractiveMarker PR2Simulator::createInteractiveGripper(const geometry_msgs::Pose &goal_pose, 
-									     double distance)
-{
-  visualization_msgs::InteractiveMarker int_marker;
-  int_marker.header.frame_id = "/map";
-  int_marker.name = "r_gripper_goal_marker";
-  int_marker.description = "";
-  int_marker.pose = goal_pose;
-
-  visualization_msgs::InteractiveMarkerControl control;
-  std::vector<visualization_msgs::Marker> markers;
-  geometry_msgs::Pose origin; 
-  origin.position.x = -distance;
-  origin.position.y = origin.position.z = 0;
-  origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
-  origin.orientation.w = 1;
-  pviz_.getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, true, markers);
-
-  for(int i = 0; i < markers.size(); ++i)
-  {
-    markers.at(i).header.frame_id = "";
-    control.markers.push_back(markers.at(i));
-  }
-  control.always_visible = true;
-  int_marker.controls.push_back(control);
-
-  control.markers.clear();
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 1;
-  control.orientation.z = 0;
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
-
-  control.orientation.w = 1;
-  control.orientation.x = 1;
-  control.orientation.y = 0;
-  control.orientation.z = 0;
-  int_marker.controls.push_back(control);
-
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 0;
-  control.orientation.z = 1;
-  int_marker.controls.push_back(control);
-
-  return int_marker;
-}
-
 geometry_msgs::Pose PR2Simulator::getBasePose() const
 {
   return base_pose_.pose;
@@ -970,7 +923,7 @@ geometry_msgs::Pose PR2Simulator::getEndEffectorPose()
 geometry_msgs::Pose PR2Simulator::getEndEffectorMarkerPose()
 {
   visualization_msgs::InteractiveMarker marker;
-  int_marker_server_.get("r_gripper_marker", marker);
+  int_marker_server_->get("r_gripper_marker", marker);
   geometry_msgs::Pose marker_pose = marker.pose;
 
   tf::Transform base_footprint_in_map(tf::Quaternion(base_pose_.pose.orientation.x,

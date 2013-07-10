@@ -52,6 +52,8 @@ public:
   DemonstrationSceneManager *getSceneManager();
 
   MotionRecorder *getMotionRecorder();
+
+  interactive_markers::InteractiveMarkerServer *getInteractiveMarkerServer();
   
   void processKeyEvent(int key, int type);
   
@@ -72,9 +74,9 @@ public:
 
   void showBasePath(const std::string &filename = "");
 
-  void showInteractiveGripper(const geometry_msgs::Pose &goal_pose, 
-			      double distance = 0.25,
-			      bool shadow = false);
+  void showInteractiveGripper(int goal_number);
+
+  void pregraspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 Q_SIGNALS:
   void rosShutdown();
@@ -82,10 +84,9 @@ Q_SIGNALS:
   void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 
 private:
-  void runSimulator();
-
   DemonstrationSceneManager *demonstration_scene_manager_;
   MotionRecorder *recorder_;
+  PViz *pviz_;
   PR2Simulator *simulator_;
 
   ros::Publisher marker_pub_;

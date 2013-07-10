@@ -7,11 +7,15 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
   if(!init(argc, argv))
     ROS_ERROR("[DVizNode] Unable to connect to master!");
 
-  demonstration_scene_manager_ = new DemonstrationSceneManager();
-
   recorder_ = new MotionRecorder();
 
-  simulator_ = new PR2Simulator(recorder_);
+  pviz_ = new PViz();
+
+  int_marker_server_ = new interactive_markers::InteractiveMarkerServer("dviz_interactive_markers");
+
+  demonstration_scene_manager_ = new DemonstrationSceneManager(int_marker_server_);
+
+  simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_);
 
   // Start the thread.
   start();
@@ -19,9 +23,11 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 
 DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 {
+  delete simulator_;
   delete demonstration_scene_manager_;
   delete recorder_;
-  delete simulator_;
+  delete pviz_;
+
 
   if(ros::isStarted())
   {
@@ -101,9 +107,7 @@ void DemonstrationVisualizerNode::run()
     // current goal.
     if(!getSceneManager()->taskDone() && getSceneManager()->getNumGoals() > 0)
     {
-      geometry_msgs::Pose current_goal_pose = 
-	getSceneManager()->getGoal(getSceneManager()->getCurrentGoal()).marker_.pose;
-      Q_EMIT updateCamera(getEndEffectorPose(), current_goal_pose);
+      Q_EMIT updateCamera(getEndEffectorPose(), getSceneManager()->getCurrentGoalPose());
     }
     else
     {
@@ -136,6 +140,11 @@ DemonstrationSceneManager *DemonstrationVisualizerNode::getSceneManager()
 MotionRecorder *DemonstrationVisualizerNode::getMotionRecorder()
 {
   return recorder_;
+}
+
+interactive_markers::InteractiveMarkerServer *DemonstrationVisualizerNode::getInteractiveMarkerServer()
+{
+  return int_marker_server_;
 }
 
 void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
@@ -232,14 +241,80 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
   marker_pub_.publish(base_path);
 }
 
-void DemonstrationVisualizerNode::showInteractiveGripper(const geometry_msgs::Pose &goal_pose,
-							 double distance,
-							 bool shadow)
+void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
 {
-  visualization_msgs::InteractiveMarker gripper_goal_marker = 
-    simulator_->createInteractiveGripper(goal_pose, distance);
+  geometry_msgs::Pose gripper_pose = getSceneManager()->getPregraspPose(goal_number);
 
-  // @todo visualize the gripper.
+  visualization_msgs::InteractiveMarker int_marker;
+  int_marker.header.frame_id = "/map";
+  std::stringstream s;
+  s << "pregrasp_marker_goal_" << goal_number;
+  int_marker.name = s.str();
+  int_marker.description = "";
+  int_marker.pose = gripper_pose;
+
+  visualization_msgs::InteractiveMarkerControl control;
+  std::vector<visualization_msgs::Marker> markers;
+  geometry_msgs::Pose origin; 
+  // @todo compute this based on the goal object.
+  origin.position.x = -0.25;
+  origin.position.y = origin.position.z = 0;
+  origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
+  origin.orientation.w = 1;
+  pviz_->getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, true, markers);
+
+  for(int i = 0; i < markers.size(); ++i)
+  {
+    markers.at(i).header.frame_id = "";
+    control.markers.push_back(markers.at(i));
+  }
+  control.always_visible = true;
+  int_marker.controls.push_back(control);
+
+  control.markers.clear();
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  int_marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  int_marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  int_marker.controls.push_back(control);
+
+  int_marker_server_->insert(int_marker,
+			     boost::bind(
+			       &DemonstrationVisualizerNode::pregraspMarkerFeedback,
+			       this,
+			       _1)
+			     );
+  int_marker_server_->applyChanges();
+}
+
+void DemonstrationVisualizerNode::pregraspMarkerFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  ROS_INFO("[DVizNode] Moving pregrasp interactive marker %s.", feedback->marker_name.c_str());
+
+  int i = feedback->marker_name.size()-1;
+  for(; i >= 0; --i)
+  {
+    if(feedback->marker_name.at(i) == '_')
+      break;
+  }
+
+  getSceneManager()->setPregraspPose(atoi(feedback->marker_name.substr(i+1).c_str()),
+				     feedback->pose);
 }
 
 } // namespace demonstration_visualizer

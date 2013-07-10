@@ -2,9 +2,13 @@
 
 namespace demonstration_visualizer {
 
-DemonstrationSceneManager::DemonstrationSceneManager()
+const std::string DemonstrationSceneManager::GOAL_MARKER_NAMESPACE = "dviz_goal";
+
+DemonstrationSceneManager::DemonstrationSceneManager(
+    interactive_markers::InteractiveMarkerServer *int_marker_server
+  )
   : goals_changed_(false), meshes_changed_(false), edit_goals_mode_(true),
-    edit_meshes_mode_(true), int_marker_server_("scene_marker"), current_goal_(-1)
+    edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1)
 {
   goal_feedback_ = boost::bind(&DemonstrationSceneManager::processGoalFeedback,
 			       this,
@@ -21,7 +25,14 @@ DemonstrationSceneManager::DemonstrationSceneManager()
 
 DemonstrationSceneManager::~DemonstrationSceneManager()
 {
-
+  for(int i = 0; i < goals_.size(); ++i) 
+  {
+    if(goals_[i] != 0)
+    {
+      delete goals_[i];
+      goals_[i] = 0;
+    }
+  }
 }
 
 void DemonstrationSceneManager::updateScene()
@@ -32,63 +43,24 @@ void DemonstrationSceneManager::updateScene()
     // Draw each of the goals in the current task. 
     if(editGoalsMode())
     {
-      //std::vector<visualization_msgs::Marker>::iterator it;
-      std::vector<GraspableGoal>::iterator it;
+      std::vector<Goal *>::iterator it;
       for(it = goals_.begin(); it != goals_.end(); ++it)
       {
-	// Attach an interactive marker to control this marker.
-	visualization_msgs::InteractiveMarker int_marker;
-	int_marker.header.frame_id = "/map";
-	int_marker.pose = it->marker_.pose;
-
-	// Give each interactive marker a unique name according to each goal's unique id.
-	std::stringstream marker_name;
-	marker_name << "goal_marker_" << it->number_;
-
-	int_marker.name = marker_name.str();
-
-	std::stringstream marker_desc;
-	marker_desc << "Goal " << it->number_;
-	int_marker.description = marker_desc.str();
-
-	// Add a non-interactive control for the mesh.
-	visualization_msgs::InteractiveMarkerControl control;
-	control.always_visible = true;
-	control.markers.push_back(it->marker_);
-
-	int_marker.controls.push_back(control);
-
-	// Attach a 6-DOF control for moving the mesh around.
-	attach6DOFControl(int_marker);
-
-	int_marker_server_.insert(int_marker,
-				  goal_feedback_);
-	int_marker_server_.applyChanges();
+	drawGoal(*it, true);
       }
     }
     else // Otherwise, just draw the current goal.
     {
       // Clear the existing goal markers and interactive markers, and just draw the 
       // current goal.
-      //std::vector<visualization_msgs::Marker>::iterator it;
-      std::vector<GraspableGoal>::iterator it;
+      std::vector<Goal *>::iterator it;
       for(it = goals_.begin(); it != goals_.end(); ++it)
       {
-	// Get the name of this marker according to its id.
-	std::stringstream marker_name;
-	marker_name << "goal_marker_" << it->number_;
-
-	int_marker_server_.erase(marker_name.str());
-
-	ROS_INFO_STREAM("current goal = " << current_goal_);
-	if(it->number_ != current_goal_)
-	  it->marker_.action = visualization_msgs::Marker::DELETE;
+	if((*it)->getGoalNumber() != current_goal_)
+	  hideGoal(*it);
 	else
-	  it->marker_.action = visualization_msgs::Marker::ADD;
-
-	marker_pub_.publish(it->marker_);
+	  drawGoal(*it, false);
       }
-      int_marker_server_.applyChanges();
     }
     
     setGoalsChanged(false);    
@@ -126,11 +98,11 @@ void DemonstrationSceneManager::updateScene()
 	std::stringstream int_marker_name;
 	int_marker_name << "mesh_marker_" << it->id;
 
-	if(!int_marker_server_.erase(int_marker_name.str()))
+	if(!int_marker_server_->erase(int_marker_name.str()))
 	{
 	  ROS_ERROR("[SceneManager] Failed to remove interactive marker on mesh %d!", it->id);
 	}
-	int_marker_server_.applyChanges();
+	int_marker_server_->applyChanges();
 
 	it->header.frame_id = "/map";
 	it->header.stamp = ros::Time();
@@ -156,11 +128,11 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     std::stringstream int_marker_name;
     int_marker_name << "mesh_marker_" << it->id;
 
-    if(!int_marker_server_.erase(int_marker_name.str()))
+    if(!int_marker_server_->erase(int_marker_name.str()))
     {
       ROS_ERROR("[SceneManager] Failed to remove interactive marker on mesh %d!", it->id);
     }
-    int_marker_server_.applyChanges();
+    int_marker_server_->applyChanges();
 
     it->header.frame_id = "/map";
     it->header.stamp = ros::Time();
@@ -297,44 +269,63 @@ void DemonstrationSceneManager::loadTask(const std::string &filename)
 
   // Read each goal.
   element = root_handle.FirstChild().Element();
-  //visualization_msgs::Marker goal_marker;
-  GraspableGoal goal;
-  goal.marker_.header.frame_id = "/map";
+
+  int goal_type = 0;
+  int goal_number = 0;
+  std::string goal_description = "";
 
   for(element; element; element = element->NextSiblingElement())
   {
-    element->QueryIntAttribute("number", &goal.number_);
-    goal.marker_.id = goal.number_;
-    goal.marker_.ns = std::string(element->Attribute("ns"));
-    goal.description_ = std::string(element->Attribute("desc"));
-    element->QueryDoubleAttribute("position_x", &goal.marker_.pose.position.x);
-    element->QueryDoubleAttribute("position_y", &goal.marker_.pose.position.y);
-    element->QueryDoubleAttribute("position_z", &goal.marker_.pose.position.z);
-    element->QueryDoubleAttribute("orientation_x", &goal.marker_.pose.orientation.x);
-    element->QueryDoubleAttribute("orientation_y", &goal.marker_.pose.orientation.y);
-    element->QueryDoubleAttribute("orientation_z", &goal.marker_.pose.orientation.z);
-    element->QueryDoubleAttribute("orientation_w", &goal.marker_.pose.orientation.w);
+    element->QueryIntAttribute("type", &goal_type);
+    element->QueryIntAttribute("number", &goal_number);
+    goal_description = std::string(element->Attribute("desc"));
+    switch(goal_type)
+    {
+    case Goal::PICK_UP:
+      {
+	PickUpGoal *goal = new PickUpGoal(goal_number, goal_description);
 
-    goal.gripper_pose_ = goal.marker_.pose;
+	visualization_msgs::Marker object;
+	element->QueryDoubleAttribute("position_x", &object.pose.position.x);
+	element->QueryDoubleAttribute("position_y", &object.pose.position.y);
+	element->QueryDoubleAttribute("position_z", &object.pose.position.z);
+	element->QueryDoubleAttribute("orientation_x", &object.pose.orientation.x);
+	element->QueryDoubleAttribute("orientation_y", &object.pose.orientation.y);
+	element->QueryDoubleAttribute("orientation_z", &object.pose.orientation.z);
+	element->QueryDoubleAttribute("orientation_w", &object.pose.orientation.w);
+	object.header.frame_id = "/map";
+	object.ns = GOAL_MARKER_NAMESPACE;
+	object.id = goal->getGoalNumber();
+	object.type = visualization_msgs::Marker::SPHERE;
+	object.action = visualization_msgs::Marker::ADD;
+	object.scale.x = 0.16;
+	object.scale.y = 0.16;
+	object.scale.z = 0.16;
+	object.color.r = 0.5;
+	object.color.g = 0;
+	object.color.b = 0.5;
+	object.color.a = 0.4;
 
-    //goal_marker.type = visualization_msgs::Marker::CUBE;
-    goal.marker_.type = visualization_msgs::Marker::SPHERE;
-    goal.marker_.action = visualization_msgs::Marker::ADD;
+	goal->setObject(object);
+	goal->setPregraspPose(object.pose);
 
-    // Sphere with 8cm radius.
-    goal.marker_.scale.x = 0.16;
-    goal.marker_.scale.y = 0.16;
-    goal.marker_.scale.z = 0.16;
+	goals_.push_back(goal);
 
-    goal.marker_.color.r = 0.5;
-    goal.marker_.color.g = 0;
-    goal.marker_.color.b = 0.5;
-    goal.marker_.color.a = 0.4;
-
-    goals_.push_back(goal);
+	break;
+      }
+    // case Goal::PLACE:
+    //   break;
+    default:
+      break;
+    }
   }
 
   ROS_INFO("Read %d goals.", (int)goals_.size());
+
+  for(int i = 0; i < goals_.size(); ++i)
+  {
+    ROS_INFO_STREAM(goals_[i]->toString());
+  }
 
   if(getNumGoals() > 0)
     setCurrentGoal(0);
@@ -347,23 +338,37 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
   doc.LinkEndChild(root);
 
   // Add each goal to the task description.
-  //std::vector<visualization_msgs::Marker>::iterator it;
-  std::vector<GraspableGoal>::iterator it;
+  std::vector<Goal *>::iterator it;
   for(it = goals_.begin(); it != goals_.end(); ++it)
   {
     TiXmlElement *goal = new TiXmlElement("goal");
 
-    goal->SetAttribute("number", it->number_);
-    goal->SetAttribute("ns", it->marker_.ns);
-    goal->SetAttribute("desc", it->description_);
-    goal->SetDoubleAttribute("position_x", it->marker_.pose.position.x);
-    goal->SetDoubleAttribute("position_y", it->marker_.pose.position.y);
-    goal->SetDoubleAttribute("position_z", it->marker_.pose.position.z);
-    goal->SetDoubleAttribute("orientation_x", it->marker_.pose.orientation.x);
-    goal->SetDoubleAttribute("orientation_y", it->marker_.pose.orientation.y);
-    goal->SetDoubleAttribute("orientation_z", it->marker_.pose.orientation.z);
-    goal->SetDoubleAttribute("orientation_w", it->marker_.pose.orientation.w);
+    Goal::GoalType goal_type = (*it)->getType();
+    switch(goal_type)
+    {
+    case Goal::PICK_UP:
+      {
+	PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(*it);
+
+	goal->SetAttribute("number", pick_up_goal->getGoalNumber());
+	goal->SetAttribute("type", (int)Goal::PICK_UP);
+	goal->SetAttribute("desc", pick_up_goal->getDescription());
+	goal->SetDoubleAttribute("position_x", pick_up_goal->getObject().pose.position.x);
+	goal->SetDoubleAttribute("position_y", pick_up_goal->getObject().pose.position.y);
+	goal->SetDoubleAttribute("position_z", pick_up_goal->getObject().pose.position.z);
+	goal->SetDoubleAttribute("orientation_x", pick_up_goal->getObject().pose.orientation.x);
+	goal->SetDoubleAttribute("orientation_y", pick_up_goal->getObject().pose.orientation.y);
+	goal->SetDoubleAttribute("orientation_z", pick_up_goal->getObject().pose.orientation.z);
+	goal->SetDoubleAttribute("orientation_w", pick_up_goal->getObject().pose.orientation.w);
   
+	break;
+      }
+    // case Goal::PLACE:
+    //   break;
+    default:
+      break;
+    }
+
     root->LinkEndChild(goal);
   }
 
@@ -444,10 +449,10 @@ bool DemonstrationSceneManager::visualizeMesh(int mesh_id, bool attach_interacti
     // Attach a 6-DOF control for moving the mesh around.
     attach6DOFControl(int_marker);
 
-    int_marker_server_.insert(int_marker,
-			      mesh_feedback_
-			      );
-    int_marker_server_.applyChanges();
+    int_marker_server_->insert(int_marker,
+			       mesh_feedback_
+			       );
+    int_marker_server_->applyChanges();
   }
   else
   {
@@ -514,11 +519,11 @@ bool DemonstrationSceneManager::removeMesh(int mesh_id)
     std::stringstream marker_name;
     marker_name << "mesh_marker_" << mesh_id;
 
-    if(!int_marker_server_.erase(marker_name.str()))
+    if(!int_marker_server_->erase(marker_name.str()))
     {
       ROS_ERROR("[SceneManager] Failed to remove interactive marker %s!", marker_name.str().c_str());
     }
-    int_marker_server_.applyChanges();
+    int_marker_server_->applyChanges();
   }
   else
   {
@@ -532,37 +537,47 @@ bool DemonstrationSceneManager::removeMesh(int mesh_id)
 
 void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, 
 					const std::string &desc,
-					const std::string &frame)
+					const std::string &frame,
+					Goal::GoalType type)
 {
   setGoalsChanged(true);
 
-  ROS_INFO("Adding goal with id %d", (int)goals_.size());
+  ROS_INFO("Adding goal type %s with id %d", Goal::GoalTypeNames[type], (int)goals_.size());
 
-  GraspableGoal goal;
-  //visualization_msgs::Marker goal;
-  goal.marker_.header.frame_id = frame;
-  goal.marker_.header.stamp = ros::Time();
-  goal.marker_.ns = "demonstration_visualizer_goal";
-  goal.number_ = goals_.size();
-  goal.marker_.id = goals_.size();
-  //goal.type = visualization_msgs::Marker::CUBE;
-  goal.marker_.type = visualization_msgs::Marker::SPHERE;
-  goal.marker_.action = visualization_msgs::Marker::ADD;
+  switch(type)
+  {
+  case Goal::PICK_UP:
+    {
+      PickUpGoal *goal = new PickUpGoal(goals_.size(), desc);
 
-  goal.marker_.pose = pose;
-  goal.gripper_pose_ = pose;
+      visualization_msgs::Marker object;
+      object.header.frame_id = frame;
+      object.header.stamp = ros::Time();
+      object.ns = GOAL_MARKER_NAMESPACE;
+      object.id = goals_.size();
+      object.type = visualization_msgs::Marker::SPHERE;
+      object.action = visualization_msgs::Marker::ADD;
+      object.pose = pose;
+      object.scale.x = 0.16;
+      object.scale.y = 0.16;
+      object.scale.z = 0.16;
+      object.color.r = 0.5;
+      object.color.g = 0;
+      object.color.b = 0.5;
+      object.color.a = 0.4;
 
-  // Sphere with 8cm radius.
-  goal.marker_.scale.x = 0.16;
-  goal.marker_.scale.y = 0.16;
-  goal.marker_.scale.z = 0.16;
+      goal->setObject(object);
+      goal->setPregraspPose(pose);
 
-  goal.marker_.color.r = 0.5;
-  goal.marker_.color.g = 0;
-  goal.marker_.color.b = 0.5;
-  goal.marker_.color.a = 0.4;
+      goals_.push_back(goal);
 
-  goals_.push_back(goal);
+      break;
+    }
+  // case Goal::PLACE:
+  //   break;
+  default:
+    break;
+  }
 
   if(current_goal_ < 0)
     current_goal_ = 0;
@@ -578,39 +593,70 @@ bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::P
 
   setGoalsChanged(true);
 
-  goals_[goal_number].marker_.pose = pose;
+  switch(goals_.at(goal_number)->getType())
+  {
+  case Goal::PICK_UP:
+    {
+      PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(goal_number));
+
+      visualization_msgs::Marker object = goal->getObject();
+      object.pose = pose;
+      goal->setObject(object);
+      
+      break;
+    }
+  // case Goal::PLACE:
+  //   break;
+  default:
+    break;
+  }
 
   return true;
 }
 
-DemonstrationSceneManager::GraspableGoal DemonstrationSceneManager::getGoal(int goal_number)
+Goal *DemonstrationSceneManager::getGoal(int goal_number)
 {
   if(goal_number < 0 || goal_number >= goals_.size())
   {
     ROS_ERROR("[SceneManager] Invalid goal number!");
-    return GraspableGoal();
+    return 0;
   }
 
-  return goals_[goal_number];
+  return goals_.at(goal_number);
 }
 
 bool DemonstrationSceneManager::hasReachedGoal(int goal_number, 
 					       const geometry_msgs::Pose &pose, 
 					       double tolerance)
 {
-  if(getNumGoals() == 0)
+  if(getNumGoals() == 0 || getGoal(goal_number) == 0)
     return false;
 
-  geometry_msgs::Pose goal_pose = getGoal(goal_number).marker_.pose;
-  //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
-  double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
-			      std::pow(goal_pose.position.y - pose.position.y, 2) +
-			      std::pow(goal_pose.position.z - pose.position.z, 2));
+  bool reached = false;
+  switch(getGoal(goal_number)->getType())
+  {
+  case Goal::PICK_UP:
+    {
+      PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(goal_number));
 
-  if(distance < tolerance)
-    return true;
+      geometry_msgs::Pose goal_pose = goal->getObject().pose;
+      //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
+      double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
+				  std::pow(goal_pose.position.y - pose.position.y, 2) +
+				  std::pow(goal_pose.position.z - pose.position.z, 2));
 
-  return false;
+      if(distance < tolerance)
+	reached = true;
+
+      break;
+    }
+  // case Goal::PLACE:
+  //   break;
+  default:
+    break;
+  }
+
+  return reached;
 }
 
 std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getMeshes() const
@@ -618,7 +664,7 @@ std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getMeshes() c
   return meshes_;
 }
 
-std::vector<DemonstrationSceneManager::GraspableGoal> DemonstrationSceneManager::getGoals() const
+std::vector<Goal *> DemonstrationSceneManager::getGoals() const
 {
   return goals_;
 }
@@ -646,7 +692,7 @@ void DemonstrationSceneManager::setGoalDescription(int goal_number, const std::s
     return;
   }
 
-  goals_[goal_number].description_ = desc;
+  goals_.at(goal_number)->setDescription(desc);
 }
 
 std::string DemonstrationSceneManager::getGoalDescription(int goal_number) const
@@ -657,21 +703,30 @@ std::string DemonstrationSceneManager::getGoalDescription(int goal_number) const
     return "";
   }
 
-  return goals_[goal_number].description_;
+  return goals_.at(goal_number)->getDescription();
 }
 
-void DemonstrationSceneManager::setGripperPose(int goal_number, const geometry_msgs::Pose &gripper_pose)
+bool DemonstrationSceneManager::setPregraspPose(int goal_number, const geometry_msgs::Pose &pregrasp)
 {
   if(goal_number < 0 || goal_number >= getNumGoals())
   {
     ROS_ERROR("[SceneManager] Invalid goal number!");
-    return;
+    return false;
   }
 
-  goals_[goal_number].gripper_pose_ = gripper_pose;
+  if(!goals_.at(goal_number)->getType() == Goal::PICK_UP)
+  {
+    ROS_ERROR("[SceneManager] Can only set the pregrasp pose for a pick up goal!");
+    return false;
+  }
+
+  PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(getGoal(goal_number));
+  pick_up_goal->setPregraspPose(pregrasp);
+
+  return true;
 }
 
-geometry_msgs::Pose DemonstrationSceneManager::getGripperPose(int goal_number)
+geometry_msgs::Pose DemonstrationSceneManager::getPregraspPose(int goal_number)
 {
   if(goal_number < 0 || goal_number >= getNumGoals())
   {
@@ -679,7 +734,14 @@ geometry_msgs::Pose DemonstrationSceneManager::getGripperPose(int goal_number)
     return geometry_msgs::Pose();
   }
 
-  return goals_[goal_number].gripper_pose_;
+  if(!goals_.at(goal_number)->getType() == Goal::PICK_UP)
+  {
+    ROS_ERROR("[SceneManager] Can only get the pregrasp pose for a pick up goal!");
+    return geometry_msgs::Pose();
+  }
+
+  PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(getGoal(goal_number));
+  return pick_up_goal->getPregraspPose();  
 }
 
 std::vector<visualization_msgs::Marker>::iterator DemonstrationSceneManager::findMarker(
@@ -736,6 +798,35 @@ void DemonstrationSceneManager::processMeshFeedback(
   }  
 }
 
+geometry_msgs::Pose DemonstrationSceneManager::getCurrentGoalPose()
+{
+  if(getCurrentGoal() < 0 || getCurrentGoal() >= getNumGoals())
+  {
+    ROS_ERROR("[SceneManager] Invalid current goal number!");
+    return geometry_msgs::Pose();
+  }
+
+  switch(goals_.at(getCurrentGoal())->getType())
+  {
+  case Goal::PICK_UP:
+    {
+      PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(getCurrentGoal()));
+
+      visualization_msgs::Marker object = goal->getObject();
+      return object.pose;
+
+      break;
+    }
+  // case Goal::PLACE:
+  //   break;
+  default:
+    {
+      ROS_ERROR("[SceneManager] Unknown goal type!");
+      return geometry_msgs::Pose();
+    }
+  }
+}
+
 int DemonstrationSceneManager::getCurrentGoal() const
 {
   return current_goal_;
@@ -783,6 +874,91 @@ bool DemonstrationSceneManager::meshesChanged() const
 bool DemonstrationSceneManager::taskDone() const
 {
   return (current_goal_ >= (int)goals_.size());
+}
+
+void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_marker)
+{
+  switch(goal->getType())
+  {
+  case Goal::PICK_UP:
+    {
+      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
+
+      visualization_msgs::Marker marker = pick_up_goal->getObject();
+
+      if(attach_interactive_marker)
+      {
+	// Attach an interactive marker to control this marker.
+	visualization_msgs::InteractiveMarker int_marker;
+	int_marker.header.frame_id = "/map";
+	int_marker.pose = marker.pose;
+
+	// Give each interactive marker a unique name according to each goal's unique id.
+	std::stringstream marker_name;
+	marker_name << "goal_marker_" << marker.id;
+
+	int_marker.name = marker_name.str();
+
+	std::stringstream marker_desc;
+	marker_desc << "Goal " << marker.id;
+	int_marker.description = marker_desc.str();
+
+	// Add a non-interactive control for the mesh.
+	visualization_msgs::InteractiveMarkerControl control;
+	control.always_visible = true;
+	control.markers.push_back(marker);
+
+	int_marker.controls.push_back(control);
+
+	// Attach a 6-DOF control for moving the mesh around.
+	attach6DOFControl(int_marker);
+
+	int_marker_server_->insert(int_marker,
+				   goal_feedback_);
+	int_marker_server_->applyChanges();      
+      }
+      else
+      {
+	marker_pub_.publish(marker);
+      }
+
+      break;
+    }
+  // case Goal::PLACE:
+  //   break;
+  default:
+    break;
+  }
+}
+
+void DemonstrationSceneManager::hideGoal(Goal *goal)
+{
+  switch(goal->getType())
+  {
+  case Goal::PICK_UP:
+    {
+      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
+
+      visualization_msgs::Marker marker = pick_up_goal->getObject();
+      int goal_number = pick_up_goal->getGoalNumber();
+
+      std::stringstream marker_name;
+      marker_name << "goal_marker_" << goal_number;
+
+      int_marker_server_->erase(marker_name.str());
+      int_marker_server_->applyChanges();
+
+      marker.action = visualization_msgs::Marker::DELETE;
+
+      marker_pub_.publish(marker);
+
+      break;
+    }
+  // case Goal::PLACE:
+  //   break;
+  default:
+    break;
+  }
 }
 
 } // namespace demonstration_visualizer

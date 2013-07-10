@@ -31,7 +31,9 @@ namespace demonstration_visualizer {
 class PR2Simulator
 {
 public:
-  PR2Simulator(MotionRecorder *recorder);
+  PR2Simulator(MotionRecorder *recorder, 
+	       PViz *pviz, 
+	       interactive_markers::InteractiveMarkerServer *int_marker_server);
 
   ~PR2Simulator();
 
@@ -123,9 +125,6 @@ public:
 
   void showEndEffectorWorkspaceArc();
 
-  visualization_msgs::InteractiveMarker createInteractiveGripper(const geometry_msgs::Pose &goal_pose,
-								 double distance = 0.25);
-
   geometry_msgs::Pose getBasePose() const;
 
   geometry_msgs::Pose getEndEffectorPose();
@@ -139,8 +138,8 @@ private:
 
   double frame_rate_;
 
-  PViz pviz_;
-  interactive_markers::InteractiveMarkerServer int_marker_server_;
+  PViz *pviz_;
+  interactive_markers::InteractiveMarkerServer *int_marker_server_;
   BaseMovementController base_movement_controller_;
   EndEffectorController end_effector_controller_;
 
