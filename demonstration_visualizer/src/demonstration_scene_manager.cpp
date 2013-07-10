@@ -218,7 +218,19 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     mesh_marker.color.r = mesh_marker.color.g = mesh_marker.color.b = mesh_marker.color.a = 0;
     mesh_marker.mesh_use_embedded_materials = true;
 
-    meshes_.push_back(mesh_marker);
+    int movable;
+    element->QueryIntAttribute("movable", &movable);
+    if(movable){
+      std::string sphere_list_path = std::string(element->Attribute("mesh_resource"));
+      Object o = Object(mesh_marker, sphere_list_path);
+      object_manager.addObject(o);
+    }
+    else{
+      Object o = Object(mesh_marker);
+      object_manager.addObject(o);
+    }
+
+    //meshes_.push_back(mesh_marker);
 
     if(mesh_marker.id > max_mesh_id)
       max_mesh_id = mesh_marker.id;
