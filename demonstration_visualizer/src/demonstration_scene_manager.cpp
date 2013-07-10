@@ -56,9 +56,9 @@ void DemonstrationSceneManager::updateScene()
       std::vector<Goal *>::iterator it;
       for(it = goals_.begin(); it != goals_.end(); ++it)
       {
-	if((*it)->getGoalNumber() != current_goal_)
-	  hideGoal(*it);
-	else
+	hideGoal(*it);
+
+	if((*it)->getGoalNumber() == current_goal_)
 	  drawGoal(*it, false);
       }
     }

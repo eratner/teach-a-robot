@@ -1041,14 +1041,18 @@ void DemonstrationVisualizer::startBasicMode()
   // Give the user basic instructions.
   QMessageBox instructions_box;
 
-  instructions_box.setText("<b>Instructions:</b> For each goal in the given task: first place"
-			   " the gripper so that it may grasp the given object; then, move the"
-			   " base and gripper of the robot to that grasp, which will appear close to "
-			   "the goal object.");
+  instructions_box.setText("<b>Instructions:</b> For each goal in the given task:"
+			   "<ul>"
+			   "<li>Place the gripper so that it may grasp the object.</li>"
+			   "<li>Press <b>Accept Pre-Grasp</b>.</li>"
+			   "<li>Move the base and gripper to that grasp.</li>"
+			   "</ul>");
 
   instructions_box.exec();
 
   playSimulator();
+
+  beginPregraspSelection();
 
   setEditGoalsMode(Qt::Unchecked);
 
