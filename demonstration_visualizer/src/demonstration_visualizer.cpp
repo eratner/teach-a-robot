@@ -813,11 +813,11 @@ void DemonstrationVisualizer::loadTask()
       // Load the task into the demonstration scene manager.
       node_.getSceneManager()->loadTask(filename.toStdString());
       goals_list_->clear();
-      std::vector<visualization_msgs::Marker> goals = node_.getSceneManager()->getGoals();
-      for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
+      std::vector<DemonstrationSceneManager::GraspableGoal> goals = node_.getSceneManager()->getGoals();
+      for(int i = 0; i < goals.size(); ++i)
       {
 	std::stringstream goal_desc;
-	goal_desc << "Goal " << i+1 << ": " << node_.getSceneManager()->getGoalDescription(i);
+	goal_desc << "Goal " << i+1 << ": " << goals[i].description_;
 	goals_list_->addItem(QString(goal_desc.str().c_str()));
       }
       
@@ -1000,7 +1000,6 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   else
   {
     text << " Next goal:\n" << node_.getSceneManager()->getGoalDescription(goal_number+1);
-    node_.getSceneManager()->setCurrentGoal(node_.getSceneManager()->getCurrentGoal()+1);
   }
   
   box.setText(QString(text.str().c_str()));
@@ -1038,8 +1037,8 @@ void DemonstrationVisualizer::startBasicMode()
   // Give the user basic instructions.
   QMessageBox instructions_box;
 
-  instructions_box.setText("<b>Instructions:</b> For each goal in the given task, you must first place"
-			   " the gripper so that it may grasp the given object. Then, you must move the"
+  instructions_box.setText("<b>Instructions:</b> For each goal in the given task: first place"
+			   " the gripper so that it may grasp the given object; then, move the"
 			   " base and gripper of the robot to that grasp, which will appear close to "
 			   "the goal object.");
 
@@ -1055,6 +1054,10 @@ void DemonstrationVisualizer::startBasicMode()
  
   // Select the interaction tool. (@todo make the tools constants somewhere)
   changeTool(2);
+
+  // changeCameraMode(GOAL);
+  // geometry_msgs::Pose gripper_pose = node_.getSceneManager()->getGripperPose(0);
+  // node_.showInteractiveGripper(gripper_pose);
 
   // Begin recording.
   std::string package_path = ros::package::getPath("demonstration_visualizer");

@@ -102,7 +102,7 @@ void DemonstrationVisualizerNode::run()
     if(!getSceneManager()->taskDone() && getSceneManager()->getNumGoals() > 0)
     {
       geometry_msgs::Pose current_goal_pose = 
-	getSceneManager()->getGoal(getSceneManager()->getCurrentGoal()).pose;
+	getSceneManager()->getGoal(getSceneManager()->getCurrentGoal()).marker_.pose;
       Q_EMIT updateCamera(getEndEffectorPose(), current_goal_pose);
     }
     else
@@ -230,6 +230,16 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
   }
   
   marker_pub_.publish(base_path);
+}
+
+void DemonstrationVisualizerNode::showInteractiveGripper(const geometry_msgs::Pose &goal_pose,
+							 double distance,
+							 bool shadow)
+{
+  visualization_msgs::InteractiveMarker gripper_goal_marker = 
+    simulator_->createInteractiveGripper(goal_pose, distance);
+
+  // @todo visualize the gripper.
 }
 
 } // namespace demonstration_visualizer

@@ -879,7 +879,8 @@ void PR2Simulator::showEndEffectorWorkspaceArc()
   marker_pub_.publish(arc);
 }
 
-void PR2Simulator::showInteractiveGripper(const geometry_msgs::Pose &goal_pose, double distance)
+visualization_msgs::InteractiveMarker PR2Simulator::createInteractiveGripper(const geometry_msgs::Pose &goal_pose, 
+									     double distance)
 {
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = "/map";
@@ -924,8 +925,7 @@ void PR2Simulator::showInteractiveGripper(const geometry_msgs::Pose &goal_pose, 
   control.orientation.z = 1;
   int_marker.controls.push_back(control);
 
-  int_marker_server_.insert(int_marker);
-  int_marker_server_.applyChanges();
+  return int_marker;
 }
 
 geometry_msgs::Pose PR2Simulator::getBasePose() const

@@ -72,6 +72,10 @@ public:
 
   void showBasePath(const std::string &filename = "");
 
+  void showInteractiveGripper(const geometry_msgs::Pose &goal_pose, 
+			      double distance = 0.25,
+			      bool shadow = false);
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);
@@ -91,6 +95,8 @@ private:
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher end_effector_marker_vel_pub_;
   ros::Publisher base_vel_cmd_pub_;
+
+  interactive_markers::InteractiveMarkerServer *int_marker_server_;
 
 };
 

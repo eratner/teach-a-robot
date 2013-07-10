@@ -26,6 +26,16 @@ namespace demonstration_visualizer {
 class DemonstrationSceneManager
 {
 public:
+  struct GraspableGoal
+  {
+    int number_;
+    std::string description_;
+    // @todo in the future, the goal marker will be encapsulated in 
+    // an object class.
+    visualization_msgs::Marker marker_;
+    geometry_msgs::Pose gripper_pose_;
+  };
+
   DemonstrationSceneManager();
 
   ~DemonstrationSceneManager();
@@ -70,7 +80,7 @@ public:
 
   bool moveGoal(int goal_number, const geometry_msgs::Pose &pose);
 
-  visualization_msgs::Marker getGoal(int goal_number);
+  GraspableGoal getGoal(int goal_number);
 
   /**
    * @brief Determines whether the given position is at the position of the given goal, 
@@ -80,7 +90,7 @@ public:
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 
-  std::vector<visualization_msgs::Marker> getGoals() const;
+  std::vector<GraspableGoal> getGoals() const;
 
   int getNumGoals() const;
 
@@ -91,6 +101,10 @@ public:
   void setGoalDescription(int goal_number, const std::string &desc);
 
   std::string getGoalDescription(int goal_number) const;
+
+  void setGripperPose(int goal_number, const geometry_msgs::Pose &gripper_pose);
+
+  geometry_msgs::Pose getGripperPose(int goal_number);
 
   int getCurrentGoal() const;
 
@@ -130,8 +144,9 @@ private:
   void processMeshFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
   std::vector<visualization_msgs::Marker> meshes_;
-  std::vector<visualization_msgs::Marker> goals_;
-  std::vector<std::string> goal_descriptions_;
+  //std::vector<visualization_msgs::Marker> goals_;
+  std::vector<GraspableGoal> goals_;
+  //std::vector<std::string> goal_descriptions_;
 
   interactive_markers::InteractiveMarkerServer int_marker_server_;
   interactive_markers::InteractiveMarkerServer::FeedbackCallback goal_feedback_;

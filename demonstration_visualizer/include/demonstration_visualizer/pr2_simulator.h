@@ -123,7 +123,8 @@ public:
 
   void showEndEffectorWorkspaceArc();
 
-  void showInteractiveGripper(const geometry_msgs::Pose &goal_pose, double distance = 0.25);
+  visualization_msgs::InteractiveMarker createInteractiveGripper(const geometry_msgs::Pose &goal_pose,
+								 double distance = 0.25);
 
   geometry_msgs::Pose getBasePose() const;
 
