@@ -4,14 +4,17 @@
 #include<demonstration_visualizer/object.h>
 #include<visualization_msgs/Marker.h>
 #include<geometry_msgs/Pose.h>
-#include<vector>
 #include<pviz/pviz.h>
-//#include<collision_checker.h>
+#include<pr2_collision_checker/pr2_collision_space.h>
+
+#include <map>
 
 class ObjectManager{
   public:
-    ObjectManager(/*CollisionChecker* c*/);
+    ObjectManager(std::string rarm_file, std::string larm_file);
+    void initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
     void addObject(Object o);
+    void removeObject(int id);
     void clearObjects();
     std::vector<visualization_msgs::Marker> getMarkers();
     visualization_msgs::Marker getMarker(int id);
@@ -20,9 +23,15 @@ class ObjectManager{
                          std::vector<double> rangles, std::vector<double> langles, BodyPose bp);
     void moveObject(int id, geometry_msgs::Pose p);
 
+    void scaleObject(int id, double x, double y, double z);
+
+    int getNumObjects() const;
+
   private:
-    //CollisionChecker* collision_checker_;
-    std::vector<Object> objects_;
+    pr2_collision_checker::PR2CollisionSpace* collision_checker_;
+    std::map<int, Object> objects_;
+    std::string rarm_file_;
+    std::string larm_file_;
 };
 
 #endif
