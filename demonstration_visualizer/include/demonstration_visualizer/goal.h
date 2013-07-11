@@ -5,6 +5,7 @@
 #include <sstream>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
+#include <tf/tf.h>
 
 namespace demonstration_visualizer {
 
@@ -67,9 +68,19 @@ public:
 
   void setPregraspPose(const geometry_msgs::Pose &pregrasp);
 
+  bool isPregraspDone() const;
+
+  void setPregraspDone(bool);
+
+  double getPregraspDistance() const;
+
+  void setPregraspDistance(double);
+
 private:
   visualization_msgs::Marker object_;
   geometry_msgs::Pose pregrasp_pose_;
+  bool pregrasp_done_;
+  double pregrasp_distance_;
 
 };
 

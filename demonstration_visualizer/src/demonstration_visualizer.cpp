@@ -212,6 +212,16 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   accept_pregrasp_button_ = new QPushButton("Accept Pre-Grasp");
   user_controls_layout->addWidget(accept_pregrasp_button_);
   accept_pregrasp_button_->setEnabled(false);
+  QHBoxLayout *pregrasp_distance_layout = new QHBoxLayout();
+  QLabel *pregrasp_distance_label = new QLabel("Pre-Grasp Distance: ");
+  pregrasp_distance_slider_ = new QSlider(Qt::Horizontal);
+  pregrasp_distance_layout->addWidget(pregrasp_distance_label);
+  pregrasp_distance_slider_->setMinimum(0);
+  pregrasp_distance_slider_->setMaximum(100);
+  pregrasp_distance_slider_->setValue(25);
+  pregrasp_distance_slider_->setEnabled(false);
+  pregrasp_distance_layout->addWidget(pregrasp_distance_slider_);
+  user_controls_layout->addLayout(pregrasp_distance_layout);
 
   QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
   QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
@@ -365,6 +375,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
   connect(accept_pregrasp_button_, SIGNAL(clicked()), this, SLOT(endPregraspSelection()));
+  connect(pregrasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setPregraspDistance(int)));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -1460,6 +1471,7 @@ void DemonstrationVisualizer::setGripperPosition(int position)
 void DemonstrationVisualizer::beginPregraspSelection()
 {
   accept_pregrasp_button_->setEnabled(true);
+  pregrasp_distance_slider_->setEnabled(true);
   camera_before_pregrasp_ = camera_mode_;
   changeCameraMode(GOAL);
   node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
@@ -1479,8 +1491,12 @@ void DemonstrationVisualizer::endPregraspSelection()
       s << "pregrasp_marker_goal_" << current_goal;
       node_.getInteractiveMarkerServer()->erase(s.str());
       node_.getInteractiveMarkerServer()->applyChanges();
+      PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
+      goal->setPregraspDone(true);
+      node_.getSceneManager()->setGoalsChanged();
       changeCameraMode(camera_before_pregrasp_);
       accept_pregrasp_button_->setEnabled(false);
+      pregrasp_distance_slider_->setEnabled(false);
 
       break;
     }
@@ -1490,6 +1506,18 @@ void DemonstrationVisualizer::endPregraspSelection()
     ROS_ERROR("[DViz] An error has occured in the pregrasp selection!");
     break;
   }
+}
+
+void DemonstrationVisualizer::setPregraspDistance(int value)
+{
+  double distance = (double)value/100.0;
+
+  int current_goal = node_.getSceneManager()->getCurrentGoal();
+  PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
+  goal->setPregraspDistance(distance);
+  
+  // Redraw the interactive marker on the gripper to reflect the change in distance.
+  node_.showInteractiveGripper(current_goal);
 }
 
 } // namespace demonstration_visualizer

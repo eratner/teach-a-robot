@@ -5,13 +5,14 @@ namespace demonstration_visualizer {
 const std::string DemonstrationSceneManager::GOAL_MARKER_NAMESPACE = "dviz_goal";
 
 DemonstrationSceneManager::DemonstrationSceneManager(
+    PViz *pviz,
     interactive_markers::InteractiveMarkerServer *int_marker_server,
     /*CollisionChecker* collision_checker,*/
     ObjectManager* object_manager
   )
   : goals_changed_(false), meshes_changed_(false), edit_goals_mode_(true),
     edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1),
-    /*collision_checker_(collision_checker),*/ object_manager_(object_manager)
+    /*collision_checker_(collision_checker),*/ object_manager_(object_manager), pviz_(pviz)
 {
   goal_feedback_ = boost::bind(&DemonstrationSceneManager::processGoalFeedback,
 			       this,
@@ -63,6 +64,7 @@ void DemonstrationSceneManager::updateScene()
 
 	if((*it)->getGoalNumber() == current_goal_)
 	  drawGoal(*it, false);
+
       }
     }
     
@@ -936,6 +938,50 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
       else
       {
 	marker_pub_.publish(marker);
+
+	// Also, draw the shadow of the gripper around the object, where the user
+	// has selected the pregrasp.
+	if(pick_up_goal->isPregraspDone())
+	{
+	  geometry_msgs::Pose pregrasp_pose = pick_up_goal->getPregraspPose();
+
+	  // Combine the pregrasp marker pose in the map frame with the 
+	  // pregrasp distance to get the actual pregrasp pose in the map
+	  // frame.
+	  tf::Transform marker_in_map(tf::Quaternion(pregrasp_pose.orientation.x,
+						     pregrasp_pose.orientation.y,
+						     pregrasp_pose.orientation.z,
+						     pregrasp_pose.orientation.w),
+				      tf::Vector3(pregrasp_pose.position.x,
+						  pregrasp_pose.position.y,
+						  pregrasp_pose.position.z)
+				      );
+
+	  tf::Transform gripper_in_marker(tf::Quaternion::getIdentity(),
+					  tf::Vector3(-1.0*pick_up_goal->getPregraspDistance(),
+						      0.0,
+						      0.0)
+					  );
+
+	  tf::Transform gripper_in_map = marker_in_map * gripper_in_marker;
+
+	  geometry_msgs::Pose pregrasp_pose_fixed;
+	  tf::quaternionTFToMsg(gripper_in_map.getRotation(), pregrasp_pose_fixed.orientation);
+	  geometry_msgs::Vector3 position;
+	  tf::vector3TFToMsg(gripper_in_map.getOrigin(), position);
+	  pregrasp_pose_fixed.position.x = position.x;
+	  pregrasp_pose_fixed.position.y = position.y;
+	  pregrasp_pose_fixed.position.z = position.z;
+
+	  std::vector<visualization_msgs::Marker> gripper_markers;
+	  pviz_->getGripperMeshesMarkerMsg(pregrasp_pose_fixed, 0.2, "pr2_simple_sim", 1, true, gripper_markers);
+
+	  for(int i = 0; i < gripper_markers.size(); ++i)
+	  {
+	    gripper_markers[i].color.a = 0.3;
+	    marker_pub_.publish(gripper_markers[i]);
+	  }
+	}
       }
 
       break;

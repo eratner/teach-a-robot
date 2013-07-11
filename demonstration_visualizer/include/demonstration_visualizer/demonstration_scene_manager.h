@@ -10,6 +10,7 @@
 #include <demonstration_visualizer/visualization_helpers.h>
 #include <demonstration_visualizer/object_manager.h>
 #include <demonstration_visualizer/goal.h>
+#include <pviz/pviz.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
 #include <tinyxml.h>
@@ -30,7 +31,7 @@ class DemonstrationSceneManager
 public:
   static const std::string GOAL_MARKER_NAMESPACE;
 
-  DemonstrationSceneManager(interactive_markers::InteractiveMarkerServer *int_marker_server, /*CollisionChecker* collision_checker, */ObjectManager* object_manager);
+  DemonstrationSceneManager(PViz *pviz, interactive_markers::InteractiveMarkerServer *int_marker_server, /*CollisionChecker* collision_checker, */ObjectManager* object_manager);
 
   ~DemonstrationSceneManager();
 
@@ -153,6 +154,8 @@ private:
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
   interactive_markers::InteractiveMarkerServer::FeedbackCallback goal_feedback_;
   interactive_markers::InteractiveMarkerServer::FeedbackCallback mesh_feedback_;
+
+  PViz *pviz_;
 
   ros::Publisher marker_pub_;
 
