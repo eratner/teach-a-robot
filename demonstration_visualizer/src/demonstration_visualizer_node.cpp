@@ -13,7 +13,7 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 
   int_marker_server_ = new interactive_markers::InteractiveMarkerServer("dviz_interactive_markers");
 
-  demonstration_scene_manager_ = new DemonstrationSceneManager(int_marker_server_);
+  demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_);
 
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_);
 
@@ -87,7 +87,7 @@ void DemonstrationVisualizerNode::run()
 
     getSceneManager()->updateScene();
 
-    // Check to see if the end effector has reached a goal.
+    // Check to see if the end-effector has reached a goal.
     if(!getSceneManager()->editGoalsMode() || 
        !getSceneManager()->taskDone() || 
        getSceneManager()->getNumGoals() != 0)
@@ -243,7 +243,9 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
 
 void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
 {
-  geometry_msgs::Pose gripper_pose = getSceneManager()->getPregraspPose(goal_number);
+  PickUpGoal *goal = static_cast<PickUpGoal *>(getSceneManager()->getGoal(goal_number));
+
+  geometry_msgs::Pose gripper_pose = goal->getPregraspPose();
 
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = "/map";
@@ -257,7 +259,7 @@ void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
   std::vector<visualization_msgs::Marker> markers;
   geometry_msgs::Pose origin; 
   // @todo compute this based on the goal object.
-  origin.position.x = -0.25;
+  origin.position.x = -(goal->getPregraspDistance());
   origin.position.y = origin.position.z = 0;
   origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
   origin.orientation.w = 1;

@@ -190,6 +190,8 @@ private slots:
   // For controlling the pregrasp selection mode.
   void beginPregraspSelection();
   void endPregraspSelection();
+
+  void setPregraspDistance(int);
   
 private:
   DemonstrationVisualizerNode node_;
@@ -221,6 +223,7 @@ private:
   QPushButton                *end_button_;
   QPushButton                *z_mode_button_;
   QPushButton                *accept_pregrasp_button_;
+  QSlider                    *pregrasp_distance_slider_;
 
   std::vector<QPushButton *> camera_buttons_;
 

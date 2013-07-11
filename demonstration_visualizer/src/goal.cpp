@@ -52,7 +52,7 @@ void Goal::setDescription(const std::string &description)
 }
 
 PickUpGoal::PickUpGoal()
-  : Goal(0, ""), object_(), pregrasp_pose_()
+  : Goal(0, ""), object_(), pregrasp_pose_(), pregrasp_done_(false), pregrasp_distance_(0.25)
 {
 
 }
@@ -61,7 +61,9 @@ PickUpGoal::PickUpGoal(int goal_number,
 		       const std::string &description,
 		       const visualization_msgs::Marker &object,
 		       const geometry_msgs::Pose &pregrasp)
-  : Goal(goal_number, description), object_(object), pregrasp_pose_(pregrasp)
+  : Goal(goal_number, description), object_(object), 
+    pregrasp_pose_(pregrasp), pregrasp_done_(false),
+    pregrasp_distance_(0.25)
 {
 
 }
@@ -94,6 +96,26 @@ geometry_msgs::Pose PickUpGoal::getPregraspPose() const
 void PickUpGoal::setPregraspPose(const geometry_msgs::Pose &pregrasp)
 {
   pregrasp_pose_ = pregrasp;
+}
+
+bool PickUpGoal::isPregraspDone() const
+{
+  return pregrasp_done_;
+}
+
+void PickUpGoal::setPregraspDone(bool done)
+{
+  pregrasp_done_ = done;
+}
+
+double PickUpGoal::getPregraspDistance() const
+{
+  return pregrasp_distance_;
+}
+
+void PickUpGoal::setPregraspDistance(double distance)
+{
+  pregrasp_distance_ = distance;
 }
 
 }
