@@ -15,6 +15,7 @@
 #include "demonstration_visualizer/visualization_helpers.h"
 #include "demonstration_visualizer/demonstration_scene_manager.h"
 #include "demonstration_visualizer/pr2_simulator.h"
+#include "demonstration_visualizer/object_manager.h"
 #include <cmath>
 
 #include <QThread>
@@ -85,6 +86,7 @@ Q_SIGNALS:
 
 private:
   DemonstrationSceneManager *demonstration_scene_manager_;
+  ObjectManager* object_manager_;
   MotionRecorder *recorder_;
   PViz *pviz_;
   PR2Simulator *simulator_;

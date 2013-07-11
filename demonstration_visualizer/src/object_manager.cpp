@@ -4,8 +4,8 @@ using namespace std;
 using namespace visualization_msgs;
 using namespace geometry_msgs;
 
-ObjectManager::ObjectManager(CollisionChecker* c){
-  collision_checker_ = c;
+ObjectManager::ObjectManager(/*CollisionChecker* c*/){
+  //collision_checker_ = c;
 }
 
 void ObjectManager::addObject(Object o){
@@ -17,18 +17,37 @@ void ObjectManager::clearObjects(){
 }
 
 vector<Marker> ObjectManager::getMarkers(){
-  vector<Markers> markers;
+  vector<Marker> markers;
   for(unsigned int i=0; i<objects_.size(); i++)
-    markers.push_back(objects_[i].mesh);
+    markers.push_back(objects_[i].mesh_marker_);
   return markers;
 }
 
 Marker ObjectManager::getMarker(int id){
-  return objects_[id].mesh;
+  return objects_[id].mesh_marker_;
 }
 
-bool ObjectMangaer::checkMove(int id, Pose p,
-                              vector<double> rangles, vector<double> langles, BodyPose bp){
+bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langles, BodyPose bp, int skip_id){
+  /*
+  //check robot against world
+  if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp))
+    return false;
+  //check robot against itself
+  if(!collision_checker_->checkRobotAgainstRobot(rangles, langles, bp))
+    return false;
+  //check robot against all objects
+  for(unsigned int i=0; i<objects_.size(); i++){
+    if(i==skip_id)
+      continue;
+    if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, objects_[i].group_))
+      return false;
+  }
+  */
+  return true;
+}
+
+bool ObjectManager::checkObjectMove(int id, Pose p,
+                                    vector<double> rangles, vector<double> langles, BodyPose bp){
   //if this is a static object (one that isn't supposed to move) we can put it anywhere
   if(!objects_[id].movable)
     return true;
@@ -36,6 +55,7 @@ bool ObjectMangaer::checkMove(int id, Pose p,
   //collision check
   Object temp = objects_[id];
   temp.setPose(p);
+  /*
   //check the object against the environment
   if(!collision_checker_->checkGroupAgainstWorld(temp.group_))
     return false;
@@ -49,12 +69,13 @@ bool ObjectMangaer::checkMove(int id, Pose p,
     if(!collision_checker_->checkGroupAgainstGroup(objects_[i].group_,temp.group_))
       return false;
   }
+  */
 
   //check any extera constraints
   return objects_[id].checkConstraints(p);
 }
 
-void ObjectMangaer::moveObject(int id, Pose p){
+void ObjectManager::moveObject(int id, Pose p){
   objects_[id].setPose(p);
 }
 

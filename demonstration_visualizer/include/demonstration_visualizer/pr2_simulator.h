@@ -15,6 +15,7 @@
 #include <demonstration_visualizer/base_movement_controller.h>
 #include <demonstration_visualizer/end_effector_controller.h>
 #include <demonstration_visualizer/motion_recorder.h>
+#include <demonstration_visualizer/object_manager.h>
 #include <sbpl_manipulation_components/kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
 
@@ -33,7 +34,8 @@ class PR2Simulator
 public:
   PR2Simulator(MotionRecorder *recorder, 
 	       PViz *pviz, 
-	       interactive_markers::InteractiveMarkerServer *int_marker_server);
+	       interactive_markers::InteractiveMarkerServer *int_marker_server,
+         ObjectManager* object_manager);
 
   ~PR2Simulator();
 
@@ -123,6 +125,14 @@ public:
    */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
+  bool isValidBasePose(double x, double y, double yaw);
+
+  bool validityCheck(std::vector<double> rangles, std::vector<double> langles, BodyPose bp);
+
+  void attach(int id, KDL::Frame transform);
+
+  void detach();
+
   void showEndEffectorWorkspaceArc();
 
   geometry_msgs::Pose getBasePose() const;
@@ -138,6 +148,11 @@ private:
 
   double frame_rate_;
 
+  bool attached_object_;
+  int attached_id_;
+  KDL::Frame attached_transform_;
+
+  ObjectManager* object_manager_;
   PViz *pviz_;
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
   BaseMovementController base_movement_controller_;

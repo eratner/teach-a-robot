@@ -1,4 +1,6 @@
 #include<demonstration_visualizer/object.h>
+#include <boost/lexical_cast.hpp>
+#include <kdl/frames.hpp>
 
 Object::Object(visualization_msgs::Marker mesh_marker){
   mesh_marker_ = mesh_marker;
@@ -32,10 +34,11 @@ Object::Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_p
   // read each 
   element = root_handle.FirstChild().Element();
   for(element; element; element = element->NextSiblingElement()){
+    /*
     Sphere s;
     int id;
     element->QueryIntAttribute("id", &id);
-    s.name = lexical_cast<string>(id);
+    s.name = boost::lexical_cast<string>(id);
     double temp;
     element->QueryDoubleAttribute("x", &temp);
     s.v.x(temp);
@@ -46,8 +49,9 @@ Object::Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_p
     element->QueryDoubleAttribute("radius", &s.radius);
     s.priority = 1;
     group_.spheres.push_back(s);
+    */
   }
-  group_.name = sphere_list_path;
+  //group_.name = sphere_list_path;
 
 }
 
@@ -56,11 +60,13 @@ void Object::setPose(geometry_msgs::Pose p){
 
   if(movable){
     KDL::Vector v(p.position.x,p.position.y,p.position.z);
+    /*
     group_.f.p = v;
     group_.f.M.Quaternion(p.orientation.x,
                           p.orientation.y,
                           p.orientation.z,
                           p.orientation.w);
+                          */
   }
 }
 

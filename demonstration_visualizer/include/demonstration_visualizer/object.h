@@ -1,6 +1,10 @@
+#ifndef OBJECT_H
+#define OBJECT_H
+
 #include<visualization_msgs/Marker.h>
 #include<geometry_msgs/Pose.h>
 #include <tinyxml.h>
+#include<ros/ros.h>
 //#include <kdl/kdl.h>
 //#include <collision_checker.h>
 
@@ -15,3 +19,4 @@ class Object{
     bool movable;
 };
 
+#endif

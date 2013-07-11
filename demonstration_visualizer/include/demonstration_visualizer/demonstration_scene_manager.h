@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <demonstration_visualizer/visualization_helpers.h>
+#include <demonstration_visualizer/object_manager.h>
 #include <demonstration_visualizer/goal.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
@@ -29,7 +30,7 @@ class DemonstrationSceneManager
 public:
   static const std::string GOAL_MARKER_NAMESPACE;
 
-  DemonstrationSceneManager(interactive_markers::InteractiveMarkerServer *int_marker_server);
+  DemonstrationSceneManager(interactive_markers::InteractiveMarkerServer *int_marker_server, /*CollisionChecker* collision_checker, */ObjectManager* object_manager);
 
   ~DemonstrationSceneManager();
 
@@ -126,6 +127,9 @@ private:
   bool edit_goals_mode_;
   bool edit_meshes_mode_;
   int current_goal_;
+
+  ObjectManager* object_manager_;
+  //CollisionChecker* collision_checker_;
 
   /**
    * @brief Returns the iterator at the position of the marker in the given vector

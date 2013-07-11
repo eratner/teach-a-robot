@@ -24,6 +24,8 @@ rosbuild_add_executable(dviz
   src/demonstration_visualizer_node.cpp
   src/visualization_helpers.cpp
   src/demonstration_scene_manager.cpp
+  src/object.cpp
+  src/object_manager.cpp
   src/pr2_simulator.cpp
   src/base_movement_controller.cpp
   src/end_effector_controller.cpp

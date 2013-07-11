@@ -4,11 +4,14 @@ namespace demonstration_visualizer {
 
 PR2Simulator::PR2Simulator(MotionRecorder *recorder, 
 			   PViz *pviz,
-			   interactive_markers::InteractiveMarkerServer *int_marker_server)
+			   interactive_markers::InteractiveMarkerServer *int_marker_server,
+         ObjectManager* object_manager)
   : playing_(true), 
+    attached_object_(false),
     frame_rate_(10.0), 
     pviz_(pviz), 
     int_marker_server_(int_marker_server), 
+    object_manager_(object_manager),
     base_movement_controller_(),
     end_effector_controller_(),
     recorder_(recorder)
@@ -304,15 +307,40 @@ void PR2Simulator::moveRobot()
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
-  base_pose_.pose.position.x += (1.0/getFrameRate())*vel.linear.x*std::cos(theta) 
+  double dx = (1.0/getFrameRate())*vel.linear.x*std::cos(theta) 
     - (1.0/getFrameRate())*vel.linear.y*std::sin(theta);
-  base_pose_.pose.position.y += (1.0/getFrameRate())*vel.linear.y*std::cos(theta)
+  double dy = (1.0/getFrameRate())*vel.linear.y*std::cos(theta)
     + (1.0/getFrameRate())*vel.linear.x*std::sin(theta);
+  double dyaw = (1/getFrameRate())*vel.angular.z;
 
-  base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(
-				  tf::getYaw(base_pose_.pose.orientation) 
-				  + (1/getFrameRate())*vel.angular.z
-				);
+  double new_x = base_pose_.pose.position.x + dx;
+  double new_y = base_pose_.pose.position.y + dy;
+  double new_theta = tf::getYaw(base_pose_.pose.orientation) + dyaw;
+
+  if(isValidBasePose(new_x, new_y, new_theta)){
+    base_pose_.pose.position.x = new_x;
+    base_pose_.pose.position.y = new_y;
+    base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(new_theta);
+  }
+  else{
+    //TODO: failure state???
+  }
+}
+
+bool PR2Simulator::isValidBasePose(double x, double y, double yaw){
+  //collision check
+  vector<double> langles;
+  vector<double> rangles;
+  for(int i=0; i<7; i++){
+    langles.push_back(joint_states_.position[i]);
+    rangles.push_back(joint_states_.position[i+7]);
+  }
+  BodyPose bp;
+  bp.x = x;
+  bp.y = y;
+  bp.z = 0.0;
+  bp.theta = yaw;
+  return validityCheck(rangles, langles, bp);
 }
 
 void PR2Simulator::moveEndEffectors()
@@ -840,6 +868,65 @@ bool PR2Simulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
     return false;
   }
 
+  //collision check
+  vector<double> langles;
+  vector<double> rangles;
+  for(int i=0; i<7; i++){
+    langles.push_back(joint_states_.position[i]);
+    rangles.push_back(goal_end_effector_pose[i]);
+  }
+  BodyPose bp;
+  bp.x = base_pose_.pose.position.x;
+  bp.y = base_pose_.pose.position.y;
+  bp.z = 0.0;
+  bp.theta = tf::getYaw(base_pose_.pose.orientation);
+  return validityCheck(rangles, langles, bp);
+}
+
+void PR2Simulator::attach(int id, KDL::Frame transform){
+  attached_object_ = true;
+  attached_id_ = id;
+  attached_transform_ = transform;
+}
+
+void PR2Simulator::detach(){
+  attached_object_ = false;
+}
+
+bool PR2Simulator::validityCheck(vector<double> rangles, vector<double> langles, BodyPose bp){
+  if(attached_object_){
+    //check robot motion
+    if(!object_manager_->checkRobotMove(rangles, langles, bp, attached_id_))
+      return false;
+    
+    //check attached object motion
+    geometry_msgs::Pose old_pose = object_manager_->getMarker(attached_id_).pose;
+    KDL::Frame old_frame(KDL::Rotation::Quaternion(old_pose.orientation.x,
+                                                   old_pose.orientation.y,
+                                                   old_pose.orientation.z,
+                                                   old_pose.orientation.w),
+                         KDL::Vector(old_pose.position.x,
+                                     old_pose.position.y,
+                                     old_pose.position.z));
+    KDL::Frame new_frame = old_frame * attached_transform_;
+    geometry_msgs::Pose new_pose;
+    new_pose.position.x = new_frame.p.x();
+    new_pose.position.y = new_frame.p.y();
+    new_pose.position.z = new_frame.p.z();
+    new_frame.M.GetQuaternion(new_pose.orientation.x,
+                              new_pose.orientation.y,
+                              new_pose.orientation.z,
+                              new_pose.orientation.w);
+    
+    if(!object_manager_->checkObjectMove(attached_id_, new_pose, rangles, langles, bp))
+      return false;
+    //TODO: call moveObject somewhere!!!!
+  }
+  else{
+    //check robot motion
+    if(!object_manager_->checkRobotMove(rangles, langles, bp, -1))
+      return false;
+  }
   return true;
 }
 

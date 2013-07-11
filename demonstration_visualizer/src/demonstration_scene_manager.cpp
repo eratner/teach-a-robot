@@ -5,10 +5,13 @@ namespace demonstration_visualizer {
 const std::string DemonstrationSceneManager::GOAL_MARKER_NAMESPACE = "dviz_goal";
 
 DemonstrationSceneManager::DemonstrationSceneManager(
-    interactive_markers::InteractiveMarkerServer *int_marker_server
+    interactive_markers::InteractiveMarkerServer *int_marker_server,
+    /*CollisionChecker* collision_checker,*/
+    ObjectManager* object_manager
   )
   : goals_changed_(false), meshes_changed_(false), edit_goals_mode_(true),
-    edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1)
+    edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1),
+    /*collision_checker_(collision_checker),*/ object_manager_(object_manager)
 {
   goal_feedback_ = boost::bind(&DemonstrationSceneManager::processGoalFeedback,
 			       this,
@@ -198,13 +201,14 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     int movable;
     element->QueryIntAttribute("movable", &movable);
     if(movable){
-      std::string sphere_list_path = std::string(element->Attribute("mesh_resource"));
+      std::string sphere_list_path = std::string(element->Attribute("sphere_list"));
       Object o = Object(mesh_marker, sphere_list_path);
-      object_manager.addObject(o);
+      object_manager_->addObject(o);
     }
     else{
       Object o = Object(mesh_marker);
-      object_manager.addObject(o);
+      object_manager_->addObject(o);
+      //collision_checker->addCollisionObject(....)
     }
 
     //meshes_.push_back(mesh_marker);
