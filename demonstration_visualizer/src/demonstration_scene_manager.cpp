@@ -7,12 +7,11 @@ const std::string DemonstrationSceneManager::GOAL_MARKER_NAMESPACE = "dviz_goal"
 DemonstrationSceneManager::DemonstrationSceneManager(
     PViz *pviz,
     interactive_markers::InteractiveMarkerServer *int_marker_server,
-    /*CollisionChecker* collision_checker,*/
     ObjectManager* object_manager
   )
   : goals_changed_(false), meshes_changed_(false), edit_goals_mode_(true),
     edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1),
-    /*collision_checker_(collision_checker),*/ object_manager_(object_manager), pviz_(pviz)
+    object_manager_(object_manager), pviz_(pviz)
 {
   goal_feedback_ = boost::bind(&DemonstrationSceneManager::processGoalFeedback,
 			       this,
@@ -210,7 +209,6 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     else{
       Object o = Object(mesh_marker);
       object_manager_->addObject(o);
-      //collision_checker->addCollisionObject(....)
     }
 
     //meshes_.push_back(mesh_marker);

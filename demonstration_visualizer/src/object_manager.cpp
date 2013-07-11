@@ -4,12 +4,16 @@ using namespace std;
 using namespace visualization_msgs;
 using namespace geometry_msgs;
 
-ObjectManager::ObjectManager(/*CollisionChecker* c*/){
-  //collision_checker_ = c;
+ObjectManager::ObjectManager(){
+  //PR2CollisionChecker* collision_checker_;
 }
 
 void ObjectManager::addObject(Object o){
   objects_.push_back(o);
+
+  if(!objects_.back().movable){
+    //collision_checker_->addCollisionObject(...)
+  }
 }
 
 void ObjectManager::clearObjects(){

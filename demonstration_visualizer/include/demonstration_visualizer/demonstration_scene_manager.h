@@ -130,7 +130,6 @@ private:
   int current_goal_;
 
   ObjectManager* object_manager_;
-  //CollisionChecker* collision_checker_;
 
   /**
    * @brief Returns the iterator at the position of the marker in the given vector

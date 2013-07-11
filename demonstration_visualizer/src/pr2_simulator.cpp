@@ -900,6 +900,7 @@ bool PR2Simulator::validityCheck(vector<double> rangles, vector<double> langles,
       return false;
     
     //check attached object motion
+    //FIXME: old_pose is wrong......this should be eef from FK
     geometry_msgs::Pose old_pose = object_manager_->getMarker(attached_id_).pose;
     KDL::Frame old_frame(KDL::Rotation::Quaternion(old_pose.orientation.x,
                                                    old_pose.orientation.y,

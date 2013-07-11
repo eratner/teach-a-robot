@@ -13,11 +13,9 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 
   int_marker_server_ = new interactive_markers::InteractiveMarkerServer("dviz_interactive_markers");
 
-  //collision_checker_ = new CollisionChecker();
+  object_manager_ = new ObjectManager();
 
-  object_manager_ = new ObjectManager(/*collision_checker_*/);
-
-  demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, /*collision_checker_, */object_manager_);
+  demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_);
 
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_);
 
