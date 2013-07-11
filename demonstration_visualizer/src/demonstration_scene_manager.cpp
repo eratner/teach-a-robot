@@ -72,12 +72,13 @@ void DemonstrationSceneManager::updateScene()
   }
 
   // Second, update the meshes. 
-  if(meshes_.size() > 0 && meshesChanged())
+  if(object_manager_->getNumObjects() > 0 && meshesChanged())
   {
+    std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
     if(editMeshesMode())
     {
       std::vector<visualization_msgs::Marker>::iterator it;
-      for(it = meshes_.begin(); it != meshes_.end(); ++it)
+      for(it = meshes.begin(); it != meshes.end(); ++it)
       {
 	it->header.frame_id = "/map";
 	it->header.stamp = ros::Time();
@@ -90,7 +91,7 @@ void DemonstrationSceneManager::updateScene()
 
 	// Then add the markers again, but this time with interactive markers.
 	it->action = visualization_msgs::Marker::ADD;
-	visualizeMesh(it->id, true);
+	visualizeMesh(*it, true);
       }
     }
     else
@@ -98,7 +99,7 @@ void DemonstrationSceneManager::updateScene()
       std::vector<visualization_msgs::Marker>::iterator it;
       // For each mesh, first remove all the interactive markers from the meshes.
       // Then, re-visualize each marker without an attached interactive marker.
-      for(it = meshes_.begin(); it != meshes_.end(); ++it)
+      for(it = meshes.begin(); it != meshes.end(); ++it)
       {
 	std::stringstream int_marker_name;
 	int_marker_name << "mesh_marker_" << it->id;
@@ -127,8 +128,9 @@ void DemonstrationSceneManager::updateScene()
 int DemonstrationSceneManager::loadScene(const std::string &filename)
 {
   // Clear existing meshes.
+  std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
   std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = meshes_.begin(); it != meshes_.end(); ++it)
+  for(it = meshes.begin(); it != meshes.end(); ++it)
   {
     std::stringstream int_marker_name;
     int_marker_name << "mesh_marker_" << it->id;
@@ -148,7 +150,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
     marker_pub_.publish(*it);
   }
-  meshes_.clear();
+  object_manager_->clearObjects();
 
   // Load the demonstration scene from the specified file.
   int max_mesh_id = -1;
@@ -213,11 +215,11 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
       //collision_checker->addCollisionObject(....)
     }
 
-    //meshes_.push_back(mesh_marker);
-
     if(mesh_marker.id > max_mesh_id)
       max_mesh_id = mesh_marker.id;
   }
+
+  setMeshesChanged();
 
   ROS_INFO("Read %d meshes.", (int)meshes_.size());
 
@@ -421,25 +423,28 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int
 }
 
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker, 
-					bool attach_interactive_marker)
+					bool attach_interactive_marker,
+					const std::string &sphere_list_path)
 {
-  meshes_.push_back(marker);
-
-  visualizeMesh(marker.id, attach_interactive_marker);
-}
-
-bool DemonstrationSceneManager::visualizeMesh(int mesh_id, bool attach_interactive_marker)
-{
-  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
-
-  if(it == meshes_.end())
+  if(!sphere_list_path.empty())
   {
-    ROS_ERROR("[SceneManager] Failed to find mesh with id %d!", mesh_id);
-    return false;
+    // Add a movable object.
+    Object o = Object(marker, sphere_list_path);
+    object_manager_->addObject(o);
+  }
+  else
+  {
+    // Add a nonmovable object.
+    Object o = Object(marker);
+    object_manager_->addObject(o);
   }
 
-  visualization_msgs::Marker marker = *it;
+  visualizeMesh(marker, attach_interactive_marker);
+}
 
+void DemonstrationSceneManager::visualizeMesh(const visualization_msgs::Marker &marker, 
+					      bool attach_interactive_marker)
+{
   if(attach_interactive_marker)
   {
     // Attach an interactive marker to control this marker.
@@ -476,8 +481,6 @@ bool DemonstrationSceneManager::visualizeMesh(int mesh_id, bool attach_interacti
   {
     marker_pub_.publish(marker);
   }
-
-  return true;
 }
 
 visualization_msgs::Marker DemonstrationSceneManager::getMesh(int mesh_id)
@@ -496,41 +499,21 @@ visualization_msgs::Marker DemonstrationSceneManager::getMesh(int mesh_id)
 
 bool DemonstrationSceneManager::updateMeshPose(int mesh_id, const geometry_msgs::Pose &pose)
 {
-  // Find the marker by id.
-  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
-
-  if(it == meshes_.end())
-    return false;
-
-  it->pose = pose;
+  object_manager_->moveObject(mesh_id, pose);
 
   return true;
 }
 
-bool DemonstrationSceneManager::updateMeshScale(int mesh_id, double x, double y, double z)
+void DemonstrationSceneManager::updateMeshScale(int mesh_id, double x, double y, double z)
 {
-  // Find the mesh marker by id.
-  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
+  object_manager_->scaleObject(mesh_id, x, y, z);
 
-  if(it == meshes_.end())
-    return false;
-
-  it->scale.x = x;
-  it->scale.y = y;
-  it->scale.z = z;
-
-  visualizeMesh(it->id, editMeshesMode());
-
-  return true;
+  visualizeMesh(object_manager_->getMarker(mesh_id), editMeshesMode());
 }
 
-bool DemonstrationSceneManager::removeMesh(int mesh_id)
+void DemonstrationSceneManager::removeMesh(int mesh_id)
 {
-  // Find the marker to delete, by id.
-  std::vector<visualization_msgs::Marker>::iterator it = findMarker(meshes_, mesh_id);
-
-  if(it == meshes_.end())
-    return false;
+  visualization_msgs::Marker mesh = object_manager_->getMarker(mesh_id);
 
   if(editMeshesMode())
   {
@@ -545,12 +528,11 @@ bool DemonstrationSceneManager::removeMesh(int mesh_id)
   }
   else
   {
-    it->action = visualization_msgs::Marker::DELETE;
-    visualizeMesh(it->id, false);
+    mesh.action = visualization_msgs::Marker::DELETE;
+    visualizeMesh(mesh, false);
   }
 
-  meshes_.erase(it);
-  return true;
+  object_manager_->removeObject(mesh_id);
 }
 
 void DemonstrationSceneManager::addGoal(const geometry_msgs::Pose &pose, 
@@ -679,7 +661,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 
 std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getMeshes() const
 {
-  return meshes_;
+  return object_manager_->getMarkers();
 }
 
 std::vector<Goal *> DemonstrationSceneManager::getGoals() const

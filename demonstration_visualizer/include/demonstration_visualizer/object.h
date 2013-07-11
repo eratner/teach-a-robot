@@ -10,6 +10,7 @@
 
 class Object{
   public:
+    Object();
     Object(visualization_msgs::Marker mesh_marker);
     Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_path);
     void setPose(geometry_msgs::Pose p);

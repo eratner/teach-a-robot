@@ -732,11 +732,11 @@ void DemonstrationVisualizer::loadScene()
       std::vector<visualization_msgs::Marker>::iterator it;
       for(it = meshes.begin(); it != meshes.end(); ++it)
       {
-	it->header.frame_id = "/map";
-	it->header.stamp = ros::Time();
-	it->action = visualization_msgs::Marker::ADD;
-	it->type = visualization_msgs::Marker::MESH_RESOURCE;
-	it->mesh_use_embedded_materials = true;
+	// it->header.frame_id = "/map";
+	// it->header.stamp = ros::Time();
+	// it->action = visualization_msgs::Marker::ADD;
+	// it->type = visualization_msgs::Marker::MESH_RESOURCE;
+	// it->mesh_use_embedded_materials = true;
 
 	int i = it->mesh_resource.size()-1;
 	for(; i >= 0; i--)
@@ -757,7 +757,7 @@ void DemonstrationVisualizer::loadScene()
 			<< it->pose.position.y << ", "
 			<< it->pose.position.z << ").");
 
-	node_.getSceneManager()->visualizeMesh(it->id, node_.getSceneManager()->editMeshesMode());
+	// node_.getSceneManager()->visualizeMesh(it->id, node_.getSceneManager()->editMeshesMode());
       }
 
       next_mesh_id_ = max_mesh_id+1;

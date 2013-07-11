@@ -2,6 +2,10 @@
 #include <boost/lexical_cast.hpp>
 #include <kdl/frames.hpp>
 
+Object::Object() {
+  movable = false;
+}
+
 Object::Object(visualization_msgs::Marker mesh_marker){
   mesh_marker_ = mesh_marker;
   movable = false;

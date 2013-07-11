@@ -9,7 +9,11 @@ ObjectManager::ObjectManager(/*CollisionChecker* c*/){
 }
 
 void ObjectManager::addObject(Object o){
-  objects_.push_back(o);
+  objects_.insert(make_pair<int, Object>(o.mesh_marker_.id, o));
+}
+
+void ObjectManager::removeObject(int id) {
+  objects_.erase(id);
 }
 
 void ObjectManager::clearObjects(){
@@ -18,8 +22,12 @@ void ObjectManager::clearObjects(){
 
 vector<Marker> ObjectManager::getMarkers(){
   vector<Marker> markers;
-  for(unsigned int i=0; i<objects_.size(); i++)
-    markers.push_back(objects_[i].mesh_marker_);
+  map<int, Object>::iterator it;
+  for(it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    markers.push_back((it->second).mesh_marker_);
+  }
+
   return markers;
 }
 
@@ -79,3 +87,12 @@ void ObjectManager::moveObject(int id, Pose p){
   objects_[id].setPose(p);
 }
 
+void ObjectManager::scaleObject(int id, double x, double y, double z) {
+  objects_[id].mesh_marker_.scale.x = x;
+  objects_[id].mesh_marker_.scale.y = y;
+  objects_[id].mesh_marker_.scale.z = z;
+}
+
+int ObjectManager::getNumObjects() const {
+  return objects_.size();
+}

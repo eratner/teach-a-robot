@@ -56,17 +56,19 @@ public:
 
   void addMeshFromFile(const std::string &filename, int mesh_id);
 
-  void addMesh(const visualization_msgs::Marker &marker, bool attach_interactive_marker = false);
+  void addMesh(const visualization_msgs::Marker &marker, 
+	       bool attach_interactive_marker = false,
+	       const std::string &sphere_list_path = "");
 
-  bool visualizeMesh(int mesh_id, bool attach_interactive_marker);
+  void visualizeMesh(const visualization_msgs::Marker &marker, bool attach_interactive_marker);
 
   visualization_msgs::Marker getMesh(int mesh_id);
   
   bool updateMeshPose(int mesh_id, const geometry_msgs::Pose &pose);
 
-  bool updateMeshScale(int mesh_id, double x, double y, double z);
+  void updateMeshScale(int mesh_id, double x, double y, double z);
 
-  bool removeMesh(int mesh_id);
+  void removeMesh(int mesh_id);
 
   // Adds an additional goal to the current task, at the end. 
   void addGoal(const geometry_msgs::Pose &pose = geometry_msgs::Pose(), 
