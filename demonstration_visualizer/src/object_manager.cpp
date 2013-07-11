@@ -12,6 +12,70 @@ void ObjectManager::addObject(Object o){
   objects_.insert(make_pair<int, Object>(o.mesh_marker_.id, o));
 }
 
+void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
+				      const std::string &collision_model_file,
+				      bool movable)
+{
+  TiXmlDocument doc(collision_model_file.c_str());
+  if(!doc.LoadFile())
+  {
+    ROS_ERROR("[ObjectManager] Failed to load file %s!", collision_model_file.c_str());
+    return;
+  }
+
+  TiXmlHandle doc_handle(&doc);
+  TiXmlElement *element;
+  TiXmlHandle root_handle(0);
+
+  element = doc_handle.FirstChildElement().Element();
+  if(!element)
+  {
+    // @todo error
+    return;
+  }
+
+  root_handle = TiXmlHandle(element);
+
+  ROS_INFO("Reading %s...", element->Value());
+
+  // Read the mesh information.
+  element = root_handle.FirstChild().Element();
+
+  mesh_marker.mesh_resource = std::string(element->Attribute("mesh_resource"));
+  ROS_INFO("mesh resource = %s", mesh_marker.mesh_resource.c_str());
+
+  Object o(mesh_marker);
+
+  if(movable)
+  {
+    // Read the spheres list from this file.
+    element = element->NextSiblingElement();
+    element = element->FirstChildElement();
+    for(element; element; element = element->NextSiblingElement())
+    {
+      // @todo deal with reading in sphere lists.
+      /*
+	Sphere s;
+	int id;
+	element->QueryIntAttribute("id", &id);
+	s.name = boost::lexical_cast<string>(id);
+	double temp;
+	element->QueryDoubleAttribute("x", &temp);
+	s.v.x(temp);
+	element->QueryDoubleAttribute("y", &temp);
+	s.v.y(temp);
+	element->QueryDoubleAttribute("z", &temp);
+	s.v.z(temp);
+	element->QueryDoubleAttribute("radius", &s.radius);
+	s.priority = 1;
+	group_.spheres.push_back(s);
+      */
+    }
+  }
+
+  addObject(o);
+}
+
 void ObjectManager::removeObject(int id) {
   objects_.erase(id);
 }

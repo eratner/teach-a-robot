@@ -176,14 +176,19 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
   ROS_INFO("Reading %s...", element->Value());
 
-  // Read each mesh.
+  // Read the path to the collision model files.
   element = root_handle.FirstChild().Element();
+  std::string package_path = ros::package::getPath("demonstration_visualizer");
+  std::string collision_model_path = std::string(element->Attribute("path"));
+  ROS_INFO("Collision model path is %s", collision_model_path.c_str());
+
+  // Read each mesh.
+  element = element->NextSiblingElement();
   visualization_msgs::Marker mesh_marker;
   for(element; element; element = element->NextSiblingElement())
   {
     element->QueryIntAttribute("id", &mesh_marker.id);
-    mesh_marker.ns = std::string(element->Attribute("ns"));
-    mesh_marker.mesh_resource = std::string(element->Attribute("mesh_resource"));
+    std::string label = std::string(element->Attribute("label"));
     element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x);
     element->QueryDoubleAttribute("position_y", &mesh_marker.pose.position.y);
     element->QueryDoubleAttribute("position_z", &mesh_marker.pose.position.z);
@@ -197,23 +202,30 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
     mesh_marker.header.frame_id = "/map";
     mesh_marker.header.stamp = ros::Time();
+    mesh_marker.ns = "demonstration_visualizer";
     mesh_marker.action = visualization_msgs::Marker::ADD;
     mesh_marker.type = visualization_msgs::Marker::MESH_RESOURCE;
     mesh_marker.color.r = mesh_marker.color.g = mesh_marker.color.b = mesh_marker.color.a = 0;
     mesh_marker.mesh_use_embedded_materials = true;
 
+    std::stringstream collision_model_file;
+    collision_model_file << package_path << collision_model_path << "/" << label << ".xml";
+
     int movable;
     element->QueryIntAttribute("movable", &movable);
-    if(movable){
-      std::string sphere_list_path = std::string(element->Attribute("sphere_list"));
-      Object o = Object(mesh_marker, sphere_list_path);
-      object_manager_->addObject(o);
-    }
-    else{
-      Object o = Object(mesh_marker);
-      object_manager_->addObject(o);
-      //collision_checker->addCollisionObject(....)
-    }
+    object_manager_->addObjectFromFile(mesh_marker,
+				       collision_model_file.str(),
+				       movable);
+    // if(movable){
+    //   std::string sphere_list_path = std::string(element->Attribute("sphere_list"));
+    //   Object o = Object(mesh_marker, sphere_list_path);
+    //   object_manager_->addObject(o);
+    // }
+    // else{
+    //   Object o = Object(mesh_marker);
+    //   object_manager_->addObject(o);
+    //   //collision_checker->addCollisionObject(....)
+    // }
 
     if(mesh_marker.id > max_mesh_id)
       max_mesh_id = mesh_marker.id;
@@ -221,7 +233,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
   setMeshesChanged();
 
-  ROS_INFO("Read %d meshes.", (int)meshes_.size());
+  ROS_INFO("Read %d meshes.", (int)object_manager_->getNumObjects());
 
   return max_mesh_id;
 }

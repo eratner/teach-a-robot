@@ -5,6 +5,7 @@
 #include<visualization_msgs/Marker.h>
 #include<geometry_msgs/Pose.h>
 #include<pviz/pviz.h>
+#include <ros/package.h>
 //#include<collision_checker.h>
 
 #include <map>
@@ -13,6 +14,11 @@ class ObjectManager{
   public:
     ObjectManager(/*CollisionChecker* c*/);
     void addObject(Object o);
+    
+    void addObjectFromFile(visualization_msgs::Marker &mesh_marker,
+			   const std::string &collision_model_file, 
+			   bool movable = false);
+
     void removeObject(int id);
     void clearObjects();
     std::vector<visualization_msgs::Marker> getMarkers();

@@ -1,0 +1,3 @@
+<collision_model>
+  <object label="door" mesh_resource="package://demonstration_visualizer/meshes/door1/models/internaldoor.dae" />
+</collision_model>
