@@ -241,9 +241,6 @@ void PR2Simulator::run()
 
     updateEndEffectorMarker();
 
-    if(!recorder_->isReplaying())
-      moveEndEffectors();
-
     // Record motion.
     if(recorder_->isRecording())
     {
@@ -277,99 +274,99 @@ void PR2Simulator::run()
   }
 }
 
-void PR2Simulator::updateVelocity(const geometry_msgs::Twist &vel)
-{
-  vel_cmd_ = vel;
-}
-
 void PR2Simulator::moveRobot()
 {
-  if(base_movement_controller_.getState() == BaseMovementController::DONE ||
-     (base_movement_controller_.getState() == BaseMovementController::INITIAL &&
-      isBaseMoving() == true)
-     )
-  {
-    int_marker_server_->setPose("base_marker", base_pose_.pose);
-    int_marker_server_->applyChanges();
-    base_movement_controller_.setState(BaseMovementController::INITIAL);
-    //return;
-  }
-
-  //updateVelocity(base_movement_controller_.getNextVelocities(base_pose_.pose, goal_pose_.pose));
-  geometry_msgs::Twist vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
-									 goal_pose_.pose);
-  vel.linear.x += vel_cmd_.linear.x;
-  vel.linear.x += key_vel_cmd_.linear.x;
-  vel.linear.y += vel_cmd_.linear.y;
-  vel.linear.y += key_vel_cmd_.linear.y;
-  vel.angular.z += vel_cmd_.angular.z;
-  vel.angular.z += key_vel_cmd_.angular.z;
+  // First, get the next proposed base pose.
+  geometry_msgs::Twist base_vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
+									      goal_pose_.pose);
+  base_vel.linear.x += vel_cmd_.linear.x;
+  base_vel.linear.x += key_vel_cmd_.linear.x;
+  base_vel.linear.y += vel_cmd_.linear.y;
+  base_vel.linear.y += key_vel_cmd_.linear.y;
+  base_vel.angular.z += vel_cmd_.angular.z;
+  base_vel.angular.z += key_vel_cmd_.angular.z;
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
-  double dx = (1.0/getFrameRate())*vel.linear.x*std::cos(theta) 
-    - (1.0/getFrameRate())*vel.linear.y*std::sin(theta);
-  double dy = (1.0/getFrameRate())*vel.linear.y*std::cos(theta)
-    + (1.0/getFrameRate())*vel.linear.x*std::sin(theta);
-  double dyaw = (1/getFrameRate())*vel.angular.z;
+  double dx = (1.0/getFrameRate())*base_vel.linear.x*std::cos(theta) 
+    - (1.0/getFrameRate())*base_vel.linear.y*std::sin(theta);
+  double dy = (1.0/getFrameRate())*base_vel.linear.y*std::cos(theta)
+    + (1.0/getFrameRate())*base_vel.linear.x*std::sin(theta);
+  double dyaw = (1/getFrameRate())*base_vel.angular.z;
 
   double new_x = base_pose_.pose.position.x + dx;
   double new_y = base_pose_.pose.position.y + dy;
   double new_theta = tf::getYaw(base_pose_.pose.orientation) + dyaw;
 
-  if(isValidBasePose(new_x, new_y, new_theta)){
+  BodyPose body_pose;
+  body_pose.x = new_x;
+  body_pose.y = new_y;
+  body_pose.z = 0.0;
+  body_pose.theta = new_theta;
+
+  // Second, get the next proposed end-effector pose and resulting joint angles.
+  geometry_msgs::Twist end_effector_vel = 
+    end_effector_controller_.moveTo(end_effector_pose_.pose,
+				    end_effector_goal_pose_.pose);
+
+  dx = (1.0/getFrameRate())*end_effector_vel.linear.x;
+  dy = (1.0/getFrameRate())*end_effector_vel.linear.y;
+  double dz = (1.0/getFrameRate())*end_effector_vel.linear.z;
+
+  // Attempt to find joint angles for the arm using the arm IK solver.
+  std::vector<double> r_arm_joints(7, 0);
+  std::vector<double> l_arm_joints(7, 0);
+  for(int i = 7; i < 14; ++i)
+  {
+    r_arm_joints[i-7] = joint_states_.position[i];
+    l_arm_joints[i-7] = joint_states_.position[i-7];
+  }
+
+  std::vector<double> end_effector_pose(7, 0);
+  end_effector_pose[0] = end_effector_pose_.pose.position.x + dx;
+  end_effector_pose[1] = end_effector_pose_.pose.position.y + dy;
+  end_effector_pose[2] = end_effector_pose_.pose.position.z + dz;
+  end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
+  end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
+  end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
+  end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
+  
+  // Use IK to find the required joint angles for the arm.
+  std::vector<double> solution(7, 0);
+  if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
+  {
+    //ROS_ERROR("[PR2Sim] IK failed in move robot!");
+  }
+
+  if(validityCheck(solution, l_arm_joints, body_pose))
+  {
+    // All is valid, first move the base pose.
     base_pose_.pose.position.x = new_x;
     base_pose_.pose.position.y = new_y;
     base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(new_theta);
-  }
-  else{
-    //TODO: failure state???
-  }
-}
 
-bool PR2Simulator::isValidBasePose(double x, double y, double yaw){
-  //collision check
-  vector<double> langles;
-  vector<double> rangles;
-  for(int i=0; i<7; i++){
-    langles.push_back(joint_states_.position[i]);
-    rangles.push_back(joint_states_.position[i+7]);
-  }
-  BodyPose bp;
-  bp.x = x;
-  bp.y = y;
-  bp.z = 0.0;
-  bp.theta = yaw;
-  return validityCheck(rangles, langles, bp);
-}
-
-void PR2Simulator::moveEndEffectors()
-{
-  updateEndEffectorVelocity(end_effector_controller_.moveTo(end_effector_pose_.pose,
-							    end_effector_goal_pose_.pose)
-			    );
-
-  if(isBaseMoving() && end_effector_controller_.getState() == EndEffectorController::INITIAL)
-  {
-    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
-    int_marker_server_->applyChanges();
-    return;
-  }
-
-  if(end_effector_vel_cmd_.linear.x == 0 &&
-     end_effector_vel_cmd_.linear.y == 0 &&
-     end_effector_vel_cmd_.linear.z == 0)
-    return;
-
-  geometry_msgs::Pose next_end_effector_pose = end_effector_pose_.pose;
-  next_end_effector_pose.position.x += (1/getFrameRate())*end_effector_vel_cmd_.linear.x;
-  next_end_effector_pose.position.y += (1/getFrameRate())*end_effector_vel_cmd_.linear.y;
-  next_end_effector_pose.position.z += (1/getFrameRate())*end_effector_vel_cmd_.linear.z;
+    // Next, set the new joint angles of the right arm and the new 
+    // (right) end-effector pose.
+    for(int i = 7; i < 14; ++i)
+      joint_states_.position[i] = solution[i-7];
   
-  if(!setEndEffectorPose(next_end_effector_pose))
-  {
-    end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
+    end_effector_pose_.pose.position.x = end_effector_pose[0];
+    end_effector_pose_.pose.position.y = end_effector_pose[1];
+    end_effector_pose_.pose.position.z = end_effector_pose[2];
+    end_effector_pose_.pose.orientation.x = end_effector_pose[3];
+    end_effector_pose_.pose.orientation.y = end_effector_pose[4];
+    end_effector_pose_.pose.orientation.z = end_effector_pose[5];
+    end_effector_pose_.pose.orientation.w = end_effector_pose[6];
   }
+  else
+  {
+    ROS_ERROR("[PR2Sim] Invalid movement!");
+  }
+}
+
+void PR2Simulator::updateVelocity(const geometry_msgs::Twist &vel)
+{
+  vel_cmd_ = vel;
 }
 
 void PR2Simulator::visualizeRobot()
@@ -416,40 +413,6 @@ void PR2Simulator::updateEndEffectorPose()
   end_effector_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(fk_pose[3], 
 										fk_pose[4],
 										fk_pose[5]);
-}
-
-bool PR2Simulator::setEndEffectorPose(const geometry_msgs::Pose &goal_pose)
-{
-  // Attempt to find joint angles for the arm using the arm IK solver.
-  std::vector<double> r_arm_joints(7, 0);
-  for(int i = 7; i < 14; ++i)
-  {
-    r_arm_joints[i-7] = joint_states_.position[i];
-  }
-
-  std::vector<double> goal_end_effector_pose(7, 0);
-  goal_end_effector_pose[0] = goal_pose.position.x;
-  goal_end_effector_pose[1] = goal_pose.position.y;
-  goal_end_effector_pose[2] = goal_pose.position.z;
-  goal_end_effector_pose[3] = goal_pose.orientation.x;
-  goal_end_effector_pose[4] = goal_pose.orientation.y;
-  goal_end_effector_pose[5] = goal_pose.orientation.z;
-  goal_end_effector_pose[6] = goal_pose.orientation.w;
-  
-  // Use IK to find the required joint angles for the arm.
-  std::vector<double> solution(7, 0);
-  if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
-  {
-    return false;
-  }
-
-  // Set the new joint angles.
-  for(int i = 7; i < 14/*joint_states_.position.size()*/; ++i)
-    joint_states_.position[i] = solution[i-7];
-  
-  end_effector_pose_.pose = goal_pose;
-
-  return true;
 }
 
 void PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)

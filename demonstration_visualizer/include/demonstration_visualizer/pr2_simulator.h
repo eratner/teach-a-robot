@@ -50,24 +50,24 @@ public:
   bool isPlaying() const;
 
   void run();
+  
+  /**
+   * @brief Moves the robot (base and end-effectors) by first proposing new base and
+   *        end-effector poses, checking these for validity (i.e. no collisions and 
+   *        valid IK).
+   */
+  void moveRobot();
+
+  /**
+   * @brief Checks the validity of the robot's pose.
+   */
+  bool isValidRobotPose();
 
   /**
    * @brief Update the (linear/angular) velocity of the base.
    * @param[in] 
    */
   void updateVelocity(const geometry_msgs::Twist &);
-
-  /**
-   * @brief Moves the base of the robot towards the current 
-   *        (if any) goal pose.
-   */
-  void moveRobot();
-
-  /**
-   * @brief Moves the end-effectors according to the current
-   *        end-effector velocity commands.
-   */
-  void moveEndEffectors();
 
   /**
    * @brief Visualizes the robot using PViz.
@@ -79,15 +79,6 @@ public:
    *        based on the current joint angles, using forward kinematics.
    */
   void updateEndEffectorPose();
-
-  /**
-   * @brief Finds and sets the appropriate positions of the
-   *        (right) arm joints using IK so that the end-effector 
-   *        is at the desired pose.
-   * @param[in] the desired pose of the (right) end-effector.
-   * @return true on success, otherwise false.
-   */
-  bool setEndEffectorPose(const geometry_msgs::Pose &);
 
   void setEndEffectorGoalPose(const geometry_msgs::Pose &);
 
@@ -124,8 +115,6 @@ public:
    *        using FK with the current joint angles.
    */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
-
-  bool isValidBasePose(double x, double y, double yaw);
 
   bool validityCheck(std::vector<double> rangles, std::vector<double> langles, BodyPose bp);
 
