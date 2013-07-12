@@ -5,7 +5,7 @@ namespace demonstration_visualizer {
 PR2Simulator::PR2Simulator(MotionRecorder *recorder, 
 			   PViz *pviz,
 			   interactive_markers::InteractiveMarkerServer *int_marker_server,
-         ObjectManager* object_manager)
+			   ObjectManager* object_manager)
   : playing_(true), 
     attached_object_(false),
     frame_rate_(10.0), 
@@ -13,7 +13,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     int_marker_server_(int_marker_server), 
     object_manager_(object_manager),
     base_movement_controller_(),
-    end_effector_controller_(),
+    end_effector_controller_(int_marker_server),
     recorder_(recorder)
 {
   ros::NodeHandle nh;
@@ -139,9 +139,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Attach an interactive marker to the end effectors of the robot.
   visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
 
-  //int_marker.header.frame_id = "/map";
   int_marker.header.frame_id = "/base_footprint";
-  int_marker.pose = robot_markers_.markers.at(11).pose;//r_gripper_marker.pose;
+  int_marker.pose = robot_markers_.markers.at(11).pose;
   int_marker.name = "r_gripper_marker";
   int_marker.description = "";
 
@@ -341,7 +340,8 @@ void PR2Simulator::moveRobot()
   std::vector<double> solution(7, 0);
   if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
   {
-    //ROS_ERROR("[PR2Sim] IK failed in move robot!");
+    // ROS_ERROR("[PR2Sim] IK failed in move robot!");
+    return;
   }
 
   if(validityCheck(solution, l_arm_joints, body_pose))
@@ -706,30 +706,30 @@ void PR2Simulator::processKeyEvent(int key, int type)
 void PR2Simulator::updateEndEffectorMarker()
 {
   // If the gripper marker is at an invalid pose, it should turn red.
-  if(end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL &&
-     end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
-  {
-    visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_->get("r_gripper_marker", gripper_marker);
-    gripper_marker.controls[0].markers[0].color.r = 1;
-    gripper_marker.controls[0].markers[0].color.g = 0;
-    gripper_marker.controls[0].markers[0].color.b = 0;
-    gripper_marker.pose = end_effector_goal_pose_.pose;
-    int_marker_server_->insert(gripper_marker);
-    int_marker_server_->applyChanges();
-  }
-  else if(end_effector_controller_.getState() != EndEffectorController::INVALID_GOAL &&
-	  end_effector_controller_.getLastState() == EndEffectorController::INVALID_GOAL)
-  {
-    visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_->get("r_gripper_marker", gripper_marker);
-    gripper_marker.controls[0].markers[0].color.r = 0;
-    gripper_marker.controls[0].markers[0].color.g = 1;
-    gripper_marker.controls[0].markers[0].color.b = 0;
-    gripper_marker.pose = end_effector_goal_pose_.pose;
-    int_marker_server_->insert(gripper_marker);
-    int_marker_server_->applyChanges();
-  }
+  // if(end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL &&
+  //    end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
+  // {
+  //   visualization_msgs::InteractiveMarker gripper_marker;
+  //   int_marker_server_->get("r_gripper_marker", gripper_marker);
+  //   gripper_marker.controls[0].markers[0].color.r = 1;
+  //   gripper_marker.controls[0].markers[0].color.g = 0;
+  //   gripper_marker.controls[0].markers[0].color.b = 0;
+  //   gripper_marker.pose = end_effector_goal_pose_.pose;
+  //   int_marker_server_->insert(gripper_marker);
+  //   int_marker_server_->applyChanges();
+  // }
+  // else if(end_effector_controller_.getState() != EndEffectorController::INVALID_GOAL &&
+  // 	  end_effector_controller_.getLastState() == EndEffectorController::INVALID_GOAL)
+  // {
+  //   visualization_msgs::InteractiveMarker gripper_marker;
+  //   int_marker_server_->get("r_gripper_marker", gripper_marker);
+  //   gripper_marker.controls[0].markers[0].color.r = 0;
+  //   gripper_marker.controls[0].markers[0].color.g = 1;
+  //   gripper_marker.controls[0].markers[0].color.b = 0;
+  //   gripper_marker.pose = end_effector_goal_pose_.pose;
+  //   int_marker_server_->insert(gripper_marker);
+  //   int_marker_server_->applyChanges();
+  // }
 
   if(!is_moving_r_gripper_ 
      && end_effector_controller_.getState() == EndEffectorController::DONE
@@ -863,7 +863,9 @@ void PR2Simulator::detach(){
   attached_object_ = false;
 }
 
-bool PR2Simulator::validityCheck(vector<double> rangles, vector<double> langles, BodyPose bp){
+bool PR2Simulator::validityCheck(const std::vector<double> &rangles, 
+				 const std::vector<double> &langles, 
+				 const BodyPose &bp){
   if(attached_object_){
     //check robot motion
     if(!object_manager_->checkRobotMove(rangles, langles, bp, attached_id_))

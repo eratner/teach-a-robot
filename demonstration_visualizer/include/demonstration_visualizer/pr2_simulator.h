@@ -35,7 +35,7 @@ public:
   PR2Simulator(MotionRecorder *recorder, 
 	       PViz *pviz, 
 	       interactive_markers::InteractiveMarkerServer *int_marker_server,
-         ObjectManager* object_manager);
+	       ObjectManager* object_manager);
 
   ~PR2Simulator();
 
@@ -116,7 +116,9 @@ public:
    */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
-  bool validityCheck(std::vector<double> rangles, std::vector<double> langles, BodyPose bp);
+  bool validityCheck(const std::vector<double> &rangles, 
+		     const std::vector<double> &langles, 
+		     const BodyPose &bp);
 
   void attach(int id, KDL::Frame transform);
 

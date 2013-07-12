@@ -651,11 +651,40 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
     {
       PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(goal_number));
 
-      geometry_msgs::Pose goal_pose = goal->getObject().pose;
+      geometry_msgs::Pose pregrasp_pose = goal->getPregraspPose();
+
+      // Combine the pregrasp marker pose in the map frame with the 
+      // pregrasp distance to get the actual pregrasp pose in the map
+      // frame.
+      tf::Transform marker_in_map(tf::Quaternion(pregrasp_pose.orientation.x,
+						 pregrasp_pose.orientation.y,
+						 pregrasp_pose.orientation.z,
+						 pregrasp_pose.orientation.w),
+				  tf::Vector3(pregrasp_pose.position.x,
+					      pregrasp_pose.position.y,
+					      pregrasp_pose.position.z)
+				  );
+
+      tf::Transform gripper_in_marker(tf::Quaternion::getIdentity(),
+				      tf::Vector3(-1.0*goal->getPregraspDistance(),
+						  0.0,
+						  0.0)
+				      );
+
+      tf::Transform gripper_in_map = marker_in_map * gripper_in_marker;
+
+      geometry_msgs::Pose pregrasp_pose_fixed;
+      tf::quaternionTFToMsg(gripper_in_map.getRotation(), pregrasp_pose_fixed.orientation);
+      geometry_msgs::Vector3 position;
+      tf::vector3TFToMsg(gripper_in_map.getOrigin(), position);
+      pregrasp_pose_fixed.position.x = position.x;
+      pregrasp_pose_fixed.position.y = position.y;
+      pregrasp_pose_fixed.position.z = position.z;
+
       //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
-      double distance = std::sqrt(std::pow(goal_pose.position.x - pose.position.x, 2) +
-				  std::pow(goal_pose.position.y - pose.position.y, 2) +
-				  std::pow(goal_pose.position.z - pose.position.z, 2));
+      double distance = std::sqrt(std::pow(pregrasp_pose.position.x - pose.position.x, 2) +
+				  std::pow(pregrasp_pose.position.y - pose.position.y, 2) +
+				  std::pow(pregrasp_pose.position.z - pose.position.z, 2));
 
       if(distance < tolerance)
 	reached = true;
