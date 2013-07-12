@@ -153,6 +153,18 @@ void ObjectManager::clearObjects(){
   objects_.clear();
 }
 
+vector<Marker> ObjectManager::getMovedMarkers(){
+  vector<Marker> markers;
+  map<int, Object>::iterator it;
+  for(it = objects_.begin(); it != objects_.end(); ++it){
+    if(it->second.redraw){
+      markers.push_back((it->second).mesh_marker_);
+      it->second.redraw = false;
+    }
+  }
+  return markers;
+}
+
 vector<Marker> ObjectManager::getMarkers(){
   vector<Marker> markers;
   map<int, Object>::iterator it;
@@ -223,6 +235,7 @@ bool ObjectManager::checkObjectMove(int id, Pose p,
 
 void ObjectManager::moveObject(int id, Pose p){
   objects_[id].setPose(p);
+  objects_[id].redraw = true;
 }
 
 void ObjectManager::scaleObject(int id, double x, double y, double z) {

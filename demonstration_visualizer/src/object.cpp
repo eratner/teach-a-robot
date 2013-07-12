@@ -9,11 +9,13 @@ Object::Object() {
 Object::Object(visualization_msgs::Marker mesh_marker){
   mesh_marker_ = mesh_marker;
   movable = false;
+  redraw = true;
 }
 
 Object::Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_path){
   mesh_marker_ = mesh_marker;
   movable = true;
+  redraw = true;
 
   TiXmlDocument doc(sphere_list_path.c_str());
   if(!doc.LoadFile()){

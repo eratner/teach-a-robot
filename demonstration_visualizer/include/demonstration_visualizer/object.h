@@ -18,6 +18,7 @@ class Object{
     visualization_msgs::Marker mesh_marker_;
     bool movable;
     pr2_collision_checker::Group group_;
+    bool redraw;
 };
 
 #endif
