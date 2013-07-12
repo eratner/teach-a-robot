@@ -96,8 +96,9 @@ void DemonstrationVisualizerNode::run()
        !getSceneManager()->taskDone() || 
        getSceneManager()->getNumGoals() != 0)
     {
-      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()) &&
-	 getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorMarkerPose()))
+      // if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()) &&
+      // 	 getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorMarkerPose()))
+      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()))
       {
 	ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
 	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);

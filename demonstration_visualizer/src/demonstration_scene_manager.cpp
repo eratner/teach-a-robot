@@ -685,6 +685,10 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
       double distance = std::sqrt(std::pow(pregrasp_pose.position.x - pose.position.x, 2) +
 				  std::pow(pregrasp_pose.position.y - pose.position.y, 2) +
 				  std::pow(pregrasp_pose.position.z - pose.position.z, 2));
+      if(distance < 0.15)
+      {
+	ROS_INFO("Distance to goal = %f", distance);
+      }
 
       if(distance < tolerance)
 	reached = true;

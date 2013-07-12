@@ -46,6 +46,10 @@ public:
   
   double getSpeed() const;
 
+  void enablePrinting();
+
+  void disablePrinting();
+
 private:
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
 
@@ -53,6 +57,8 @@ private:
   State last_state_;
   int frames_;
   double speed_;
+
+  bool print_transitions_;
 
   // States
   geometry_msgs::Twist initial();

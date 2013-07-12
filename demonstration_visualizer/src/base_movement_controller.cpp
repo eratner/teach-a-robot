@@ -4,7 +4,8 @@ namespace demonstration_visualizer {
 
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0),
-    linear_speed_(0.2), angular_speed_(0.2)
+    linear_speed_(0.2), angular_speed_(0.2),
+    print_transitions_(false)
 {
 
 }
@@ -172,6 +173,17 @@ bool BaseMovementController::shortestRotationDirection(double current_angle,
     (goal_angle_larger && (B - A) > (2*M_PI - B + A));  
 }
 
+void BaseMovementController::enablePrinting()
+{
+  print_transitions_ = true;
+}
+
+void BaseMovementController::disablePrinting()
+{
+  print_transitions_ = false;
+}
+
+
 geometry_msgs::Twist BaseMovementController::rotateToGoalPosition(double current_angle,
 								  double goal_angle)
 {
@@ -253,10 +265,13 @@ void BaseMovementController::printStateTransition(State next_state)
 {
   if(next_state != last_state_)
   {
-    ROS_INFO("Transitioning to state %s after %d frames in state %s.",
-	     STATE_NAMES[next_state],
-	     frames_,
-	     STATE_NAMES[last_state_]);
+    if(print_transitions_)
+    {
+      ROS_INFO("Transitioning to state %s after %d frames in state %s.",
+	       STATE_NAMES[next_state],
+	       frames_,
+	       STATE_NAMES[last_state_]);
+    }
     last_state_ = next_state;
     frames_ = 0;
   }

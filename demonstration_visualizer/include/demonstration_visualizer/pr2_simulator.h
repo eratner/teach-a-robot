@@ -132,8 +132,16 @@ public:
 
   geometry_msgs::Pose getEndEffectorMarkerPose();
 
+  void setMoveEndEffectorWhileDragging(bool);
+
+  void setMoveBaseWhileDragging(bool);
+
 private:
   bool playing_;
+
+  // @todo find better names for these control modes.
+  bool move_end_effector_while_dragging_;
+  bool move_base_while_dragging_;
 
   void updateTransforms();
 

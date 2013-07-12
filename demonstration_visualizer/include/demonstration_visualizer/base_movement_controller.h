@@ -74,11 +74,17 @@ public:
    */
   static bool shortestRotationDirection(double current_angle, double goal_angle);
 
+  void enablePrinting();
+
+  void disablePrinting();
+
 private:
   State last_state_;
   int frames_;
   double linear_speed_;
   double angular_speed_;
+
+  bool print_transitions_;
   
   // States.
   geometry_msgs::Twist rotateToGoalPosition(double current_angle,

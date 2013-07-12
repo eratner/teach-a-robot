@@ -5,7 +5,8 @@ namespace demonstration_visualizer {
 const std::string EndEffectorController::R_GRIPPER_MARKER_NAME = "r_gripper_marker";
 
 EndEffectorController::EndEffectorController(interactive_markers::InteractiveMarkerServer *int_marker_server)
- : int_marker_server_(int_marker_server), last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(0.05)
+ : int_marker_server_(int_marker_server), last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(0.05),
+   print_transitions_(false)
 {
 
 }
@@ -144,14 +145,27 @@ geometry_msgs::Twist EndEffectorController::done()
   return vel;
 }
 
+void EndEffectorController::enablePrinting()
+{
+  print_transitions_ = true;
+}
+
+void EndEffectorController::disablePrinting()
+{
+  print_transitions_ = false;
+}
+
 void EndEffectorController::printStateTransition(State next_state)
 {
   if(next_state != current_state_)
   {
-    ROS_INFO("Transitioning to state %s after %d frames in state %s.",
-	     END_EFFECTOR_STATE_NAMES[next_state],
-	     frames_,
-	     END_EFFECTOR_STATE_NAMES[current_state_]);
+    if(print_transitions_)
+    {
+      ROS_INFO("Transitioning to state %s after %d frames in state %s.",
+	       END_EFFECTOR_STATE_NAMES[next_state],
+	       frames_,
+	       END_EFFECTOR_STATE_NAMES[current_state_]);
+    }
     last_state_ = current_state_;
     current_state_ = next_state;
     frames_ = 0;

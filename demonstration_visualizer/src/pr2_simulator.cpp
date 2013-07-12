@@ -7,6 +7,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 			   interactive_markers::InteractiveMarkerServer *int_marker_server,
 			   ObjectManager* object_manager)
   : playing_(true), 
+    move_end_effector_while_dragging_(true),
+    move_base_while_dragging_(true),
     attached_object_(false),
     frame_rate_(10.0), 
     pviz_(pviz), 
@@ -284,6 +286,14 @@ void PR2Simulator::moveRobot()
   // First, get the next proposed base pose.
   geometry_msgs::Twist base_vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
 									      goal_pose_.pose);
+
+  if(base_movement_controller_.getState() == BaseMovementController::DONE)
+  {
+    int_marker_server_->setPose("base_marker", base_pose_.pose);
+    int_marker_server_->applyChanges();
+    base_movement_controller_.setState(BaseMovementController::INITIAL);
+  }
+  
   base_vel.linear.x += vel_cmd_.linear.x;
   base_vel.linear.x += key_vel_cmd_.linear.x;
   base_vel.linear.y += vel_cmd_.linear.y;
@@ -450,19 +460,30 @@ void PR2Simulator::baseMarkerFeedback(
 {
   switch(feedback->event_type)
   {
+  case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
+    {
+      if(move_base_while_dragging_)
+      {
+	base_movement_controller_.setState(BaseMovementController::READY);
+	goal_pose_.pose = feedback->pose;
+      }
+      break;
+    }
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      base_movement_controller_.setState(BaseMovementController::READY);
-      goal_pose_.pose = feedback->pose;
-      double yaw = std::atan2(goal_pose_.pose.position.y - base_pose_.pose.position.y,
-			      goal_pose_.pose.position.x - base_pose_.pose.position.x);
-      ROS_INFO("[PR2SimpleSim] New goal set at (x, y, yaw) = (%f, %f, %f).", 
-      	       goal_pose_.pose.position.x,
-      	       goal_pose_.pose.position.y,
-      	       yaw * (180.0/M_PI));
-
+      if(!move_base_while_dragging_)
+      {
+	base_movement_controller_.setState(BaseMovementController::READY);
+	goal_pose_.pose = feedback->pose;
+	// double yaw = std::atan2(goal_pose_.pose.position.y - base_pose_.pose.position.y,
+	// 			      goal_pose_.pose.position.x - base_pose_.pose.position.x);
+	// ROS_INFO("[PR2SimpleSim] New goal set at (x, y, yaw) = (%f, %f, %f).", 
+	// 	       goal_pose_.pose.position.x,
+	// 	       goal_pose_.pose.position.y,
+	// 	       yaw * (180.0/M_PI));
+      }
       break;
     }
   default:
@@ -477,20 +498,28 @@ void PR2Simulator::gripperMarkerFeedback(
   switch(feedback->event_type)
   {
   case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
-    ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
-	     feedback->pose.position.y, feedback->pose.position.z);
-    end_effector_controller_.setState(EndEffectorController::READY);
-    setEndEffectorGoalPose(feedback->pose);
-    end_effector_goal_pose_.pose = feedback->pose;
-    break;
+    {
+      if(move_end_effector_while_dragging_)
+      {
+	// ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
+	// 	     feedback->pose.position.y, feedback->pose.position.z);
+	end_effector_controller_.setState(EndEffectorController::READY);
+	setEndEffectorGoalPose(feedback->pose);
+	end_effector_goal_pose_.pose = feedback->pose;
+      }
+      break;
+    }
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      // end_effector_controller_.setState(EndEffectorController::READY);
-      // ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
-      // 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
-      // setEndEffectorGoalPose(feedback->pose);
+      if(!move_end_effector_while_dragging_)
+      {
+	end_effector_controller_.setState(EndEffectorController::READY);
+	ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
+		       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
+	setEndEffectorGoalPose(feedback->pose);
+      }
       break;
     }
   default:
@@ -1005,6 +1034,16 @@ geometry_msgs::Pose PR2Simulator::getEndEffectorMarkerPose()
   end_effector_marker_pose.position.z = position.z;  
 
   return end_effector_marker_pose;
+}
+
+void PR2Simulator::setMoveEndEffectorWhileDragging(bool move)
+{
+  move_end_effector_while_dragging_ = move;
+}
+
+void PR2Simulator::setMoveBaseWhileDragging(bool move)
+{
+  move_base_while_dragging_ = move;
 }
 
 } // namespace demonstration_visualizer
