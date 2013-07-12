@@ -87,7 +87,7 @@ void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
   std::string label;
   if(element->QueryStringAttribute("label", &label) != TIXML_SUCCESS)
   {
-    ROS_ERROR("mesh_resource for the collision_model is missing.");
+    ROS_ERROR("label in the collision_model is missing.");
     return;
   }
 
@@ -124,16 +124,31 @@ void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
       // @todo deal with reading in sphere lists.
       pr2_collision_checker::Sphere s;
       int id;
-      element->QueryIntAttribute("id", &id);
+      if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS){
+        ROS_ERROR("id missing from a sphere");
+        return;
+      }
       s.name = boost::lexical_cast<string>(id);
       double temp;
-      element->QueryDoubleAttribute("x", &temp);
+      if(element->QueryDoubleAttribute("x", &temp) != TIXML_SUCCESS){
+        ROS_ERROR("x missing from a sphere");
+        return;
+      }
       s.v.x(temp);
-      element->QueryDoubleAttribute("y", &temp);
+      if(element->QueryDoubleAttribute("y", &temp) != TIXML_SUCCESS){
+        ROS_ERROR("y missing from a sphere");
+        return;
+      }
       s.v.y(temp);
-      element->QueryDoubleAttribute("z", &temp);
+      if(element->QueryDoubleAttribute("z", &temp) != TIXML_SUCCESS){
+        ROS_ERROR("z missing from a sphere");
+        return;
+      }
       s.v.z(temp);
-      element->QueryDoubleAttribute("radius", &s.radius);
+      if(element->QueryDoubleAttribute("radius", &s.radius) != TIXML_SUCCESS){
+        ROS_ERROR("radius missing from a sphere");
+        return;
+      }
       s.priority = 1;
       o.group_.spheres.push_back(s);
       ROS_INFO("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);

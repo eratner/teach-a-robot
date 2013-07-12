@@ -193,12 +193,30 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   // Read size of the environment
   element = element->NextSiblingElement();
   double origin_x, origin_y, origin_z, size_x, size_y, size_z;
-  element->QueryDoubleAttribute("origin_x", &origin_x);
-  element->QueryDoubleAttribute("origin_y", &origin_y);
-  element->QueryDoubleAttribute("origin_z", &origin_z);
-  element->QueryDoubleAttribute("size_x", &size_x);
-  element->QueryDoubleAttribute("size_y", &size_y);
-  element->QueryDoubleAttribute("size_z", &size_z);
+  if(element->QueryDoubleAttribute("origin_x", &origin_x) != TIXML_SUCCESS){
+    ROS_ERROR("origin_x is missing");
+    return -1;
+  }
+  if(element->QueryDoubleAttribute("origin_y", &origin_y) != TIXML_SUCCESS){
+    ROS_ERROR("origin_y is missing");
+    return -1;
+  }
+  if(element->QueryDoubleAttribute("origin_z", &origin_z) != TIXML_SUCCESS){
+    ROS_ERROR("origin_z is missing");
+    return -1;
+  }
+  if(element->QueryDoubleAttribute("size_x", &size_x) != TIXML_SUCCESS){
+    ROS_ERROR("size_x is missing");
+    return -1;
+  }
+  if(element->QueryDoubleAttribute("size_y", &size_y) != TIXML_SUCCESS){
+    ROS_ERROR("size_y is missing");
+    return -1;
+  }
+  if(element->QueryDoubleAttribute("size_z", &size_z) != TIXML_SUCCESS){
+    ROS_ERROR("size_z is missing");
+    return -1;
+  }
   vector<double> origin;
   origin.push_back(origin_x);
   origin.push_back(origin_y);
@@ -222,18 +240,51 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
   for(element; element; element = element->NextSiblingElement())
   {
-    element->QueryIntAttribute("id", &mesh_marker.id);
+    if(element->QueryIntAttribute("id", &mesh_marker.id) != TIXML_SUCCESS){
+      ROS_ERROR("id is missing");
+      return -1;
+    }
     std::string label = std::string(element->Attribute("label"));
-    element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x);
-    element->QueryDoubleAttribute("position_y", &mesh_marker.pose.position.y);
-    element->QueryDoubleAttribute("position_z", &mesh_marker.pose.position.z);
-    element->QueryDoubleAttribute("orientation_x", &mesh_marker.pose.orientation.x);
-    element->QueryDoubleAttribute("orientation_y", &mesh_marker.pose.orientation.y);
-    element->QueryDoubleAttribute("orientation_z", &mesh_marker.pose.orientation.z);
-    element->QueryDoubleAttribute("orientation_w", &mesh_marker.pose.orientation.w);
-    element->QueryDoubleAttribute("scale_x", &mesh_marker.scale.x);
-    element->QueryDoubleAttribute("scale_y", &mesh_marker.scale.y);
-    element->QueryDoubleAttribute("scale_z", &mesh_marker.scale.z);
+    if(element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x) != TIXML_SUCCESS){
+      ROS_ERROR("position_x is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("position_y", &mesh_marker.pose.position.y) != TIXML_SUCCESS){
+      ROS_ERROR("position_y is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("position_z", &mesh_marker.pose.position.z) != TIXML_SUCCESS){
+      ROS_ERROR("position_z is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("orientation_x", &mesh_marker.pose.orientation.x) != TIXML_SUCCESS){
+      ROS_ERROR("orientation_x is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("orientation_y", &mesh_marker.pose.orientation.y) != TIXML_SUCCESS){
+      ROS_ERROR("orientation_y is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("orientation_z", &mesh_marker.pose.orientation.z) != TIXML_SUCCESS){
+      ROS_ERROR("orientation_z is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("orientation_w", &mesh_marker.pose.orientation.w) != TIXML_SUCCESS){
+      ROS_ERROR("orientation_w is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("scale_x", &mesh_marker.scale.x) != TIXML_SUCCESS){
+      ROS_ERROR("scale_x is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("scale_y", &mesh_marker.scale.y) != TIXML_SUCCESS){
+      ROS_ERROR("scale_y is missing");
+      return -1;
+    }
+    if(element->QueryDoubleAttribute("scale_z", &mesh_marker.scale.z) != TIXML_SUCCESS){
+      ROS_ERROR("scale_z is missing");
+      return -1;
+    }
 
     mesh_marker.header.frame_id = "/map";
     mesh_marker.header.stamp = ros::Time();
@@ -247,7 +298,10 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     collision_model_file << package_path << collision_model_path << "/" << label << ".xml";
 
     int movable;
-    element->QueryIntAttribute("movable", &movable);
+    if(element->QueryIntAttribute("movable", &movable) != TIXML_SUCCESS){
+      ROS_ERROR("movable is missing");
+      return -1;
+    }
     object_manager_->addObjectFromFile(mesh_marker,
 				       collision_model_file.str(),
 				       movable);
