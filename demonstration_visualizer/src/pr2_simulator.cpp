@@ -190,8 +190,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
   // Set the map to torso_lift_link transform.
   updateTransforms();
-
-  is_moving_r_gripper_ = false;
 }
 
 PR2Simulator::~PR2Simulator()
@@ -363,7 +361,6 @@ void PR2Simulator::moveRobot()
     // (right) end-effector pose.
     for(int i = 7; i < 14; ++i)
     {
-      ROS_INFO("joint %d: %f", i-7, solution[i-7]);
       joint_states_.position[i] = solution[i-7];
     }
 
@@ -479,16 +476,21 @@ void PR2Simulator::gripperMarkerFeedback(
 {
   switch(feedback->event_type)
   {
+  case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
+    ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
+	     feedback->pose.position.y, feedback->pose.position.z);
+    end_effector_controller_.setState(EndEffectorController::READY);
+    setEndEffectorGoalPose(feedback->pose);
+    end_effector_goal_pose_.pose = feedback->pose;
+    break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
-    is_moving_r_gripper_ = true;
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      end_effector_controller_.setState(EndEffectorController::READY);
-      is_moving_r_gripper_ = false;
-      ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
-	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
-      setEndEffectorGoalPose(feedback->pose);
+      // end_effector_controller_.setState(EndEffectorController::READY);
+      // ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
+      // 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
+      // setEndEffectorGoalPose(feedback->pose);
       break;
     }
   default:
@@ -721,9 +723,6 @@ void PR2Simulator::processKeyEvent(int key, int type)
 
 void PR2Simulator::updateEndEffectorMarker()
 {
-  // if(!is_moving_r_gripper_ 
-  //    && end_effector_controller_.getState() == EndEffectorController::DONE
-  //    || recorder_->isReplaying())
   if(end_effector_controller_.getState() == EndEffectorController::DONE ||
      end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
      recorder_->isReplaying())
@@ -736,11 +735,6 @@ void PR2Simulator::updateEndEffectorMarker()
   {
     end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
-
-  if(end_effector_marker_vel_.linear.x == 0 &&
-     end_effector_marker_vel_.linear.y == 0 &&
-     end_effector_marker_vel_.linear.z == 0)
-    return;
 
   // Get the current pose of the end-effector interactive marker.
   visualization_msgs::InteractiveMarker marker;

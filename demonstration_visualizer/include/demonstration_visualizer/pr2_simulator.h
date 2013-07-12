@@ -174,8 +174,6 @@ private:
   KDL::Frame map_in_torso_lift_link_;
   std::map<std::string, int> joints_map_;
 
-  bool is_moving_r_gripper_;
-
   tf::TransformBroadcaster tf_broadcaster_;
 
 };
