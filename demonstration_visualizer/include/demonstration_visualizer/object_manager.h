@@ -5,14 +5,15 @@
 #include<visualization_msgs/Marker.h>
 #include<geometry_msgs/Pose.h>
 #include<pviz/pviz.h>
+#include<pr2_collision_checker/pr2_collision_space.h>
 #include <ros/package.h>
-//#include<collision_checker.h>
 
 #include <map>
 
 class ObjectManager{
   public:
-    ObjectManager(/*CollisionChecker* c*/);
+    ObjectManager(std::string rarm_file, std::string larm_file);
+    void initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
     void addObject(Object o);
     
     void addObjectFromFile(visualization_msgs::Marker &mesh_marker,
@@ -33,8 +34,10 @@ class ObjectManager{
     int getNumObjects() const;
 
   private:
-    //CollisionChecker* collision_checker_;
+    pr2_collision_checker::PR2CollisionSpace* collision_checker_;
     std::map<int, Object> objects_;
+    std::string rarm_file_;
+    std::string larm_file_;
 };
 
 #endif

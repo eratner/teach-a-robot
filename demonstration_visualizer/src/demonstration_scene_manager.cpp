@@ -7,12 +7,11 @@ const std::string DemonstrationSceneManager::GOAL_MARKER_NAMESPACE = "dviz_goal"
 DemonstrationSceneManager::DemonstrationSceneManager(
     PViz *pviz,
     interactive_markers::InteractiveMarkerServer *int_marker_server,
-    /*CollisionChecker* collision_checker,*/
     ObjectManager* object_manager
   )
   : goals_changed_(false), meshes_changed_(false), edit_goals_mode_(true),
     edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1),
-    /*collision_checker_(collision_checker),*/ object_manager_(object_manager), pviz_(pviz)
+    object_manager_(object_manager), pviz_(pviz)
 {
   goal_feedback_ = boost::bind(&DemonstrationSceneManager::processGoalFeedback,
 			       this,
@@ -25,6 +24,7 @@ DemonstrationSceneManager::DemonstrationSceneManager(
   ros::NodeHandle nh;
 
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
+  ROS_INFO("[dsm] Constructor complete.");
 }
 
 DemonstrationSceneManager::~DemonstrationSceneManager()
@@ -179,14 +179,49 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   // Read the path to the collision model files.
   element = root_handle.FirstChild().Element();
   std::string package_path = ros::package::getPath("demonstration_visualizer");
+  ROS_INFO("dviz path: %s", package_path.c_str());
+  element->Print(stdout, 2); printf("\n");
+  if(element == NULL)
+  {
+    ROS_ERROR("This is broken. XML parsing of the scene file went wrong. (element = NULL)");
+    return -1;
+  }
   std::string collision_model_path = std::string(element->Attribute("path"));
   ROS_INFO("Collision model path is %s", collision_model_path.c_str());
+
+  // Read size of the environment
+  element = element->NextSiblingElement();
+  double origin_x, origin_y, origin_z, size_x, size_y, size_z;
+  element->QueryDoubleAttribute("origin_x", &origin_x);
+  element->QueryDoubleAttribute("origin_y", &origin_y);
+  element->QueryDoubleAttribute("origin_z", &origin_z);
+  element->QueryDoubleAttribute("size_x", &size_x);
+  element->QueryDoubleAttribute("size_y", &size_y);
+  element->QueryDoubleAttribute("size_z", &size_z);
+  vector<double> origin;
+  origin.push_back(origin_x);
+  origin.push_back(origin_y);
+  origin.push_back(origin_z);
+  vector<double> size;
+  size.push_back(size_x);
+  size.push_back(size_y);
+  size.push_back(size_z);
+  ROS_INFO("origin: %f %f %f  size: %f %f %f",
+            origin[0],
+            origin[1],
+            origin[2],
+            size[0],
+            size[1],
+            size[2]);
+  object_manager_->initializeCollisionChecker(size, origin);
 
   // Read each mesh.
   element = element->NextSiblingElement();
   visualization_msgs::Marker mesh_marker;
+
   for(element; element; element = element->NextSiblingElement())
   {
+    ROS_INFO("hey");
     element->QueryIntAttribute("id", &mesh_marker.id);
     std::string label = std::string(element->Attribute("label"));
     element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x);
@@ -208,29 +243,23 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     mesh_marker.color.r = mesh_marker.color.g = mesh_marker.color.b = mesh_marker.color.a = 0;
     mesh_marker.mesh_use_embedded_materials = true;
 
+    ROS_INFO("hey");
     std::stringstream collision_model_file;
     collision_model_file << package_path << collision_model_path << "/" << label << ".xml";
 
     int movable;
+    ROS_INFO("hey");
     element->QueryIntAttribute("movable", &movable);
     object_manager_->addObjectFromFile(mesh_marker,
 				       collision_model_file.str(),
 				       movable);
-    // if(movable){
-    //   std::string sphere_list_path = std::string(element->Attribute("sphere_list"));
-    //   Object o = Object(mesh_marker, sphere_list_path);
-    //   object_manager_->addObject(o);
-    // }
-    // else{
-    //   Object o = Object(mesh_marker);
-    //   object_manager_->addObject(o);
-    //   //collision_checker->addCollisionObject(....)
-    // }
+    ROS_INFO("hey");
 
     if(mesh_marker.id > max_mesh_id)
       max_mesh_id = mesh_marker.id;
   }
 
+  ROS_INFO("[dsm] Finished getting all the elements...now setting the meshes.");
   setMeshesChanged();
 
   ROS_INFO("Read %d meshes.", (int)object_manager_->getNumObjects());

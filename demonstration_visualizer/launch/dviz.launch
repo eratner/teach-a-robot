@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="output" default="log" />
+  <arg name="output" default="screen" />
 
   <!-- Send the PR2 URDF to the parameter server -->
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find pr2_description)/robots/pr2.urdf.xacro'" />
@@ -12,6 +12,12 @@
   <!-- <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" output="$(arg output)" /> -->
   
   <!-- DViz -->
-  <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)" />
+  <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)" >
+    <rosparam file="$(find pr2_collision_checker)/config/pr2_both_arms.yaml" command="load"/>
+    <rosparam file="$(find pr2_collision_checker)/config/pr2_body.yaml" command="load"/>
+
+    <param name="left_arm_description_file" value="$(find pr2_collision_checker)/config/pr2_left_arm.cfg"/>
+    <param name="right_arm_description_file" value="$(find pr2_collision_checker)/config/pr2_right_arm.cfg"/>
+  </node>
 
 </launch>

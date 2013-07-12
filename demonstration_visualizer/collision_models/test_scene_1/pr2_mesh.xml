@@ -1,0 +1,7 @@
+<collision_model>
+  <object label="shelf" mesh_resource="package://pr2_description/meshes/torso_v0/torso_lift_L.stl" />
+  <sphere id="1" x="0.0" y="0.0" z="0.3" radius="0.3" />
+  <sphere id="2" x="0.0" y="0.0" z="0.0" radius="0.3" />
+  <sphere id="3" x="0.0" y="0.0" z="-0.3" radius="0.3" />
+  <!-- <object label="shelf" mesh_resource="package://demonstration_visualizer/meshes/shelf1/models/cabwall0.dae" /> -->
+</collision_model>

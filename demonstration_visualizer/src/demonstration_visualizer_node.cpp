@@ -13,13 +13,20 @@ DemonstrationVisualizerNode::DemonstrationVisualizerNode(int argc, char **argv)
 
   int_marker_server_ = new interactive_markers::InteractiveMarkerServer("dviz_interactive_markers");
 
-  //collision_checker_ = new CollisionChecker();
+  std::string larm_filename;
+  std::string rarm_filename;
+  ros::NodeHandle nh("~");
+  nh.param<std::string>("left_arm_description_file", larm_filename, "");
+  nh.param<std::string>("right_arm_description_file", rarm_filename, "");
+  object_manager_ = new ObjectManager(rarm_filename, larm_filename);
 
-  object_manager_ = new ObjectManager(/*collision_checker_*/);
+  ROS_INFO("[dvn] Instantiated the object manager. Demonstration scene manager is next.");
+  demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_);
 
-  demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, /*collision_checker_, */object_manager_);
-
+  ROS_INFO("[dvn] Instantiated the demonstration scene manager. PR2 simulator is next."); 
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_);
+  
+  ROS_INFO("[dvn] PR2 simulator is instantiated."); 
 
   // Start the thread.
   start();
@@ -44,6 +51,7 @@ DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 bool DemonstrationVisualizerNode::init(int argc, char **argv)
 {
   ros::init(argc, argv, "demonstration_visualizer");
+  sleep(2.0);
 
   // Make sure that we can communicate with the master.
   if(!ros::master::check())
@@ -64,6 +72,7 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 
   base_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/vel_cmd", 1);
 
+  ROS_INFO("[dvn] Completed init().");
   return true;
 }
 
@@ -87,6 +96,7 @@ void DemonstrationVisualizerNode::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
+    ROS_DEBUG("[dvn] Running simulator.");
     simulator_->run();
 
     getSceneManager()->updateScene();

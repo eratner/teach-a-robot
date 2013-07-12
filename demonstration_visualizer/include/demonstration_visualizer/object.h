@@ -5,8 +5,7 @@
 #include<geometry_msgs/Pose.h>
 #include <tinyxml.h>
 #include<ros/ros.h>
-//#include <kdl/kdl.h>
-//#include <collision_checker.h>
+#include <pr2_collision_checker/pr2_collision_space.h>
 
 class Object{
   public:
@@ -18,6 +17,7 @@ class Object{
     
     visualization_msgs::Marker mesh_marker_;
     bool movable;
+    pr2_collision_checker::Group group_;
 };
 
 #endif

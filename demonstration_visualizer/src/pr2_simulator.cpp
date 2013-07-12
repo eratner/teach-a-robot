@@ -63,7 +63,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.effort.resize(15);
   // Tuck the left arm initially. @todo these should be constants somewhere.
   joint_states_.position[0] = 0.06024;
-  joint_states_.position[1] = 1.248526;
+  joint_states_.position[1] = 1.178526;
   joint_states_.position[2] = 1.789070;
   joint_states_.position[3] = -1.683386;
   joint_states_.position[4] = -1.7343417;
@@ -366,8 +366,13 @@ void PR2Simulator::moveRobot()
     return;
   }
 
-  if(validityCheck(solution, l_arm_joints, body_pose))
+  geometry_msgs::Pose object_pose;
+  if(attached_object_)
+    computeObjectPose(end_effector_pose, body_pose, object_pose);
+
+  if(validityCheck(solution, l_arm_joints, body_pose, object_pose))
   {
+    ROS_DEBUG("[sim] Collision free!");
     // All is valid, first move the base pose.
     base_pose_.pose.position.x = new_x;
     base_pose_.pose.position.y = new_y;
@@ -387,11 +392,30 @@ void PR2Simulator::moveRobot()
     end_effector_pose_.pose.orientation.y = end_effector_pose[4];
     end_effector_pose_.pose.orientation.z = end_effector_pose[5];
     end_effector_pose_.pose.orientation.w = end_effector_pose[6];
+
+    if(attached_object_)
+      object_manager_->moveObject(attached_id_, object_pose);
   }
   else
   {
     ROS_ERROR("[PR2Sim] Invalid movement!");
   }
+}
+
+void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj){
+  KDL::Frame base_in_map(KDL::Rotation::RotZ(bp.theta),
+                         KDL::Vector(bp.x, bp.y, 0.0));
+  KDL::Frame eef_in_base(KDL::Rotation::Quaternion(eef[3],eef[4],eef[5],eef[6]),
+                         KDL::Vector(eef[0],eef[1],eef[2]));
+
+  KDL::Frame obj_in_map = base_in_map * eef_in_base * attached_transform_;
+  obj.position.x = obj_in_map.p.x();
+  obj.position.y = obj_in_map.p.y();
+  obj.position.z = obj_in_map.p.z();
+  obj_in_map.M.GetQuaternion(obj.orientation.x,
+                             obj.orientation.y,
+                             obj.orientation.z,
+                             obj.orientation.w);
 }
 
 void PR2Simulator::updateBaseVelocity(const geometry_msgs::Twist &vel)
@@ -863,20 +887,7 @@ bool PR2Simulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
   {
     return false;
   }
-
-  //collision check
-  vector<double> langles;
-  vector<double> rangles;
-  for(int i=0; i<7; i++){
-    langles.push_back(joint_states_.position[i]);
-    rangles.push_back(goal_end_effector_pose[i]);
-  }
-  BodyPose bp;
-  bp.x = base_pose_.pose.position.x;
-  bp.y = base_pose_.pose.position.y;
-  bp.z = 0.0;
-  bp.theta = tf::getYaw(base_pose_.pose.orientation);
-  return validityCheck(rangles, langles, bp);
+  return true;
 }
 
 void PR2Simulator::attach(int id, KDL::Frame transform){
@@ -889,36 +900,17 @@ void PR2Simulator::detach(){
   attached_object_ = false;
 }
 
-bool PR2Simulator::validityCheck(const std::vector<double> &rangles, 
-				 const std::vector<double> &langles, 
-				 const BodyPose &bp){
+bool PR2Simulator::validityCheck(const vector<double>& rangles, 
+                                 const vector<double>& langles, 
+                                 const BodyPose& bp, 
+                                 const geometry_msgs::Pose& object_pose){
   if(attached_object_){
     //check robot motion
     if(!object_manager_->checkRobotMove(rangles, langles, bp, attached_id_))
       return false;
     
-    //check attached object motion
-    geometry_msgs::Pose old_pose = object_manager_->getMarker(attached_id_).pose;
-    KDL::Frame old_frame(KDL::Rotation::Quaternion(old_pose.orientation.x,
-                                                   old_pose.orientation.y,
-                                                   old_pose.orientation.z,
-                                                   old_pose.orientation.w),
-                         KDL::Vector(old_pose.position.x,
-                                     old_pose.position.y,
-                                     old_pose.position.z));
-    KDL::Frame new_frame = old_frame * attached_transform_;
-    geometry_msgs::Pose new_pose;
-    new_pose.position.x = new_frame.p.x();
-    new_pose.position.y = new_frame.p.y();
-    new_pose.position.z = new_frame.p.z();
-    new_frame.M.GetQuaternion(new_pose.orientation.x,
-                              new_pose.orientation.y,
-                              new_pose.orientation.z,
-                              new_pose.orientation.w);
-    
-    if(!object_manager_->checkObjectMove(attached_id_, new_pose, rangles, langles, bp))
+    if(!object_manager_->checkObjectMove(attached_id_, object_pose, rangles, langles, bp))
       return false;
-    //TODO: call moveObject somewhere!!!!
   }
   else{
     //check robot motion

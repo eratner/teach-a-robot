@@ -116,9 +116,12 @@ public:
    */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
-  bool validityCheck(const std::vector<double> &rangles, 
-		     const std::vector<double> &langles, 
-		     const BodyPose &bp);
+  bool validityCheck(const std::vector<double>& rangles, 
+                     const std::vector<double>& langles, 
+                     const BodyPose& bp, 
+                     const geometry_msgs::Pose& obj);
+
+  void computeObjectPose(std::vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj);
 
   void attach(int id, KDL::Frame transform);
 
