@@ -6,6 +6,7 @@
 #include<geometry_msgs/Pose.h>
 #include<pviz/pviz.h>
 #include<pr2_collision_checker/pr2_collision_space.h>
+#include <ros/package.h>
 
 #include <map>
 
@@ -14,6 +15,11 @@ class ObjectManager{
     ObjectManager(std::string rarm_file, std::string larm_file);
     void initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
     void addObject(Object o);
+    
+    void addObjectFromFile(visualization_msgs::Marker &mesh_marker,
+			   const std::string &collision_model_file, 
+			   bool movable = false);
+
     void removeObject(int id);
     void clearObjects();
     std::vector<visualization_msgs::Marker> getMarkers();

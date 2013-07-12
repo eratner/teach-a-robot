@@ -61,7 +61,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.effort.resize(15);
   // Tuck the left arm initially. @todo these should be constants somewhere.
   joint_states_.position[0] = 0.06024;
-  joint_states_.position[1] = 1.248526;
+  joint_states_.position[1] = 1.178526;
   joint_states_.position[2] = 1.789070;
   joint_states_.position[3] = -1.683386;
   joint_states_.position[4] = -1.7343417;
@@ -305,9 +305,11 @@ void PR2Simulator::moveRobot()
   body_pose.theta = new_theta;
 
   // Second, get the next proposed end-effector pose and resulting joint angles.
+  geometry_msgs::Quaternion next_orientation;
   geometry_msgs::Twist end_effector_vel = 
     end_effector_controller_.moveTo(end_effector_pose_.pose,
-				    end_effector_goal_pose_.pose);
+				    end_effector_goal_pose_.pose,
+				    next_orientation);
 
   dx = (1.0/getFrameRate())*end_effector_vel.linear.x;
   dy = (1.0/getFrameRate())*end_effector_vel.linear.y;
@@ -326,10 +328,14 @@ void PR2Simulator::moveRobot()
   end_effector_pose[0] = end_effector_pose_.pose.position.x + dx;
   end_effector_pose[1] = end_effector_pose_.pose.position.y + dy;
   end_effector_pose[2] = end_effector_pose_.pose.position.z + dz;
-  end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
-  end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
-  end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
-  end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
+  // end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
+  // end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
+  // end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
+  // end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
+  end_effector_pose[3] = next_orientation.x;
+  end_effector_pose[4] = next_orientation.y;
+  end_effector_pose[5] = next_orientation.z;
+  end_effector_pose[6] = next_orientation.w;
   
   // Use IK to find the required joint angles for the arm.
   std::vector<double> solution(7, 0);
@@ -344,6 +350,7 @@ void PR2Simulator::moveRobot()
 
   if(validityCheck(solution, l_arm_joints, body_pose, object_pose))
   {
+    ROS_DEBUG("[sim] Collision free!");
     // All is valid, first move the base pose.
     base_pose_.pose.position.x = new_x;
     base_pose_.pose.position.y = new_y;
@@ -585,6 +592,7 @@ void PR2Simulator::setJointStates(const sensor_msgs::JointState &joints)
   {
     if(joints_map_.find(joints.name[i]) != joints_map_.end())
     {
+      ROS_INFO("[PR2Sim] Setting joint \"%s\" to angle %f.", joints.name[i].c_str(), joints.position[i]);
       joint_states_.position[joints_map_[joints.name[i]]] = joints.position[i];
     }
     else

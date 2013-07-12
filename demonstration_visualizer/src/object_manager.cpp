@@ -7,22 +7,142 @@ using namespace geometry_msgs;
 ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename){
   rarm_file_ = rarm_filename;
   larm_file_ = larm_filename;
+  collision_checker_ = NULL;
+  ROS_ERROR("init1");
+  ROS_ERROR("%s",rarm_file_.c_str());
+  ROS_ERROR("%s",larm_file_.c_str());
+  fflush(stdout);
 }
 
 void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
+  ROS_ERROR("[om] Initializing the collision checker.");
+
+  if(collision_checker_ != NULL)
+  {
+    ROS_ERROR("[om] Deleting the previous collision checker. Initializing new one.");
+    delete collision_checker_;
+  }
+
+  ROS_INFO("[om] right_arm: %s",rarm_file_.c_str());
+  ROS_INFO("[om] left_arm: %s",larm_file_.c_str());
   collision_checker_ = new pr2_collision_checker::PR2CollisionSpace(rarm_file_, 
                                                                     larm_file_, 
                                                                     dims, origin, 
                                                                     0.02, "map");
+  if(!collision_checker_->init())
+  {
+    ROS_ERROR("[om] Failed to initialize the collision checker.");
+    return;
+  }
+  ROS_INFO("Initialized the collision checker.");
 }
 
 
 void ObjectManager::addObject(Object o){
 
   objects_.insert(make_pair<int, Object>(o.mesh_marker_.id, o));
+  cout << o.mesh_marker_ << endl;
+
   if(!o.movable){
-    //collision_checker_->addCollisionObject(...)
+    if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource, o.mesh_marker_.pose, "I NEED A NAME"))
+      ROS_ERROR("Failed to add static object.");
   }
+}
+
+void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
+				      const std::string &collision_model_file,
+				      bool movable)
+{
+  ROS_INFO("Add object from file");
+  TiXmlDocument doc(collision_model_file.c_str());
+  if(!doc.LoadFile())
+  {
+    ROS_ERROR("[ObjectManager] Failed to load file %s!", collision_model_file.c_str());
+    return;
+  }
+
+  TiXmlHandle doc_handle(&doc);
+  TiXmlElement *element;
+  TiXmlHandle root_handle(0);
+
+  element = doc_handle.FirstChildElement().Element();
+  if(!element)
+  {
+    // @todo error
+    return;
+  }
+
+  root_handle = TiXmlHandle(element);
+
+  ROS_INFO("Reading %s...", element->Value());
+
+  // Read the mesh information.
+  element = root_handle.FirstChild().Element();
+  if(element == NULL)
+  {
+    ROS_ERROR("element is null while trying to parse object file.");
+    return;
+  }
+
+  std::string label;
+  if(element->QueryStringAttribute("label", &label) != TIXML_SUCCESS)
+  {
+    ROS_ERROR("mesh_resource for the collision_model is missing.");
+    return;
+  }
+
+  if(element->QueryStringAttribute("mesh_resource", &mesh_marker.mesh_resource) != TIXML_SUCCESS)
+  {
+    ROS_ERROR("mesh_resource for the collision_model is missing.");
+    return;
+  }
+  ROS_ERROR("query for mesh_resource: %d", element->QueryStringAttribute("mesh_resource", &mesh_marker.mesh_resource));
+
+  mesh_marker.mesh_resource = std::string(element->Attribute("mesh_resource"));
+  ROS_INFO("mesh resource = %s", mesh_marker.mesh_resource.c_str());
+
+  Object o(mesh_marker);
+  o.movable = movable;
+  geometry_msgs::Pose pose = mesh_marker.pose;
+  o.group_.name = label;
+  o.group_.f.p[0] = pose.position.x;
+  o.group_.f.p[1] = pose.position.y;
+  o.group_.f.p[2] = pose.position.z;
+  o.group_.f.M = KDL::Rotation::Quaternion(pose.orientation.x,
+                                           pose.orientation.y,
+                                           pose.orientation.z,
+                                           pose.orientation.w);
+
+  if(movable)
+  {
+    ROS_ERROR("movable! read the spheres");
+    // Read the spheres list from this file.
+    element = element->NextSiblingElement();
+    //element = element->FirstChildElement();
+    for(element; element; element = element->NextSiblingElement())
+    {
+      // @todo deal with reading in sphere lists.
+      pr2_collision_checker::Sphere s;
+      int id;
+      element->QueryIntAttribute("id", &id);
+      s.name = boost::lexical_cast<string>(id);
+      double temp;
+      element->QueryDoubleAttribute("x", &temp);
+      s.v.x(temp);
+      element->QueryDoubleAttribute("y", &temp);
+      s.v.y(temp);
+      element->QueryDoubleAttribute("z", &temp);
+      s.v.z(temp);
+      element->QueryDoubleAttribute("radius", &s.radius);
+      s.priority = 1;
+      o.group_.spheres.push_back(s);
+      ROS_INFO("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
+    }
+    ROS_INFO("label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
+    collision_checker_->visualizeGroup(o.group_, o.group_.name, 0);
+  }
+
+  addObject(o);
 }
 
 void ObjectManager::removeObject(int id) {
@@ -50,17 +170,24 @@ Marker ObjectManager::getMarker(int id){
 
 bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langles, BodyPose bp, int skip_id){
   double dist;
+  if(collision_checker_ == NULL)
+    return true;
+
   //check robot against world
+  ROS_INFO("[om] Collision checking time! robot-world first");
   if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp, false, dist))
+  {
     return false;
+  }
   //check robot against itself
+  ROS_INFO("[om] Collision checking time! robot-robot first");
   if(!collision_checker_->checkRobotAgainstRobot(rangles, langles, bp, false, dist))
     return false;
   //check robot against all objects
   for(unsigned int i=0; i<objects_.size(); i++){
     if(i==skip_id)
       continue;
-    if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), false, false, dist))
+    if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), true, false, dist))
       return false;
   }
   return true;

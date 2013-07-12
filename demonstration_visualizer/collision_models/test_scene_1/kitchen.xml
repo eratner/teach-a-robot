@@ -1,0 +1,3 @@
+<collision_model>
+  <object label="kitchen" mesh_resource="package://demonstration_visualizer/meshes/kitchen.stl" />
+</collision_model>

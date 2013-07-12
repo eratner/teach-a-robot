@@ -316,13 +316,6 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   visualization_marker_->subProp("Marker Topic")->setValue("/visualization_marker");
   ROS_ASSERT(visualization_marker_ != NULL);
 
-  // Create an interactive markers display for moving meshes and goals within a scene.
-  // scene_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers",
-  // 								     "Scene Interactive Markers",
-  // 								     true);
-  // ROS_ASSERT(scene_interactive_markers_ != NULL);
-  // scene_interactive_markers_->subProp("Update Topic")->setValue("/scene_marker/update");
-
   // Connect signals to appropriate slots.
   connect(toggle_grid, SIGNAL(clicked()), this, SLOT(toggleGrid()));
   connect(reset_robot, SIGNAL(clicked()), this, SLOT(resetRobot()));
@@ -732,12 +725,6 @@ void DemonstrationVisualizer::loadScene()
       std::vector<visualization_msgs::Marker>::iterator it;
       for(it = meshes.begin(); it != meshes.end(); ++it)
       {
-	// it->header.frame_id = "/map";
-	// it->header.stamp = ros::Time();
-	// it->action = visualization_msgs::Marker::ADD;
-	// it->type = visualization_msgs::Marker::MESH_RESOURCE;
-	// it->mesh_use_embedded_materials = true;
-
 	int i = it->mesh_resource.size()-1;
 	for(; i >= 0; i--)
 	{
@@ -756,8 +743,6 @@ void DemonstrationVisualizer::loadScene()
 			<< it->pose.position.x << ", " 
 			<< it->pose.position.y << ", "
 			<< it->pose.position.z << ").");
-
-	// node_.getSceneManager()->visualizeMesh(it->id, node_.getSceneManager()->editMeshesMode());
       }
 
       next_mesh_id_ = max_mesh_id+1;
