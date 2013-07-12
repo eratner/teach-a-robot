@@ -5,7 +5,7 @@ namespace demonstration_visualizer {
 PR2Simulator::PR2Simulator(MotionRecorder *recorder, 
 			   PViz *pviz,
 			   interactive_markers::InteractiveMarkerServer *int_marker_server,
-         ObjectManager* object_manager)
+			   ObjectManager* object_manager)
   : playing_(true), 
     attached_object_(false),
     frame_rate_(10.0), 
@@ -13,7 +13,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     int_marker_server_(int_marker_server), 
     object_manager_(object_manager),
     base_movement_controller_(),
-    end_effector_controller_(),
+    end_effector_controller_(int_marker_server),
     recorder_(recorder)
 {
   ros::NodeHandle nh;
@@ -67,6 +67,14 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[4] = -1.7343417;
   joint_states_.position[5] = -0.0962141;
   joint_states_.position[6] = -0.0864407;
+  // Move the right arm in slightly. @todo these should be constants somewhere.
+  joint_states_.position[7] = -0.002109;
+  joint_states_.position[8] = 0.655300;
+  joint_states_.position[9] = 0.000000;
+  joint_states_.position[10] = -1.517650;
+  joint_states_.position[11] = -3.138816;
+  joint_states_.position[12] = -0.862352;
+  joint_states_.position[13] = 3.139786;
 
   for(int i = 7; i < 15; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
@@ -77,7 +85,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
   vel_cmd_sub_ = nh.subscribe("vel_cmd",
 			      100,
-			      &PR2Simulator::updateVelocity,
+			      &PR2Simulator::updateBaseVelocity,
 			      this);
 
   end_effector_vel_cmd_sub_ = nh.subscribe("end_effector_vel_cmd",
@@ -139,9 +147,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Attach an interactive marker to the end effectors of the robot.
   visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
 
-  //int_marker.header.frame_id = "/map";
   int_marker.header.frame_id = "/base_footprint";
-  int_marker.pose = robot_markers_.markers.at(11).pose;//r_gripper_marker.pose;
+  int_marker.pose = robot_markers_.markers.at(11).pose;
   int_marker.name = "r_gripper_marker";
   int_marker.description = "";
 
@@ -183,8 +190,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
   // Set the map to torso_lift_link transform.
   updateTransforms();
-
-  is_moving_r_gripper_ = false;
 }
 
 PR2Simulator::~PR2Simulator()
@@ -341,7 +346,8 @@ void PR2Simulator::moveRobot()
   std::vector<double> solution(7, 0);
   if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
   {
-    //ROS_ERROR("[PR2Sim] IK failed in move robot!");
+    // ROS_ERROR("[PR2Sim] IK failed in move robot!");
+    return;
   }
 
   geometry_msgs::Pose object_pose;
@@ -359,8 +365,10 @@ void PR2Simulator::moveRobot()
     // Next, set the new joint angles of the right arm and the new 
     // (right) end-effector pose.
     for(int i = 7; i < 14; ++i)
+    {
       joint_states_.position[i] = solution[i-7];
-  
+    }
+
     end_effector_pose_.pose.position.x = end_effector_pose[0];
     end_effector_pose_.pose.position.y = end_effector_pose[1];
     end_effector_pose_.pose.position.z = end_effector_pose[2];
@@ -394,7 +402,7 @@ void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_m
                              obj.orientation.w);
 }
 
-void PR2Simulator::updateVelocity(const geometry_msgs::Twist &vel)
+void PR2Simulator::updateBaseVelocity(const geometry_msgs::Twist &vel)
 {
   vel_cmd_ = vel;
 }
@@ -492,16 +500,21 @@ void PR2Simulator::gripperMarkerFeedback(
 {
   switch(feedback->event_type)
   {
+  case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
+    ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
+	     feedback->pose.position.y, feedback->pose.position.z);
+    end_effector_controller_.setState(EndEffectorController::READY);
+    setEndEffectorGoalPose(feedback->pose);
+    end_effector_goal_pose_.pose = feedback->pose;
+    break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
-    is_moving_r_gripper_ = true;
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      end_effector_controller_.setState(EndEffectorController::READY);
-      is_moving_r_gripper_ = false;
-      ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
-	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
-      setEndEffectorGoalPose(feedback->pose);
+      // end_effector_controller_.setState(EndEffectorController::READY);
+      // ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
+      // 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
+      // setEndEffectorGoalPose(feedback->pose);
       break;
     }
   default:
@@ -545,8 +558,13 @@ void PR2Simulator::resetRobot()
   int_marker_server_->applyChanges();
 
   // Reset the joints. (Leave the left arm joints as they were.)
-  for(int i = 7; i < joint_states_.position.size(); ++i)
-    joint_states_.position[i] = 0;
+  joint_states_.position[7] = -0.002109;
+  joint_states_.position[8] = 0.655300;
+  joint_states_.position[9] = 0.000000;
+  joint_states_.position[10] = -1.517650;
+  joint_states_.position[11] = -3.138816;
+  joint_states_.position[12] = -0.862352;
+  joint_states_.position[13] = 3.139786;
 
   updateEndEffectorPose();
 
@@ -729,45 +747,18 @@ void PR2Simulator::processKeyEvent(int key, int type)
 
 void PR2Simulator::updateEndEffectorMarker()
 {
-  // If the gripper marker is at an invalid pose, it should turn red.
-  if(end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL &&
-     end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
-  {
-    visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_->get("r_gripper_marker", gripper_marker);
-    gripper_marker.controls[0].markers[0].color.r = 1;
-    gripper_marker.controls[0].markers[0].color.g = 0;
-    gripper_marker.controls[0].markers[0].color.b = 0;
-    gripper_marker.pose = end_effector_goal_pose_.pose;
-    int_marker_server_->insert(gripper_marker);
-    int_marker_server_->applyChanges();
-  }
-  else if(end_effector_controller_.getState() != EndEffectorController::INVALID_GOAL &&
-	  end_effector_controller_.getLastState() == EndEffectorController::INVALID_GOAL)
-  {
-    visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_->get("r_gripper_marker", gripper_marker);
-    gripper_marker.controls[0].markers[0].color.r = 0;
-    gripper_marker.controls[0].markers[0].color.g = 1;
-    gripper_marker.controls[0].markers[0].color.b = 0;
-    gripper_marker.pose = end_effector_goal_pose_.pose;
-    int_marker_server_->insert(gripper_marker);
-    int_marker_server_->applyChanges();
-  }
-
-  if(!is_moving_r_gripper_ 
-     && end_effector_controller_.getState() == EndEffectorController::DONE
-     || recorder_->isReplaying())
+  if(end_effector_controller_.getState() == EndEffectorController::DONE ||
+     end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
+     recorder_->isReplaying())
   {
     int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_->applyChanges();
-    end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 
-  if(end_effector_marker_vel_.linear.x == 0 &&
-     end_effector_marker_vel_.linear.y == 0 &&
-     end_effector_marker_vel_.linear.z == 0)
-    return;
+  if(end_effector_controller_.getState() == EndEffectorController::DONE)
+  {
+    end_effector_controller_.setState(EndEffectorController::INITIAL);
+  }
 
   // Get the current pose of the end-effector interactive marker.
   visualization_msgs::InteractiveMarker marker;
@@ -874,7 +865,10 @@ void PR2Simulator::detach(){
   attached_object_ = false;
 }
 
-bool PR2Simulator::validityCheck(vector<double> rangles, vector<double> langles, BodyPose bp, geometry_msgs::Pose object_pose){
+bool PR2Simulator::validityCheck(const vector<double>& rangles, 
+                                 const vector<double>& langles, 
+                                 const BodyPose& bp, 
+                                 const geometry_msgs::Pose& object_pose){
   if(attached_object_){
     //check robot motion
     if(!object_manager_->checkRobotMove(rangles, langles, bp, attached_id_))

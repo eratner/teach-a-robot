@@ -5,6 +5,8 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_datatypes.h>
+#include <interactive_markers/interactive_marker_server.h>
+#include <string>
 #include <cmath>
 
 namespace demonstration_visualizer {
@@ -18,13 +20,15 @@ static const char *END_EFFECTOR_STATE_NAMES[] = { "INITIAL",
 class EndEffectorController
 {
 public:
+  static const std::string R_GRIPPER_MARKER_NAME;
+
   enum State { INITIAL = 0,
                READY,
 	       MOVING_TO_GOAL,
 	       INVALID_GOAL,
 	       DONE };
 	       
-  EndEffectorController();
+  EndEffectorController(interactive_markers::InteractiveMarkerServer *int_marker_server);
 
   virtual ~EndEffectorController();
 
@@ -43,6 +47,8 @@ public:
   double getSpeed() const;
 
 private:
+  interactive_markers::InteractiveMarkerServer *int_marker_server_;
+
   State current_state_;
   State last_state_;
   int frames_;

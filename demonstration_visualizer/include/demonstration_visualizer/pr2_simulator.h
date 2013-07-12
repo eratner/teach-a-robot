@@ -35,7 +35,7 @@ public:
   PR2Simulator(MotionRecorder *recorder, 
 	       PViz *pviz, 
 	       interactive_markers::InteractiveMarkerServer *int_marker_server,
-         ObjectManager* object_manager);
+	       ObjectManager* object_manager);
 
   ~PR2Simulator();
 
@@ -67,7 +67,7 @@ public:
    * @brief Update the (linear/angular) velocity of the base.
    * @param[in] 
    */
-  void updateVelocity(const geometry_msgs::Twist &);
+  void updateBaseVelocity(const geometry_msgs::Twist &);
 
   /**
    * @brief Visualizes the robot using PViz.
@@ -116,7 +116,10 @@ public:
    */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
-  bool validityCheck(std::vector<double> rangles, std::vector<double> langles, BodyPose bp, geometry_msgs::Pose obj);
+  bool validityCheck(const std::vector<double>& rangles, 
+                     const std::vector<double>& langles, 
+                     const BodyPose& bp, 
+                     const geometry_msgs::Pose& obj);
 
   void computeObjectPose(std::vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj);
 
@@ -173,8 +176,6 @@ private:
   sbpl_arm_planner::KDLRobotModel kdl_robot_model_;
   KDL::Frame map_in_torso_lift_link_;
   std::map<std::string, int> joints_map_;
-
-  bool is_moving_r_gripper_;
 
   tf::TransformBroadcaster tf_broadcaster_;
 

@@ -67,9 +67,9 @@ public:
 
   geometry_msgs::Pose getEndEffectorMarkerPose();
 
-  void sendBaseCommand(const geometry_msgs::Pose &);
+  void setBaseCommand(const geometry_msgs::Pose &);
 
-  void sendBaseVelocityCommand(const geometry_msgs::Twist &);
+  void setBaseVelocity(const geometry_msgs::Twist &);
 
   void setJointStates(const sensor_msgs::JointState &);
 

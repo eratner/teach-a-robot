@@ -1111,7 +1111,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
     vel.linear.y = 0;
     vel.angular.z = 0;
 
-    node_.sendBaseVelocityCommand(vel);
+    node_.setBaseVelocity(vel);
   }
 
   switch(camera_mode_)
@@ -1201,7 +1201,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	vel_cmd.angular.z = 0;
       }
 
-      node_.sendBaseVelocityCommand(vel_cmd);
+      node_.setBaseVelocity(vel_cmd);
 
       // Offset the position of the FPS camera, if set.
       if(x_fps_offset_ > 0)
