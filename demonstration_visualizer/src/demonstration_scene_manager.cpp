@@ -614,6 +614,8 @@ bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::P
       visualization_msgs::Marker object = goal->getObject();
       object.pose = pose;
       goal->setObject(object);
+
+      goal->setPregraspPose(pose);
       
       break;
     }
@@ -682,12 +684,12 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
       pregrasp_pose_fixed.position.z = position.z;
 
       //ROS_INFO("goal = (%f, %f, %f)", goal_pose.position.x, goal_pose.position.y, goal_pose.position.z);
-      double distance = std::sqrt(std::pow(pregrasp_pose.position.x - pose.position.x, 2) +
-				  std::pow(pregrasp_pose.position.y - pose.position.y, 2) +
-				  std::pow(pregrasp_pose.position.z - pose.position.z, 2));
+      double distance = std::sqrt(std::pow(pregrasp_pose_fixed.position.x - pose.position.x, 2) +
+				  std::pow(pregrasp_pose_fixed.position.y - pose.position.y, 2) +
+				  std::pow(pregrasp_pose_fixed.position.z - pose.position.z, 2));
       if(distance < 0.15)
       {
-	ROS_INFO("Distance to goal = %f", distance);
+	ROS_INFO("[SceneManager] Approaching the goal! (Distance = %f).", distance);
       }
 
       if(distance < tolerance)
@@ -918,6 +920,8 @@ bool DemonstrationSceneManager::meshesChanged() const
 
 bool DemonstrationSceneManager::taskDone() const
 {
+  // ROS_INFO("current goal = %d, num goals = %d", current_goal_, (int)goals_.size());
+
   return (current_goal_ >= (int)goals_.size());
 }
 

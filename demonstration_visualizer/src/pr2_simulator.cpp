@@ -287,10 +287,16 @@ void PR2Simulator::moveRobot()
   geometry_msgs::Twist base_vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
 									      goal_pose_.pose);
 
-  if(base_movement_controller_.getState() == BaseMovementController::DONE)
+  if(base_movement_controller_.getState() == BaseMovementController::DONE ||
+     (isBaseMoving() && base_movement_controller_.getState() == BaseMovementController::INITIAL)
+     )
   {
     int_marker_server_->setPose("base_marker", base_pose_.pose);
     int_marker_server_->applyChanges();
+  }
+
+  if(base_movement_controller_.getState() == BaseMovementController::DONE)
+  {
     base_movement_controller_.setState(BaseMovementController::INITIAL);
   }
   
