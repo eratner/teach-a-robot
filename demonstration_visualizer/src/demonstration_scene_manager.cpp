@@ -934,7 +934,57 @@ bool DemonstrationSceneManager::editMeshesMode() const
 
 void DemonstrationSceneManager::setEditMeshesMode(bool edit)
 {
-  edit_meshes_mode_ = edit;
+  if(edit != edit_meshes_mode_)
+  {
+    std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
+    if(edit)
+    {
+      std::vector<visualization_msgs::Marker>::iterator it;
+      for(it = meshes.begin(); it != meshes.end(); ++it)
+      {
+	it->header.frame_id = "/map";
+	it->header.stamp = ros::Time();
+	it->action = visualization_msgs::Marker::DELETE;
+	it->type = visualization_msgs::Marker::MESH_RESOURCE;
+	it->mesh_use_embedded_materials = true;
+
+	// First remove the old markers.
+	marker_pub_.publish(*it);
+
+	// Then add the markers again, but this time with interactive markers.
+	it->action = visualization_msgs::Marker::ADD;
+	visualizeMesh(*it, true);
+      }
+    }
+    else
+    {
+      std::vector<visualization_msgs::Marker>::iterator it;
+      // For each mesh, first remove all the interactive markers from the meshes.
+      // Then, re-visualize each marker without an attached interactive marker.
+      for(it = meshes.begin(); it != meshes.end(); ++it)
+      {
+	std::stringstream int_marker_name;
+	int_marker_name << "mesh_marker_" << it->id;
+
+	if(!int_marker_server_->erase(int_marker_name.str()))
+	{
+	  ROS_ERROR("[SceneManager] Failed to remove interactive marker on mesh %d!", it->id);
+	}
+	int_marker_server_->applyChanges();
+
+	it->header.frame_id = "/map";
+	it->header.stamp = ros::Time();
+	it->action = visualization_msgs::Marker::ADD;
+	it->type = visualization_msgs::Marker::MESH_RESOURCE;
+	it->color.r = it->color.g = it->color.b = it->color.a = 0;
+	it->mesh_use_embedded_materials = true;
+
+	marker_pub_.publish(*it);
+      }
+    }
+
+    edit_meshes_mode_ = edit;
+  }
 }
 
 void DemonstrationSceneManager::setMeshesChanged(bool changed)
@@ -949,8 +999,6 @@ bool DemonstrationSceneManager::meshesChanged() const
 
 bool DemonstrationSceneManager::taskDone() const
 {
-  // ROS_INFO("current goal = %d, num goals = %d", current_goal_, (int)goals_.size());
-
   return (current_goal_ >= (int)goals_.size());
 }
 
