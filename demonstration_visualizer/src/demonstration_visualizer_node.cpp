@@ -109,6 +109,11 @@ void DemonstrationVisualizerNode::run()
       if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()) &&
 	 getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorMarkerPose()))
       {
+        //HACK to test attaching an object
+        KDL::Frame frame(KDL::Rotation::RotZ(0.0),
+                               KDL::Vector(2.0,0.0,0.0));
+        simulator_->attach(10, frame);
+
 	ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
 	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
 	getSceneManager()->setGoalsChanged(true);

@@ -72,9 +72,10 @@ void DemonstrationSceneManager::updateScene()
   }
 
   // Second, update the meshes. 
-  if(object_manager_->getNumObjects() > 0 && meshesChanged())
+  //if(object_manager_->getNumObjects() > 0 && meshesChanged())
+  if(object_manager_->getNumObjects() > 0)
   {
-    std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
+    std::vector<visualization_msgs::Marker> meshes = object_manager_->getMovedMarkers();
     if(editMeshesMode())
     {
       std::vector<visualization_msgs::Marker>::iterator it;
@@ -221,7 +222,6 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
   for(element; element; element = element->NextSiblingElement())
   {
-    ROS_INFO("hey");
     element->QueryIntAttribute("id", &mesh_marker.id);
     std::string label = std::string(element->Attribute("label"));
     element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x);
@@ -243,17 +243,14 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     mesh_marker.color.r = mesh_marker.color.g = mesh_marker.color.b = mesh_marker.color.a = 0;
     mesh_marker.mesh_use_embedded_materials = true;
 
-    ROS_INFO("hey");
     std::stringstream collision_model_file;
     collision_model_file << package_path << collision_model_path << "/" << label << ".xml";
 
     int movable;
-    ROS_INFO("hey");
     element->QueryIntAttribute("movable", &movable);
     object_manager_->addObjectFromFile(mesh_marker,
 				       collision_model_file.str(),
 				       movable);
-    ROS_INFO("hey");
 
     if(mesh_marker.id > max_mesh_id)
       max_mesh_id = mesh_marker.id;

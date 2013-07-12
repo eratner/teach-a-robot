@@ -351,8 +351,10 @@ void PR2Simulator::moveRobot()
   }
 
   geometry_msgs::Pose object_pose;
-  if(attached_object_)
+  if(attached_object_){
+    ROS_ERROR("compute object pose");
     computeObjectPose(end_effector_pose, body_pose, object_pose);
+  }
 
   if(validityCheck(solution, l_arm_joints, body_pose, object_pose))
   {
@@ -871,14 +873,17 @@ bool PR2Simulator::validityCheck(const vector<double>& rangles,
                                  const geometry_msgs::Pose& object_pose){
   if(attached_object_){
     //check robot motion
+    ROS_ERROR("Check robot move (attached)");
     if(!object_manager_->checkRobotMove(rangles, langles, bp, attached_id_))
       return false;
     
+    ROS_ERROR("Check object move (attached)");
     if(!object_manager_->checkObjectMove(attached_id_, object_pose, rangles, langles, bp))
       return false;
   }
   else{
     //check robot motion
+    ROS_ERROR("Check robot move");
     if(!object_manager_->checkRobotMove(rangles, langles, bp, -1))
       return false;
   }

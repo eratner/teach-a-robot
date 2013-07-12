@@ -22,6 +22,7 @@ class ObjectManager{
 
     void removeObject(int id);
     void clearObjects();
+    std::vector<visualization_msgs::Marker> getMovedMarkers();
     std::vector<visualization_msgs::Marker> getMarkers();
     visualization_msgs::Marker getMarker(int id);
     bool checkRobotMove(std::vector<double> rangles, std::vector<double> langles, BodyPose bp, int skip_id);
