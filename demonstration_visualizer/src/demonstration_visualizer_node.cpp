@@ -214,14 +214,14 @@ geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorMarkerPose()
   return simulator_->getEndEffectorMarkerPose();
 }
 
-void DemonstrationVisualizerNode::sendBaseCommand(const geometry_msgs::Pose &pose)
+void DemonstrationVisualizerNode::setBaseCommand(const geometry_msgs::Pose &pose)
 {
   simulator_->setRobotBaseCommand(pose);
 }
 
-void DemonstrationVisualizerNode::sendBaseVelocityCommand(const geometry_msgs::Twist &cmd)
+void DemonstrationVisualizerNode::setBaseVelocity(const geometry_msgs::Twist &velocity)
 {
-  base_vel_cmd_pub_.publish(cmd);
+  simulator_->updateBaseVelocity(velocity);
 }
 
 void DemonstrationVisualizerNode::setJointStates(const sensor_msgs::JointState &joints)

@@ -67,6 +67,14 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[4] = -1.7343417;
   joint_states_.position[5] = -0.0962141;
   joint_states_.position[6] = -0.0864407;
+  // Move the right arm in slightly. @todo these should be constants somewhere.
+  joint_states_.position[7] = -0.002109;
+  joint_states_.position[8] = 0.655300;
+  joint_states_.position[9] = 0.000000;
+  joint_states_.position[10] = -1.517650;
+  joint_states_.position[11] = -3.138816;
+  joint_states_.position[12] = -0.862352;
+  joint_states_.position[13] = 3.139786;
 
   for(int i = 7; i < 15; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
@@ -77,7 +85,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
   vel_cmd_sub_ = nh.subscribe("vel_cmd",
 			      100,
-			      &PR2Simulator::updateVelocity,
+			      &PR2Simulator::updateBaseVelocity,
 			      this);
 
   end_effector_vel_cmd_sub_ = nh.subscribe("end_effector_vel_cmd",
@@ -354,8 +362,11 @@ void PR2Simulator::moveRobot()
     // Next, set the new joint angles of the right arm and the new 
     // (right) end-effector pose.
     for(int i = 7; i < 14; ++i)
+    {
+      ROS_INFO("joint %d: %f", i-7, solution[i-7]);
       joint_states_.position[i] = solution[i-7];
-  
+    }
+
     end_effector_pose_.pose.position.x = end_effector_pose[0];
     end_effector_pose_.pose.position.y = end_effector_pose[1];
     end_effector_pose_.pose.position.z = end_effector_pose[2];
@@ -370,7 +381,7 @@ void PR2Simulator::moveRobot()
   }
 }
 
-void PR2Simulator::updateVelocity(const geometry_msgs::Twist &vel)
+void PR2Simulator::updateBaseVelocity(const geometry_msgs::Twist &vel)
 {
   vel_cmd_ = vel;
 }
@@ -521,8 +532,13 @@ void PR2Simulator::resetRobot()
   int_marker_server_->applyChanges();
 
   // Reset the joints. (Leave the left arm joints as they were.)
-  for(int i = 7; i < joint_states_.position.size(); ++i)
-    joint_states_.position[i] = 0;
+  joint_states_.position[7] = -0.002109;
+  joint_states_.position[8] = 0.655300;
+  joint_states_.position[9] = 0.000000;
+  joint_states_.position[10] = -1.517650;
+  joint_states_.position[11] = -3.138816;
+  joint_states_.position[12] = -0.862352;
+  joint_states_.position[13] = 3.139786;
 
   updateEndEffectorPose();
 
@@ -705,38 +721,19 @@ void PR2Simulator::processKeyEvent(int key, int type)
 
 void PR2Simulator::updateEndEffectorMarker()
 {
-  // If the gripper marker is at an invalid pose, it should turn red.
-  // if(end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL &&
-  //    end_effector_controller_.getLastState() != EndEffectorController::INVALID_GOAL)
-  // {
-  //   visualization_msgs::InteractiveMarker gripper_marker;
-  //   int_marker_server_->get("r_gripper_marker", gripper_marker);
-  //   gripper_marker.controls[0].markers[0].color.r = 1;
-  //   gripper_marker.controls[0].markers[0].color.g = 0;
-  //   gripper_marker.controls[0].markers[0].color.b = 0;
-  //   gripper_marker.pose = end_effector_goal_pose_.pose;
-  //   int_marker_server_->insert(gripper_marker);
-  //   int_marker_server_->applyChanges();
-  // }
-  // else if(end_effector_controller_.getState() != EndEffectorController::INVALID_GOAL &&
-  // 	  end_effector_controller_.getLastState() == EndEffectorController::INVALID_GOAL)
-  // {
-  //   visualization_msgs::InteractiveMarker gripper_marker;
-  //   int_marker_server_->get("r_gripper_marker", gripper_marker);
-  //   gripper_marker.controls[0].markers[0].color.r = 0;
-  //   gripper_marker.controls[0].markers[0].color.g = 1;
-  //   gripper_marker.controls[0].markers[0].color.b = 0;
-  //   gripper_marker.pose = end_effector_goal_pose_.pose;
-  //   int_marker_server_->insert(gripper_marker);
-  //   int_marker_server_->applyChanges();
-  // }
-
-  if(!is_moving_r_gripper_ 
-     && end_effector_controller_.getState() == EndEffectorController::DONE
-     || recorder_->isReplaying())
+  // if(!is_moving_r_gripper_ 
+  //    && end_effector_controller_.getState() == EndEffectorController::DONE
+  //    || recorder_->isReplaying())
+  if(end_effector_controller_.getState() == EndEffectorController::DONE ||
+     end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
+     recorder_->isReplaying())
   {
     int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_->applyChanges();
+  }
+
+  if(end_effector_controller_.getState() == EndEffectorController::DONE)
+  {
     end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 

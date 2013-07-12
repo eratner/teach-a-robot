@@ -67,7 +67,7 @@ public:
    * @brief Update the (linear/angular) velocity of the base.
    * @param[in] 
    */
-  void updateVelocity(const geometry_msgs::Twist &);
+  void updateBaseVelocity(const geometry_msgs::Twist &);
 
   /**
    * @brief Visualizes the robot using PViz.
