@@ -104,6 +104,8 @@ public:
 
   geometry_msgs::Pose getGraspPose(int goal_number);
 
+  geometry_msgs::Pose getObjectPose(int object_id);
+
   geometry_msgs::Pose getCurrentGoalPose();
 
   int getCurrentGoal() const;
@@ -128,14 +130,6 @@ private:
 
   ObjectManager* object_manager_;
 
-  /**
-   * @brief Returns the iterator at the position of the marker in the given vector
-   *        of markers with the specified marker id, or end() if it cannot find 
-   *        such a marker.
-   */
-  std::vector<visualization_msgs::Marker>::iterator findMarker(std::vector<visualization_msgs::Marker> &,
-							       int);
-
   void processGoalFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
   void processMeshFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -144,7 +138,6 @@ private:
 
   void hideGoal(Goal *goal);
 
-  std::vector<visualization_msgs::Marker> meshes_;
   std::vector<Goal *> goals_;
 
   interactive_markers::InteractiveMarkerServer *int_marker_server_;

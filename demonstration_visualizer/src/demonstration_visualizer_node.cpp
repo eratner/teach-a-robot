@@ -108,12 +108,60 @@ void DemonstrationVisualizerNode::run()
     {
       if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()))
       {
-        //HACK to test attaching an object
-        KDL::Frame frame(KDL::Rotation::RotZ(0.0),
-                               KDL::Vector(2.0,0.0,0.0));
-        simulator_->attach(10, frame);
-
 	ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
+
+	Goal *current_goal = getSceneManager()->getGoal(getSceneManager()->getCurrentGoal());
+
+	switch(current_goal->getType())
+	{
+	case Goal::PICK_UP:
+	  {
+	    PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
+
+	    geometry_msgs::Pose object_pose = getSceneManager()->getObjectPose(pick_up_goal->getObjectID());
+	    // ROS_INFO("object pose = (%f, %f, %f)", object_pose.position.x, object_pose.position.y,
+	    // 	     object_pose.position.z);
+	    geometry_msgs::Pose gripper_pose = pick_up_goal->getGraspPose();
+	    // ROS_INFO("gripper pose = (%f, %f, %f)", gripper_pose.position.x, gripper_pose.position.y,
+	    // 	     gripper_pose.position.z);
+	    KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_pose.orientation.x,
+							       object_pose.orientation.y,
+							       object_pose.orientation.z,
+							       object_pose.orientation.w),
+				     KDL::Vector(object_pose.position.x,
+						 object_pose.position.y,
+						 object_pose.position.z)
+				     );
+	    KDL::Frame marker_in_map(KDL::Rotation::Quaternion(gripper_pose.orientation.x,
+							       gripper_pose.orientation.y,
+							       gripper_pose.orientation.z,
+							       gripper_pose.orientation.w),
+				     KDL::Vector(gripper_pose.position.x,
+						 gripper_pose.position.y,
+						 gripper_pose.position.z)
+				     );
+	    KDL::Frame gripper_in_marker(KDL::Rotation::Identity(),
+					 KDL::Vector(-1.0*pick_up_goal->getGraspDistance(),
+						     0.0,
+						     0.0)
+					 );
+	    KDL::Frame gripper_in_map = marker_in_map * gripper_in_marker;
+
+	    KDL::Frame object_in_gripper = gripper_in_map.Inverse() * object_in_map;
+	    
+	    simulator_->attach(pick_up_goal->getObjectID(),
+			       object_in_gripper);
+
+	    double r, p, y;
+	    object_in_gripper.M.GetRPY(r, p, y);
+	    ROS_INFO("object in gripper = (%f, %f, %f), (%f, %f, %f)", object_in_gripper.p.x(),
+		     object_in_gripper.p.y(), object_in_gripper.p.z(), r, p, y);
+
+	    break;
+	  }
+	default:
+	  break;
+	}
 
 	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 

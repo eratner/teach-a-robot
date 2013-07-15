@@ -203,20 +203,20 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
     return true;
 
   //check robot against world
-  ROS_INFO("[om] Collision checking time! robot-world first");
+  // ROS_INFO("[om] Collision checking time! robot-world first");
   if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp, false, dist))
   {
     return false;
   }
   //check robot against itself
-  ROS_INFO("[om] Collision checking time! robot-robot first");
+  // ROS_INFO("[om] Collision checking time! robot-robot first");
   if(!collision_checker_->checkRobotAgainstRobot(rangles, langles, bp, false, dist))
     return false;
   //check robot against all objects
   for(unsigned int i=0; i<objects_.size(); i++){
     if(i==skip_id)
       continue;
-    if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), true, false, dist))
+    if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), false/*true*/, false, dist))
       return false;
   }
   return true;

@@ -321,29 +321,29 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
   doc.LinkEndChild(root);
 
   // Add each mesh to the demonstration scene description.
-  std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = meshes_.begin(); it != meshes_.end(); ++it)
-  {
-    TiXmlElement *mesh = new TiXmlElement("mesh");
+  // std::vector<visualization_msgs::Marker>::iterator it;
+  // for(it = meshes_.begin(); it != meshes_.end(); ++it)
+  // {
+  //   TiXmlElement *mesh = new TiXmlElement("mesh");
 
-    mesh->SetAttribute("id", it->id);
-    mesh->SetAttribute("ns", it->ns);
-    mesh->SetAttribute("mesh_resource", it->mesh_resource);
-    mesh->SetDoubleAttribute("position_x", it->pose.position.x);
-    mesh->SetDoubleAttribute("position_y", it->pose.position.y);
-    mesh->SetDoubleAttribute("position_z", it->pose.position.z);
-    mesh->SetDoubleAttribute("orientation_x", it->pose.orientation.x);
-    mesh->SetDoubleAttribute("orientation_y", it->pose.orientation.y);
-    mesh->SetDoubleAttribute("orientation_z", it->pose.orientation.z);
-    mesh->SetDoubleAttribute("orientation_w", it->pose.orientation.w);
-    mesh->SetDoubleAttribute("scale_x", it->scale.x);
-    mesh->SetDoubleAttribute("scale_y", it->scale.y);
-    mesh->SetDoubleAttribute("scale_z", it->scale.z);
+  //   mesh->SetAttribute("id", it->id);
+  //   mesh->SetAttribute("ns", it->ns);
+  //   mesh->SetAttribute("mesh_resource", it->mesh_resource);
+  //   mesh->SetDoubleAttribute("position_x", it->pose.position.x);
+  //   mesh->SetDoubleAttribute("position_y", it->pose.position.y);
+  //   mesh->SetDoubleAttribute("position_z", it->pose.position.z);
+  //   mesh->SetDoubleAttribute("orientation_x", it->pose.orientation.x);
+  //   mesh->SetDoubleAttribute("orientation_y", it->pose.orientation.y);
+  //   mesh->SetDoubleAttribute("orientation_z", it->pose.orientation.z);
+  //   mesh->SetDoubleAttribute("orientation_w", it->pose.orientation.w);
+  //   mesh->SetDoubleAttribute("scale_x", it->scale.x);
+  //   mesh->SetDoubleAttribute("scale_y", it->scale.y);
+  //   mesh->SetDoubleAttribute("scale_z", it->scale.z);
   
-    root->LinkEndChild(mesh);
-  }
+  //   root->LinkEndChild(mesh);
+  // }
 
-  doc.SaveFile(filename.c_str());
+  // doc.SaveFile(filename.c_str());
 }
 
 bool DemonstrationSceneManager::loadTask(const std::string &filename)
@@ -873,21 +873,6 @@ geometry_msgs::Pose DemonstrationSceneManager::getGraspPose(int goal_number)
   return pick_up_goal->getGraspPose();  
 }
 
-std::vector<visualization_msgs::Marker>::iterator DemonstrationSceneManager::findMarker(
-    std::vector<visualization_msgs::Marker> &markers,
-    int marker_id
-  )
-{
-  std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = markers.begin(); it != markers.end(); ++it)
-  {
-    if(it->id == marker_id)
-      break;
-  }
-
-  return it;
-}
-
 void DemonstrationSceneManager::processGoalFeedback(
     const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
   )
@@ -925,6 +910,11 @@ void DemonstrationSceneManager::processMeshFeedback(
   {
     ROS_ERROR("[SceneManager] Demonstration scene manager failed to update pose of mesh!");
   }  
+}
+
+geometry_msgs::Pose DemonstrationSceneManager::getObjectPose(int object_id)
+{
+  return object_manager_->getMarker(object_id).pose;
 }
 
 geometry_msgs::Pose DemonstrationSceneManager::getCurrentGoalPose()
