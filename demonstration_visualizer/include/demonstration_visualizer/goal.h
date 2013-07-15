@@ -21,6 +21,8 @@ public:
 		  PLACE };
 
   static const char *GoalTypeNames[];
+  
+  static const int NumGoalTypes;
 
   Goal();
 
@@ -53,34 +55,40 @@ public:
 
   PickUpGoal(int goal_number, 
 	     const std::string &description,
+	     int object_id = 0,
 	     const visualization_msgs::Marker &object = visualization_msgs::Marker(),
-	     const geometry_msgs::Pose &pregrasp = geometry_msgs::Pose());
+	     const geometry_msgs::Pose &grasp = geometry_msgs::Pose());
 
   virtual ~PickUpGoal();
 
   GoalType getType() const;
 
+  int getObjectID() const;
+
+  void setObjectID(int id);
+
   visualization_msgs::Marker getObject() const;
 
   void setObject(const visualization_msgs::Marker &object);
 
-  geometry_msgs::Pose getPregraspPose() const;
+  geometry_msgs::Pose getGraspPose() const;
 
-  void setPregraspPose(const geometry_msgs::Pose &pregrasp);
+  void setGraspPose(const geometry_msgs::Pose &grasp);
 
-  bool isPregraspDone() const;
+  bool isGraspDone() const;
 
-  void setPregraspDone(bool);
+  void setGraspDone(bool);
 
-  double getPregraspDistance() const;
+  double getGraspDistance() const;
 
-  void setPregraspDistance(double);
+  void setGraspDistance(double);
 
 private:
   visualization_msgs::Marker object_;
-  geometry_msgs::Pose pregrasp_pose_;
-  bool pregrasp_done_;
-  double pregrasp_distance_;
+  int object_id_;
+  geometry_msgs::Pose grasp_pose_;
+  bool grasp_done_;
+  double grasp_distance_;
 
 };
 

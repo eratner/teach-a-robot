@@ -16,7 +16,7 @@ class ObjectManager{
     void initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
     void addObject(Object o);
     
-    void addObjectFromFile(visualization_msgs::Marker &mesh_marker,
+    bool addObjectFromFile(visualization_msgs::Marker &mesh_marker,
 			   const std::string &collision_model_file, 
 			   bool movable = false);
 
@@ -33,6 +33,8 @@ class ObjectManager{
     void scaleObject(int id, double x, double y, double z);
 
     int getNumObjects() const;
+
+    std::vector<Object> getObjects() const;
 
   private:
     pr2_collision_checker::PR2CollisionSpace* collision_checker_;

@@ -27,6 +27,7 @@
 #include <QTabWidget>
 #include <QListWidget>
 #include <QPushButton>
+#include <QDialog>
 
 Q_DECLARE_METATYPE(geometry_msgs::Pose);
 
@@ -82,6 +83,36 @@ struct UserDemonstrationInfo
   ros::Time last_goal_time_;
   bool started_;
   int goals_completed_;
+
+};
+
+class AddGoalDialog : public QDialog
+{
+Q_OBJECT
+public:
+  AddGoalDialog();
+
+  std::string getDescription() const;
+
+  Goal::GoalType getGoalType() const;
+
+  int getObject() const;
+
+  void setObjects(const std::vector<Object> &objects);
+
+private slots:
+  void goalTypeChanged(int);
+  void objectChanged(int);
+  void setDescription(const QString &); 
+
+private:
+  std::string description_;
+  Goal::GoalType goal_type_;
+  int object_id_;
+  std::vector<Object> objects_;
+
+  QComboBox *select_goal_type_;
+  QComboBox *select_object_;
 
 };
 
@@ -187,11 +218,11 @@ private slots:
 
   void setGripperPosition(int);
 
-  // For controlling the pregrasp selection mode.
-  void beginPregraspSelection();
-  void endPregraspSelection();
+  // For controlling the grasp selection mode.
+  void beginGraspSelection();
+  void endGraspSelection();
 
-  void setPregraspDistance(int);
+  void setGraspDistance(int);
   
 private:
   DemonstrationVisualizerNode node_;
@@ -222,14 +253,14 @@ private:
   QPushButton                *start_button_;
   QPushButton                *end_button_;
   QPushButton                *z_mode_button_;
-  QPushButton                *accept_pregrasp_button_;
-  QSlider                    *pregrasp_distance_slider_;
+  QPushButton                *accept_grasp_button_;
+  QSlider                    *grasp_distance_slider_;
 
   std::vector<QPushButton *> camera_buttons_;
 
   CameraMode                 camera_mode_;
   CameraMode                 previous_camera_mode_;
-  CameraMode                 camera_before_pregrasp_;
+  CameraMode                 camera_before_grasp_;
 
   std::string                auto_camera_state_;
   double                     auto_camera_cached_yaw_;
@@ -239,6 +270,8 @@ private:
 
   double                     x_fps_offset_;
   double                     z_fps_offset_;
+
+  AddGoalDialog              add_goal_dialog_;
 
 };
 

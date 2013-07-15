@@ -49,16 +49,16 @@ void ObjectManager::addObject(Object o){
   }
 }
 
-void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
+bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
 				      const std::string &collision_model_file,
 				      bool movable)
 {
-  ROS_INFO("Add object from file");
+  ROS_INFO("[ObjectManager] Adding object from file %s.", collision_model_file.c_str());
   TiXmlDocument doc(collision_model_file.c_str());
   if(!doc.LoadFile())
   {
     ROS_ERROR("[ObjectManager] Failed to load file %s!", collision_model_file.c_str());
-    return;
+    return false;
   }
 
   TiXmlHandle doc_handle(&doc);
@@ -69,7 +69,7 @@ void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
   if(!element)
   {
     // @todo error
-    return;
+    return false;
   }
 
   root_handle = TiXmlHandle(element);
@@ -80,28 +80,25 @@ void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
   element = root_handle.FirstChild().Element();
   if(element == NULL)
   {
-    ROS_ERROR("element is null while trying to parse object file.");
-    return;
+    ROS_ERROR("[ObjectManager] Element is null while trying to parse object file.");
+    return false;
   }
 
   std::string label;
   if(element->QueryStringAttribute("label", &label) != TIXML_SUCCESS)
   {
-    ROS_ERROR("mesh_resource for the collision_model is missing.");
-    return;
+    ROS_ERROR("[ObjectManager] label for the collision_model is missing.");
+    return false;
   }
 
   if(element->QueryStringAttribute("mesh_resource", &mesh_marker.mesh_resource) != TIXML_SUCCESS)
   {
-    ROS_ERROR("mesh_resource for the collision_model is missing.");
-    return;
+    ROS_ERROR("[ObjectManager] mesh_resource for the collision_model is missing.");
+    return false;
   }
-  ROS_ERROR("query for mesh_resource: %d", element->QueryStringAttribute("mesh_resource", &mesh_marker.mesh_resource));
-
-  mesh_marker.mesh_resource = std::string(element->Attribute("mesh_resource"));
-  ROS_INFO("mesh resource = %s", mesh_marker.mesh_resource.c_str());
 
   Object o(mesh_marker);
+  o.label = label;
   o.movable = movable;
   geometry_msgs::Pose pose = mesh_marker.pose;
   o.group_.name = label;
@@ -124,16 +121,36 @@ void ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
       // @todo deal with reading in sphere lists.
       pr2_collision_checker::Sphere s;
       int id;
-      element->QueryIntAttribute("id", &id);
+      if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[ObjectManager] Failed to read id for sphere!");
+	return false;
+      }
       s.name = boost::lexical_cast<string>(id);
       double temp;
-      element->QueryDoubleAttribute("x", &temp);
+      if(element->QueryDoubleAttribute("x", &temp) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[ObjectManager] Failed to read x-value for sphere!");
+	return false;
+      }
       s.v.x(temp);
-      element->QueryDoubleAttribute("y", &temp);
+      if(element->QueryDoubleAttribute("y", &temp) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[ObjectManager] Failed to read y-value for sphere!");
+	return false;
+      }
       s.v.y(temp);
-      element->QueryDoubleAttribute("z", &temp);
+      if(element->QueryDoubleAttribute("z", &temp) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[ObjectManager] Failed to read z-value for sphere!");
+	return false;
+      }
       s.v.z(temp);
-      element->QueryDoubleAttribute("radius", &s.radius);
+      if(element->QueryDoubleAttribute("radius", &s.radius) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[ObjectManager] Failed to read radius for sphere!");
+	return false;
+      }
       s.priority = 1;
       o.group_.spheres.push_back(s);
       ROS_INFO("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
@@ -258,4 +275,16 @@ void ObjectManager::scaleObject(int id, double x, double y, double z) {
 
 int ObjectManager::getNumObjects() const {
   return objects_.size();
+}
+
+vector<Object> ObjectManager::getObjects() const
+{
+  vector<Object> objects;
+  map<int, Object>::const_iterator it;
+  for(it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    objects.push_back(it->second);
+  }
+
+  return objects;
 }

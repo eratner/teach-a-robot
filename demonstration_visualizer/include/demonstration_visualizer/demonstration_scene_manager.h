@@ -31,7 +31,8 @@ class DemonstrationSceneManager
 public:
   static const std::string GOAL_MARKER_NAMESPACE;
 
-  DemonstrationSceneManager(PViz *pviz, interactive_markers::InteractiveMarkerServer *int_marker_server, /*CollisionChecker* collision_checker, */ObjectManager* object_manager);
+  DemonstrationSceneManager(PViz *pviz, interactive_markers::InteractiveMarkerServer *int_marker_server, 
+			    /*CollisionChecker* collision_checker, */ObjectManager* object_manager);
 
   ~DemonstrationSceneManager();
 
@@ -50,20 +51,18 @@ public:
 
   void saveScene(const std::string &filename);
 
-  void loadTask(const std::string &filename);
+  bool loadTask(const std::string &filename);
 
   void saveTask(const std::string &filename);
 
   void addMeshFromFile(const std::string &filename, int mesh_id);
 
-  void addMesh(const visualization_msgs::Marker &marker, 
-	       bool attach_interactive_marker = false,
-	       const std::string &sphere_list_path = "");
+  void addMesh(const visualization_msgs::Marker &marker,
+  	       bool attach_interactive_marker = false,
+  	       const std::string &sphere_list_path = "");
 
   void visualizeMesh(const visualization_msgs::Marker &marker, bool attach_interactive_marker);
 
-  visualization_msgs::Marker getMesh(int mesh_id);
-  
   bool updateMeshPose(int mesh_id, const geometry_msgs::Pose &pose);
 
   void updateMeshScale(int mesh_id, double x, double y, double z);
@@ -71,10 +70,9 @@ public:
   void removeMesh(int mesh_id);
 
   // Adds an additional goal to the current task, at the end. 
-  void addGoal(const geometry_msgs::Pose &pose = geometry_msgs::Pose(), 
-	       const std::string &desc = "",
-	       const std::string &frame = "/map",
-	       Goal::GoalType type = Goal::PICK_UP);
+  void addGoal(const std::string &desc = "",
+	       Goal::GoalType type = Goal::PICK_UP,
+	       int object_id = 0);
 
   bool moveGoal(int goal_number, const geometry_msgs::Pose &pose);
 
@@ -88,6 +86,8 @@ public:
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 
+  std::vector<Object> getObjects() const;
+
   std::vector<Goal *> getGoals() const;
 
   int getNumGoals() const;
@@ -100,9 +100,9 @@ public:
 
   std::string getGoalDescription(int goal_number) const;
 
-  bool setPregraspPose(int goal_number, const geometry_msgs::Pose &pregrasp);
+  bool setGraspPose(int goal_number, const geometry_msgs::Pose &grasp);
 
-  geometry_msgs::Pose getPregraspPose(int goal_number);
+  geometry_msgs::Pose getGraspPose(int goal_number);
 
   geometry_msgs::Pose getCurrentGoalPose();
 
@@ -118,15 +118,10 @@ public:
 
   void setEditMeshesMode(bool);
 
-  void setMeshesChanged(bool changed = true);
-
-  bool meshesChanged() const;
-
   bool taskDone() const;
 
 private:
   bool goals_changed_;
-  bool meshes_changed_;
   bool edit_goals_mode_;
   bool edit_meshes_mode_;
   int current_goal_;

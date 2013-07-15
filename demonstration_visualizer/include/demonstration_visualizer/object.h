@@ -6,6 +6,7 @@
 #include <tinyxml.h>
 #include<ros/ros.h>
 #include <pr2_collision_checker/pr2_collision_space.h>
+#include <string>
 
 class Object{
   public:
@@ -19,6 +20,8 @@ class Object{
     bool movable;
     pr2_collision_checker::Group group_;
     bool redraw;
+    std::string label;
+
 };
 
 #endif

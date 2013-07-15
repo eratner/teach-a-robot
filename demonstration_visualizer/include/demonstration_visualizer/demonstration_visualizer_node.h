@@ -77,7 +77,7 @@ public:
 
   void showInteractiveGripper(int goal_number);
 
-  void pregraspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+  void graspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
 Q_SIGNALS:
   void rosShutdown();

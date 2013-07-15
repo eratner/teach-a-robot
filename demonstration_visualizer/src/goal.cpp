@@ -4,6 +4,8 @@ namespace demonstration_visualizer {
 
 const char *Goal::GoalTypeNames[] = { "Pick Up", "Place" };
 
+const int Goal::NumGoalTypes = 2;
+
 Goal::Goal()
   : goal_number_(0), description_("")
 {
@@ -52,18 +54,19 @@ void Goal::setDescription(const std::string &description)
 }
 
 PickUpGoal::PickUpGoal()
-  : Goal(0, ""), object_(), pregrasp_pose_(), pregrasp_done_(false), pregrasp_distance_(0.25)
+  : Goal(0, ""), object_(), grasp_pose_(), grasp_done_(false), grasp_distance_(0.25)
 {
 
 }
 
 PickUpGoal::PickUpGoal(int goal_number, 
 		       const std::string &description,
+		       int object_id,
 		       const visualization_msgs::Marker &object,
-		       const geometry_msgs::Pose &pregrasp)
-  : Goal(goal_number, description), object_(object), 
-    pregrasp_pose_(pregrasp), pregrasp_done_(false),
-    pregrasp_distance_(0.25)
+		       const geometry_msgs::Pose &grasp)
+  : Goal(goal_number, description), object_id_(object_id),
+    object_(object), grasp_pose_(grasp), 
+    grasp_done_(false), grasp_distance_(0.25)
 {
 
 }
@@ -78,6 +81,16 @@ Goal::GoalType PickUpGoal::getType() const
   return Goal::PICK_UP;
 }
 
+int PickUpGoal::getObjectID() const
+{
+  return object_id_;
+}
+
+void PickUpGoal::setObjectID(int id)
+{
+  object_id_ = id;
+}
+
 visualization_msgs::Marker PickUpGoal::getObject() const
 {
   return object_;
@@ -88,34 +101,34 @@ void PickUpGoal::setObject(const visualization_msgs::Marker &object)
   object_ = object;
 }
 
-geometry_msgs::Pose PickUpGoal::getPregraspPose() const
+geometry_msgs::Pose PickUpGoal::getGraspPose() const
 {
-  return pregrasp_pose_;
+  return grasp_pose_;
 }
 
-void PickUpGoal::setPregraspPose(const geometry_msgs::Pose &pregrasp)
+void PickUpGoal::setGraspPose(const geometry_msgs::Pose &grasp)
 {
-  pregrasp_pose_ = pregrasp;
+  grasp_pose_ = grasp;
 }
 
-bool PickUpGoal::isPregraspDone() const
+bool PickUpGoal::isGraspDone() const
 {
-  return pregrasp_done_;
+  return grasp_done_;
 }
 
-void PickUpGoal::setPregraspDone(bool done)
+void PickUpGoal::setGraspDone(bool done)
 {
-  pregrasp_done_ = done;
+  grasp_done_ = done;
 }
 
-double PickUpGoal::getPregraspDistance() const
+double PickUpGoal::getGraspDistance() const
 {
-  return pregrasp_distance_;
+  return grasp_distance_;
 }
 
-void PickUpGoal::setPregraspDistance(double distance)
+void PickUpGoal::setGraspDistance(double distance)
 {
-  pregrasp_distance_ = distance;
+  grasp_distance_ = distance;
 }
 
 }

@@ -19,6 +19,102 @@
 
 namespace demonstration_visualizer {
 
+AddGoalDialog::AddGoalDialog()
+  : goal_type_(Goal::PICK_UP), object_id_(0)
+{
+  QVBoxLayout *layout = new QVBoxLayout();
+
+  // Select the goal type.
+  QHBoxLayout *select_goal_layout = new QHBoxLayout();
+  QLabel *select_goal_label = new QLabel("Goal Type: ");
+  select_goal_type_ = new QComboBox();
+  select_goal_type_->setInsertPolicy(QComboBox::InsertAtBottom);
+  for(int i = 0; i < Goal::NumGoalTypes; ++i)
+  {
+    select_goal_type_->addItem(QString(Goal::GoalTypeNames[i]));
+  }
+  select_goal_layout->addWidget(select_goal_label);
+  select_goal_layout->addWidget(select_goal_type_);
+  layout->addLayout(select_goal_layout);
+
+  // Select the object (if goal type is PICK_UP).
+  QHBoxLayout *select_object_layout = new QHBoxLayout();
+  QLabel *select_object_label = new QLabel("Object: ");
+  select_object_ = new QComboBox();
+  select_object_->setInsertPolicy(QComboBox::InsertAtBottom);
+  // @todo add objects somehow.
+  select_object_layout->addWidget(select_object_label);
+  select_object_layout->addWidget(select_object_);
+  layout->addLayout(select_object_layout);
+
+  QHBoxLayout *description_layout = new QHBoxLayout();
+  QLabel *description_label = new QLabel("Description: ");
+  QLineEdit *description_edit = new QLineEdit();
+  description_layout->addWidget(description_label);
+  description_layout->addWidget(description_edit);
+  layout->addLayout(description_layout);
+
+  QHBoxLayout *confirm_layout = new QHBoxLayout();
+  QPushButton *ok_button = new QPushButton("Ok");
+  QPushButton *cancel_button = new QPushButton("Cancel");
+  confirm_layout->addWidget(ok_button);
+  confirm_layout->addWidget(cancel_button);
+  layout->addLayout(confirm_layout);
+
+  connect(ok_button, SIGNAL(clicked()), this, SLOT(accept()));
+  connect(cancel_button, SIGNAL(clicked()), this, SLOT(reject()));
+
+  connect(select_goal_type_, SIGNAL(currentIndexChanged(int)), this, SLOT(goalTypeChanged(int)));
+  connect(select_object_, SIGNAL(currentIndexChanged(int)), this, SLOT(objectChanged(int)));
+  connect(description_edit, SIGNAL(textChanged(const QString &)), 
+	  this, SLOT(setDescription(const QString &)));
+
+  setLayout(layout);
+  setWindowTitle("Add Goal to Task");
+}
+
+std::string AddGoalDialog::getDescription() const
+{
+  return description_;
+}
+
+Goal::GoalType AddGoalDialog::getGoalType() const
+{
+  return goal_type_;
+}
+
+int AddGoalDialog::getObject() const
+{
+  return object_id_;
+}
+
+void AddGoalDialog::setObjects(const std::vector<Object> &objects)
+{
+  ROS_INFO("%d objects.", objects.size());
+  objects_ = objects;
+  select_object_->clear();
+  std::vector<Object>::iterator it;
+  for(it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    select_object_->addItem(QString(it->label.c_str()));
+  }
+}
+
+void AddGoalDialog::goalTypeChanged(int type)
+{
+  goal_type_ = (Goal::GoalType)type;
+}
+
+void AddGoalDialog::objectChanged(int id)
+{
+  object_id_ = objects_[id].mesh_marker_.id;
+}
+
+void AddGoalDialog::setDescription(const QString &description)
+{
+  description_ = description.toStdString();
+}
+
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
 {
@@ -209,19 +305,19 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QVBoxLayout *user_controls_layout = new QVBoxLayout();
   z_mode_button_ = new QPushButton("Enable Z-Mode");
   user_controls_layout->addWidget(z_mode_button_);
-  accept_pregrasp_button_ = new QPushButton("Accept Pre-Grasp");
-  user_controls_layout->addWidget(accept_pregrasp_button_);
-  accept_pregrasp_button_->setEnabled(false);
-  QHBoxLayout *pregrasp_distance_layout = new QHBoxLayout();
-  QLabel *pregrasp_distance_label = new QLabel("Pre-Grasp Distance: ");
-  pregrasp_distance_slider_ = new QSlider(Qt::Horizontal);
-  pregrasp_distance_layout->addWidget(pregrasp_distance_label);
-  pregrasp_distance_slider_->setMinimum(0);
-  pregrasp_distance_slider_->setMaximum(100);
-  pregrasp_distance_slider_->setValue(25);
-  pregrasp_distance_slider_->setEnabled(false);
-  pregrasp_distance_layout->addWidget(pregrasp_distance_slider_);
-  user_controls_layout->addLayout(pregrasp_distance_layout);
+  accept_grasp_button_ = new QPushButton("Accept Grasp");
+  user_controls_layout->addWidget(accept_grasp_button_);
+  accept_grasp_button_->setEnabled(false);
+  QHBoxLayout *grasp_distance_layout = new QHBoxLayout();
+  QLabel *grasp_distance_label = new QLabel("Pre-Grasp Distance: ");
+  grasp_distance_slider_ = new QSlider(Qt::Horizontal);
+  grasp_distance_layout->addWidget(grasp_distance_label);
+  grasp_distance_slider_->setMinimum(0);
+  grasp_distance_slider_->setMaximum(100);
+  grasp_distance_slider_->setValue(25);
+  grasp_distance_slider_->setEnabled(false);
+  grasp_distance_layout->addWidget(grasp_distance_slider_);
+  user_controls_layout->addLayout(grasp_distance_layout);
 
   QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
   QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
@@ -367,8 +463,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
 
   connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
-  connect(accept_pregrasp_button_, SIGNAL(clicked()), this, SLOT(endPregraspSelection()));
-  connect(pregrasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setPregraspDistance(int)));
+  connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
+  connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -665,14 +761,12 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
   case Qt::Unchecked:
     {
       node_.getSceneManager()->setEditMeshesMode(false);
-      node_.getSceneManager()->setMeshesChanged();
 
       break;
     }
   case Qt::Checked:
     {
       node_.getSceneManager()->setEditMeshesMode(true);
-      node_.getSceneManager()->setMeshesChanged();
 
       break;
     }
@@ -711,6 +805,8 @@ void DemonstrationVisualizer::loadScene()
   {
   case QMessageBox::Yes:
     {
+      node_.pauseSimulator();
+
       // Load the scene into the demonstration scene manager.
       int max_mesh_id = node_.getSceneManager()->loadScene(filename.toStdString());
 
@@ -916,29 +1012,31 @@ void DemonstrationVisualizer::setAngularSpeed(double angular)
 
 void DemonstrationVisualizer::addTaskGoal()
 {
-  bool ok;
-  QString description = QInputDialog::getText(this,
-					      tr("Add a Goal Description"),
-					      tr("Description:"),
-					      QLineEdit::Normal,
-					      "",
-					      &ok);
+  // Update the object list.
+  add_goal_dialog_.setObjects(node_.getSceneManager()->getObjects());
 
-  std::string desc = "";
-  if(ok)
-    desc = description.toStdString();
-  else
+  int value = add_goal_dialog_.exec();
+  if(value == QDialog::Rejected)
   {
-    ROS_INFO("[DViz] No task added.");
+    ROS_INFO("[DViz] No goal added.");
     return;
   }
+
+  std::string description = add_goal_dialog_.getDescription();
+  Goal::GoalType type = add_goal_dialog_.getGoalType();
+  int object_id = add_goal_dialog_.getObject();
+
+  ROS_INFO("[DViz] Adding goal of type %s with description \"%s\" and object id %d.",
+	   Goal::GoalTypeNames[type], description.c_str(), object_id);
+  
 
   if(node_.getSceneManager()->getNumGoals() == 0)
     goals_list_->clear();
 
-  node_.getSceneManager()->addGoal(geometry_msgs::Pose(), desc);
+  node_.getSceneManager()->addGoal(description, type, object_id);
+
   std::stringstream goal_desc;
-  goal_desc << "Goal " << node_.getSceneManager()->getNumGoals() << ": " << desc;
+  goal_desc << "Goal " << node_.getSceneManager()->getNumGoals() << ": " << description;
   goals_list_->addItem(QString(goal_desc.str().c_str()));
 }
 
@@ -1048,7 +1146,7 @@ void DemonstrationVisualizer::startBasicMode()
 
   playSimulator();
 
-  beginPregraspSelection();
+  beginGraspSelection();
 
   setEditGoalsMode(Qt::Unchecked);
 
@@ -1453,16 +1551,16 @@ void DemonstrationVisualizer::setGripperPosition(int position)
   node_.setJointStates(joints);
 }
 
-void DemonstrationVisualizer::beginPregraspSelection()
+void DemonstrationVisualizer::beginGraspSelection()
 {
-  accept_pregrasp_button_->setEnabled(true);
-  pregrasp_distance_slider_->setEnabled(true);
-  camera_before_pregrasp_ = camera_mode_;
+  accept_grasp_button_->setEnabled(true);
+  grasp_distance_slider_->setEnabled(true);
+  camera_before_grasp_ = camera_mode_;
   changeCameraMode(GOAL);
   node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
 }
 
-void DemonstrationVisualizer::endPregraspSelection()
+void DemonstrationVisualizer::endGraspSelection()
 {
   switch(QMessageBox::warning(this,
 			      "Accept this pre-grasp?",
@@ -1473,33 +1571,33 @@ void DemonstrationVisualizer::endPregraspSelection()
     {
       int current_goal = node_.getSceneManager()->getCurrentGoal();
       std::stringstream s; 
-      s << "pregrasp_marker_goal_" << current_goal;
+      s << "grasp_marker_goal_" << current_goal;
       node_.getInteractiveMarkerServer()->erase(s.str());
       node_.getInteractiveMarkerServer()->applyChanges();
       PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
-      goal->setPregraspDone(true);
+      goal->setGraspDone(true);
       node_.getSceneManager()->setGoalsChanged();
-      changeCameraMode(camera_before_pregrasp_);
-      accept_pregrasp_button_->setEnabled(false);
-      pregrasp_distance_slider_->setEnabled(false);
+      changeCameraMode(camera_before_grasp_);
+      accept_grasp_button_->setEnabled(false);
+      grasp_distance_slider_->setEnabled(false);
 
       break;
     }
   case QMessageBox::No:
     break;
   default:
-    ROS_ERROR("[DViz] An error has occured in the pregrasp selection!");
+    ROS_ERROR("[DViz] An error has occured in the grasp selection!");
     break;
   }
 }
 
-void DemonstrationVisualizer::setPregraspDistance(int value)
+void DemonstrationVisualizer::setGraspDistance(int value)
 {
   double distance = (double)value/100.0;
 
   int current_goal = node_.getSceneManager()->getCurrentGoal();
   PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
-  goal->setPregraspDistance(distance);
+  goal->setGraspDistance(distance);
   
   // Redraw the interactive marker on the gripper to reflect the change in distance.
   node_.showInteractiveGripper(current_goal);

@@ -263,12 +263,12 @@ void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
 {
   PickUpGoal *goal = static_cast<PickUpGoal *>(getSceneManager()->getGoal(goal_number));
 
-  geometry_msgs::Pose gripper_pose = goal->getPregraspPose();
+  geometry_msgs::Pose gripper_pose = goal->getGraspPose();
 
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = "/map";
   std::stringstream s;
-  s << "pregrasp_marker_goal_" << goal_number;
+  s << "grasp_marker_goal_" << goal_number;
   int_marker.name = s.str();
   int_marker.description = "";
   int_marker.pose = gripper_pose;
@@ -277,7 +277,7 @@ void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
   std::vector<visualization_msgs::Marker> markers;
   geometry_msgs::Pose origin; 
   // @todo compute this based on the goal object.
-  origin.position.x = -(goal->getPregraspDistance());
+  origin.position.x = -(goal->getGraspDistance());
   origin.position.y = origin.position.z = 0;
   origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
   origin.orientation.w = 1;
@@ -313,18 +313,18 @@ void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
 
   int_marker_server_->insert(int_marker,
 			     boost::bind(
-			       &DemonstrationVisualizerNode::pregraspMarkerFeedback,
+			       &DemonstrationVisualizerNode::graspMarkerFeedback,
 			       this,
 			       _1)
 			     );
   int_marker_server_->applyChanges();
 }
 
-void DemonstrationVisualizerNode::pregraspMarkerFeedback(
+void DemonstrationVisualizerNode::graspMarkerFeedback(
     const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
   )
 {
-  ROS_INFO("[DVizNode] Moving pregrasp interactive marker %s.", feedback->marker_name.c_str());
+  ROS_INFO("[DVizNode] Moving grasp interactive marker %s.", feedback->marker_name.c_str());
 
   int i = feedback->marker_name.size()-1;
   for(; i >= 0; --i)
@@ -333,7 +333,7 @@ void DemonstrationVisualizerNode::pregraspMarkerFeedback(
       break;
   }
 
-  getSceneManager()->setPregraspPose(atoi(feedback->marker_name.substr(i+1).c_str()),
+  getSceneManager()->setGraspPose(atoi(feedback->marker_name.substr(i+1).c_str()),
 				     feedback->pose);
 }
 
