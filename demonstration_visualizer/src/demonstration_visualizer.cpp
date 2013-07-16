@@ -309,7 +309,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   user_controls_layout->addWidget(accept_grasp_button_);
   accept_grasp_button_->setEnabled(false);
   QHBoxLayout *grasp_distance_layout = new QHBoxLayout();
-  QLabel *grasp_distance_label = new QLabel("Pre-Grasp Distance: ");
+  QLabel *grasp_distance_label = new QLabel("Grasp Distance: ");
   grasp_distance_slider_ = new QSlider(Qt::Horizontal);
   grasp_distance_layout->addWidget(grasp_distance_label);
   grasp_distance_slider_->setMinimum(0);
@@ -1178,7 +1178,7 @@ void DemonstrationVisualizer::startBasicMode()
   instructions_box.setText("<b>Instructions:</b> For each goal in the given task:"
 			   "<ul>"
 			   "<li>Place the gripper so that it may grasp the object.</li>"
-			   "<li>Press <b>Accept Pre-Grasp</b>.</li>"
+			   "<li>Press <b>Accept Grasp</b>.</li>"
 			   "<li>Move the base and gripper to that grasp.</li>"
 			   "</ul>");
 
@@ -1605,7 +1605,7 @@ void DemonstrationVisualizer::beginGraspSelection()
 void DemonstrationVisualizer::endGraspSelection()
 {
   switch(QMessageBox::warning(this,
-			      "Accept this pre-grasp?",
+			      "Accept this grasp?",
 			      "Are you sure this is the grasp you want? If not, press no to continue!",
 			      QMessageBox::Yes, QMessageBox::No))
   {

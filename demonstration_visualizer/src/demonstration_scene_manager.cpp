@@ -348,7 +348,12 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
 
 bool DemonstrationSceneManager::loadTask(const std::string &filename)
 {
-  // Clear existing meshes.
+  // Clear the existing task.
+  for(int i = 0; i < goals_.size(); ++i)
+  {
+    delete goals_[i];
+    goals_[i] = 0;
+  }
   goals_.clear();
   setGoalsChanged(true);
 
@@ -425,8 +430,68 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 
 	break;
       }
-    // case Goal::PLACE:
-    //   break;
+    case Goal::PLACE:
+      {
+	PlaceGoal *goal = new PlaceGoal(goal_number, goal_description);
+
+	int object_id = 0;
+	if(element->QueryIntAttribute("object_id", &object_id) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read object ID!");
+	  delete goal;
+	  return false;
+	}
+	goal->setObjectID(object_id);
+
+	geometry_msgs::Pose place_pose;
+	if(element->QueryDoubleAttribute("position_x", &place_pose.position.x) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place position x!");
+	  delete goal;
+	  return false;	  
+	}
+	if(element->QueryDoubleAttribute("position_y", &place_pose.position.y) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place position y!");
+	  delete goal;
+	  return false;	  
+	}
+	if(element->QueryDoubleAttribute("position_z", &place_pose.position.z) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place position z!");
+	  delete goal;
+	  return false;	  
+	}
+	if(element->QueryDoubleAttribute("orientation_x", &place_pose.orientation.x) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place orientation x!");
+	  delete goal;
+	  return false;	  
+	}
+	if(element->QueryDoubleAttribute("orientation_y", &place_pose.orientation.y) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place orientation y!");
+	  delete goal;
+	  return false;	  
+	}
+	if(element->QueryDoubleAttribute("orientation_z", &place_pose.orientation.z) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place orientation z!");
+	  delete goal;
+	  return false;	  
+	}
+	if(element->QueryDoubleAttribute("orientation_w", &place_pose.orientation.w) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read place orientation w!");
+	  delete goal;
+	  return false;	  
+	}
+	goal->setPlacePose(place_pose);
+
+	goals_.push_back(goal);
+
+	break;
+      }
     default:
       break;
     }
@@ -471,8 +536,24 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
   
 	break;
       }
-    // case Goal::PLACE:
-    //   break;
+    case Goal::PLACE:
+      {
+	PlaceGoal *place_goal = static_cast<PlaceGoal *>(*it);
+
+	goal->SetAttribute("number", place_goal->getGoalNumber());
+	goal->SetAttribute("type", (int)Goal::PLACE);
+	goal->SetAttribute("desc", place_goal->getDescription());
+	goal->SetAttribute("object_id", place_goal->getObjectID());
+	goal->SetDoubleAttribute("position_x", place_goal->getPlacePose().position.x);
+	goal->SetDoubleAttribute("position_y", place_goal->getPlacePose().position.y);
+	goal->SetDoubleAttribute("position_z", place_goal->getPlacePose().position.z);
+	goal->SetDoubleAttribute("orientation_x", place_goal->getPlacePose().orientation.x);
+	goal->SetDoubleAttribute("orientation_y", place_goal->getPlacePose().orientation.y);
+	goal->SetDoubleAttribute("orientation_z", place_goal->getPlacePose().orientation.z);
+	goal->SetDoubleAttribute("orientation_w", place_goal->getPlacePose().orientation.w);
+
+	break;
+      }
     default:
       break;
     }
