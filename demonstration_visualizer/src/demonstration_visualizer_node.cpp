@@ -229,7 +229,14 @@ void DemonstrationVisualizerNode::updateGoals()
       geometry_msgs::Pose object_pose = object_manager_->getMarker(place_goal->getObjectID()).pose;
       if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), object_pose, 0.08))
       {
-	ROS_INFO("REACHED GOAL!");
+	simulator_->detach();
+
+	// Snap the object to the place pose.
+	object_manager_->moveObject(place_goal->getObjectID(), place_goal->getPlacePose());
+
+	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+
+	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
       }
 	
       break;

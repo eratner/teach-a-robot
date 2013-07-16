@@ -1160,7 +1160,15 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
     {
       PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
 
-      // @todo
+      std::vector<visualization_msgs::Marker> gripper_markers;
+      pviz_->getGripperMeshesMarkerMsg(pick_up_goal->getGraspPose(), 0.2, 
+				       GOAL_MARKER_NAMESPACE, 1, true, gripper_markers);
+
+      for(int i = 0; i < gripper_markers.size(); ++i)
+      {
+	gripper_markers[i].action = visualization_msgs::Marker::DELETE;
+	marker_pub_.publish(gripper_markers[i]);
+      }
 
       break;
     }
