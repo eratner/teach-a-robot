@@ -46,6 +46,8 @@ public:
 
   void run();
 
+  void updateGoals();
+
   void setRobotSpeed(double, double);
 
   void resetRobot();

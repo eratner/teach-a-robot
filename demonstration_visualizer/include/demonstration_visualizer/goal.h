@@ -56,7 +56,6 @@ public:
   PickUpGoal(int goal_number, 
 	     const std::string &description,
 	     int object_id = 0,
-	     const visualization_msgs::Marker &object = visualization_msgs::Marker(),
 	     const geometry_msgs::Pose &grasp = geometry_msgs::Pose());
 
   virtual ~PickUpGoal();
@@ -66,10 +65,6 @@ public:
   int getObjectID() const;
 
   void setObjectID(int id);
-
-  visualization_msgs::Marker getObject() const;
-
-  void setObject(const visualization_msgs::Marker &object);
 
   geometry_msgs::Pose getGraspPose() const;
 
@@ -84,7 +79,6 @@ public:
   void setGraspDistance(double);
 
 private:
-  visualization_msgs::Marker object_;
   int object_id_;
   geometry_msgs::Pose grasp_pose_;
   bool grasp_done_;
@@ -92,12 +86,33 @@ private:
 
 };
 
-/*
 class PlaceGoal : public Goal
 {
-  // @todo
+public:
+  PlaceGoal();
+
+  PlaceGoal(int goal_number,
+	    const std::string &description,
+	    int object_id = 0,
+	    const geometry_msgs::Pose &pose = geometry_msgs::Pose());
+
+  virtual ~PlaceGoal();
+
+  GoalType getType() const;
+
+  void setObjectID(int id);
+
+  int getObjectID() const;
+
+  void setPlacePose(const geometry_msgs::Pose &pose);
+
+  geometry_msgs::Pose getPlacePose() const;
+
+private:
+  int object_id_;
+  geometry_msgs::Pose place_pose_;
+
 };
-*/
 
 } // namespace demonstration_visualizer
 

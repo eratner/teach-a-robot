@@ -54,7 +54,7 @@ void Goal::setDescription(const std::string &description)
 }
 
 PickUpGoal::PickUpGoal()
-  : Goal(0, ""), object_(), grasp_pose_(), grasp_done_(false), grasp_distance_(0.25)
+  : Goal(0, ""), grasp_pose_(), grasp_done_(false), grasp_distance_(0.25)
 {
 
 }
@@ -62,11 +62,9 @@ PickUpGoal::PickUpGoal()
 PickUpGoal::PickUpGoal(int goal_number, 
 		       const std::string &description,
 		       int object_id,
-		       const visualization_msgs::Marker &object,
 		       const geometry_msgs::Pose &grasp)
   : Goal(goal_number, description), object_id_(object_id),
-    object_(object), grasp_pose_(grasp), 
-    grasp_done_(false), grasp_distance_(0.25)
+    grasp_pose_(grasp), grasp_done_(false), grasp_distance_(0.25)
 {
 
 }
@@ -89,16 +87,6 @@ int PickUpGoal::getObjectID() const
 void PickUpGoal::setObjectID(int id)
 {
   object_id_ = id;
-}
-
-visualization_msgs::Marker PickUpGoal::getObject() const
-{
-  return object_;
-}
-
-void PickUpGoal::setObject(const visualization_msgs::Marker &object)
-{
-  object_ = object;
 }
 
 geometry_msgs::Pose PickUpGoal::getGraspPose() const
@@ -129,6 +117,49 @@ double PickUpGoal::getGraspDistance() const
 void PickUpGoal::setGraspDistance(double distance)
 {
   grasp_distance_ = distance;
+}
+
+PlaceGoal::PlaceGoal()
+  : Goal(0, ""), object_id_(0)
+{
+
+}
+
+PlaceGoal::PlaceGoal(int goal_number, const std::string &description, 
+		     int object_id, const geometry_msgs::Pose &pose)
+  : Goal(goal_number, description), object_id_(object_id), place_pose_(pose)
+{
+
+}
+
+PlaceGoal::~PlaceGoal()
+{
+
+}
+
+Goal::GoalType PlaceGoal::getType() const
+{
+  return Goal::PLACE;
+}
+
+void PlaceGoal::setObjectID(int id)
+{
+  object_id_ = id;
+}
+
+int PlaceGoal::getObjectID() const
+{
+  return object_id_;
+}
+
+void PlaceGoal::setPlacePose(const geometry_msgs::Pose &pose)
+{
+  place_pose_ = pose;
+}
+
+geometry_msgs::Pose PlaceGoal::getPlacePose() const
+{
+  return place_pose_;
 }
 
 }

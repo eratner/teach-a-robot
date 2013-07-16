@@ -659,7 +659,7 @@ void PR2Simulator::setJointStates(const sensor_msgs::JointState &joints)
   {
     if(joints_map_.find(joints.name[i]) != joints_map_.end())
     {
-      ROS_INFO("[PR2Sim] Setting joint \"%s\" to angle %f.", joints.name[i].c_str(), joints.position[i]);
+      // ROS_INFO("[PR2Sim] Setting joint \"%s\" to angle %f.", joints.name[i].c_str(), joints.position[i]);
       joint_states_.position[joints_map_[joints.name[i]]] = joints.position[i];
     }
     else

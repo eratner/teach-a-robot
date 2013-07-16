@@ -615,7 +615,7 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
 {
   setGoalsChanged(true);
 
-  ROS_INFO("Adding goal type %s with id %d", Goal::GoalTypeNames[type], (int)goals_.size());
+  ROS_INFO("[SceneManager] Adding goal type %s with id %d.", Goal::GoalTypeNames[type], (int)goals_.size());
 
   switch(type)
   {
@@ -631,8 +631,14 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
 
       break;
     }
-  // case Goal::PLACE:
-  //   break;
+  case Goal::PLACE:
+    {
+      PlaceGoal *goal = new PlaceGoal(goals_.size(), desc, object_id);
+
+      goals_.push_back(goal);
+
+      break;
+    }
   default:
     break;
   }
@@ -654,19 +660,19 @@ bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::P
   switch(goals_.at(goal_number)->getType())
   {
   case Goal::PICK_UP:
-    {
-      PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(goal_number));
-
-      visualization_msgs::Marker object = goal->getObject();
-      object.pose = pose;
-      goal->setObject(object);
-
-      goal->setGraspPose(pose);
-      
+    { 
       break;
     }
-  // case Goal::PLACE:
-  //   break;
+  case Goal::PLACE:
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(goals_.at(goal_number));
+
+      place_goal->setPlacePose(pose);
+
+      drawGoal(place_goal, editGoalsMode());
+
+      break;
+    }
   default:
     break;
   }
@@ -735,7 +741,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 				  std::pow(grasp_pose_fixed.position.z - pose.position.z, 2));
       if(distance < 0.15)
       {
-	ROS_INFO("[SceneManager] Approaching the goal! (Distance = %f).", distance);
+	ROS_INFO("[SceneManager] Approaching the pick up goal! (Distance = %f).", distance);
       }
 
       if(distance < tolerance)
@@ -743,8 +749,26 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 
       break;
     }
-  // case Goal::PLACE:
-  //   break;
+  case Goal::PLACE:
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(getGoal(goal_number));
+
+      geometry_msgs::Pose place_pose = place_goal->getPlacePose();
+
+      double distance = std::sqrt(std::pow(place_pose.position.x - pose.position.x, 2) + 
+				  std::pow(place_pose.position.y - pose.position.y, 2) +
+				  std::pow(place_pose.position.z - pose.position.z, 2));
+
+      if(distance < 0.15)
+      {
+	ROS_INFO("[SceneManager] Approaching the place goal! (Distance = %f).", distance);
+      }
+
+      if(distance < tolerance)
+	reached = true;
+
+      break;
+    }
   default:
     break;
   }
@@ -904,8 +928,14 @@ geometry_msgs::Pose DemonstrationSceneManager::getCurrentGoalPose()
 
       break;
     }
-  // case Goal::PLACE:
-  //   break;
+  case Goal::PLACE:
+    {
+      PlaceGoal *goal = static_cast<PlaceGoal *>(getGoal(getCurrentGoal()));
+
+      return goal->getPlacePose();
+
+      break;
+    }
   default:
     {
       ROS_ERROR("[SceneManager] Unknown goal type!");
@@ -1057,8 +1087,66 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 
       break;
     }
-  // case Goal::PLACE:
-  //   break;
+  case Goal::PLACE:
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(goal);
+
+      // Draw a shadow of the object that can be moved around to indicate
+      // where the user should place the object. 
+      visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
+      
+      object.header.frame_id = "/map";
+      object.header.stamp = ros::Time();
+      object.ns = "dviz_place_goal";
+      object.id = place_goal->getGoalNumber();
+      object.type = visualization_msgs::Marker::MESH_RESOURCE;
+      object.action = visualization_msgs::Marker::ADD;
+      object.pose = place_goal->getPlacePose();
+      object.mesh_use_embedded_materials = false;
+      object.color.r = 0;
+      object.color.g = 0;
+      object.color.b = 1;
+      object.color.a = 0.4;
+
+      if(attach_interactive_marker)
+      {
+	// Attach an interactive marker to control this marker.
+	visualization_msgs::InteractiveMarker int_marker;
+	int_marker.header.frame_id = "/map";
+	int_marker.pose = object.pose;
+
+	// Give each interactive marker a unique name according to each goal's unique id.
+	std::stringstream marker_name;
+	marker_name << "goal_marker_" << object.id;
+
+	int_marker.name = marker_name.str();
+
+	std::stringstream mesh_desc;
+	mesh_desc << "Move " << marker_name.str();
+	int_marker.description = mesh_desc.str();
+
+	// Add a non-interactive control for the mesh.
+	visualization_msgs::InteractiveMarkerControl control;
+	control.always_visible = true;
+	control.markers.push_back(object);
+
+	int_marker.controls.push_back(control);
+
+	// Attach a 6-DOF control for moving the place goal around.
+	attach6DOFControl(int_marker);
+
+	int_marker_server_->insert(int_marker,
+				   goal_feedback_
+				   );
+	int_marker_server_->applyChanges();
+      }
+      else
+      {
+	marker_pub_.publish(object);
+      }
+
+      break;
+    }
   default:
     break;
   }
@@ -1074,23 +1162,31 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
 
       // @todo
 
-      // visualization_msgs::Marker marker = pick_up_goal->getObject();
-      // int goal_number = pick_up_goal->getGoalNumber();
+      break;
+    }
+  case Goal::PLACE:
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(goal);
 
-      // std::stringstream marker_name;
-      // marker_name << "goal_marker_" << goal_number;
+      visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
+      int goal_number = place_goal->getGoalNumber();
 
-      // int_marker_server_->erase(marker_name.str());
-      // int_marker_server_->applyChanges();
+      std::stringstream marker_name;
+      marker_name << "goal_marker_" << goal_number;
 
-      // marker.action = visualization_msgs::Marker::DELETE;
+      int_marker_server_->erase(marker_name.str());
+      int_marker_server_->applyChanges();
 
-      // marker_pub_.publish(marker);
+      object.header.frame_id = "/map";
+      object.header.stamp = ros::Time();
+      object.ns = "dviz_place_goal";
+      object.id = place_goal->getGoalNumber();
+      object.action = visualization_msgs::Marker::DELETE;
+
+      marker_pub_.publish(object);
 
       break;
     }
-  // case Goal::PLACE:
-  //   break;
   default:
     break;
   }
