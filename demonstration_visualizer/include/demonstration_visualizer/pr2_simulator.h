@@ -80,7 +80,7 @@ public:
    */
   void updateEndEffectorPose();
 
-  void setEndEffectorGoalPose(const geometry_msgs::Pose &);
+  bool setEndEffectorGoalPose(const geometry_msgs::Pose &);
 
   void updateEndEffectorVelocity(const geometry_msgs::Twist &);
 
@@ -97,6 +97,14 @@ public:
   void setJointStates(const sensor_msgs::JointState &joints);
 
   void setRobotBaseCommand(const geometry_msgs::Pose &command);
+
+  /**
+   * @brief Generates and executes an interpolated trajectory for the end-
+   *        effector between its current pose and the specified goal pose.
+   */
+  bool snapEndEffectorTo(const geometry_msgs::Pose &pose);
+
+  bool isSnapDone() const;
 
   /**
    * @brief Provides a way to notify the simulator of key events recieved
@@ -186,6 +194,9 @@ private:
   std::map<std::string, int> joints_map_;
 
   tf::TransformBroadcaster tf_broadcaster_;
+
+  std::vector<sensor_msgs::JointState> snap_motion_;
+  int snap_motion_count_;
 
 };
 

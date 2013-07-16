@@ -411,30 +411,6 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
       {
 	PickUpGoal *goal = new PickUpGoal(goal_number, goal_description);
 
-	// visualization_msgs::Marker object;
-	// element->QueryDoubleAttribute("position_x", &object.pose.position.x);
-	// element->QueryDoubleAttribute("position_y", &object.pose.position.y);
-	// element->QueryDoubleAttribute("position_z", &object.pose.position.z);
-	// element->QueryDoubleAttribute("orientation_x", &object.pose.orientation.x);
-	// element->QueryDoubleAttribute("orientation_y", &object.pose.orientation.y);
-	// element->QueryDoubleAttribute("orientation_z", &object.pose.orientation.z);
-	// element->QueryDoubleAttribute("orientation_w", &object.pose.orientation.w);
-	// object.header.frame_id = "/map";
-	// object.ns = GOAL_MARKER_NAMESPACE;
-	// object.id = goal->getGoalNumber();
-	// object.type = visualization_msgs::Marker::SPHERE;
-	// object.action = visualization_msgs::Marker::ADD;
-	// object.scale.x = 0.16;
-	// object.scale.y = 0.16;
-	// object.scale.z = 0.16;
-	// object.color.r = 0.5;
-	// object.color.g = 0;
-	// object.color.b = 0.5;
-	// object.color.a = 0.4;
-
-	// goal->setObject(object);
-	// goal->setGraspPose(object.pose);
-
 	int object_id = 0;
 	if(element->QueryIntAttribute("object_id", &object_id) != TIXML_SUCCESS)
 	{
@@ -491,13 +467,6 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
 	goal->SetAttribute("number", pick_up_goal->getGoalNumber());
 	goal->SetAttribute("type", (int)Goal::PICK_UP);
 	goal->SetAttribute("desc", pick_up_goal->getDescription());
-	// goal->SetDoubleAttribute("position_x", pick_up_goal->getObject().pose.position.x);
-	// goal->SetDoubleAttribute("position_y", pick_up_goal->getObject().pose.position.y);
-	// goal->SetDoubleAttribute("position_z", pick_up_goal->getObject().pose.position.z);
-	// goal->SetDoubleAttribute("orientation_x", pick_up_goal->getObject().pose.orientation.x);
-	// goal->SetDoubleAttribute("orientation_y", pick_up_goal->getObject().pose.orientation.y);
-	// goal->SetDoubleAttribute("orientation_z", pick_up_goal->getObject().pose.orientation.z);
-	// goal->SetDoubleAttribute("orientation_w", pick_up_goal->getObject().pose.orientation.w);
 	goal->SetAttribute("object_id", pick_up_goal->getObjectID());
   
 	break;
@@ -1085,44 +1054,6 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 	  marker_pub_.publish(gripper_markers[i]);
 	}
       }
-
-      // visualization_msgs::Marker marker = pick_up_goal->getObject();
-
-      // if(attach_interactive_marker)
-      // {
-      // 	// Attach an interactive marker to control this marker.
-      // 	visualization_msgs::InteractiveMarker int_marker;
-      // 	int_marker.header.frame_id = "/map";
-      // 	int_marker.pose = marker.pose;
-
-      // 	// Give each interactive marker a unique name according to each goal's unique id.
-      // 	std::stringstream marker_name;
-      // 	marker_name << "goal_marker_" << marker.id;
-
-      // 	int_marker.name = marker_name.str();
-
-      // 	std::stringstream marker_desc;
-      // 	marker_desc << "Goal " << marker.id;
-      // 	int_marker.description = marker_desc.str();
-
-      // 	// Add a non-interactive control for the mesh.
-      // 	visualization_msgs::InteractiveMarkerControl control;
-      // 	control.always_visible = true;
-      // 	control.markers.push_back(marker);
-
-      // 	int_marker.controls.push_back(control);
-
-      // 	// Attach a 6-DOF control for moving the mesh around.
-      // 	attach6DOFControl(int_marker);
-
-      // 	int_marker_server_->insert(int_marker,
-      // 				   goal_feedback_);
-      // 	int_marker_server_->applyChanges();      
-      // }
-      // else
-      // {
-      // 	marker_pub_.publish(marker);
-      // }
 
       break;
     }

@@ -90,13 +90,13 @@ int AddGoalDialog::getObject() const
 
 void AddGoalDialog::setObjects(const std::vector<Object> &objects)
 {
-  ROS_INFO("%d objects.", objects.size());
   objects_ = objects;
   select_object_->clear();
   std::vector<Object>::iterator it;
   for(it = objects_.begin(); it != objects_.end(); ++it)
   {
-    select_object_->addItem(QString(it->label.c_str()));
+    if(it->movable)
+      select_object_->addItem(QString(it->label.c_str()));
   }
 }
 
@@ -1065,6 +1065,8 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
   pauseSimulator();
 
+  bool done = false;
+
   // Update the task list.
   QFont font = goals_list_->item(goal_number)->font();
   font.setBold(false);
@@ -1092,8 +1094,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   if(goal_number+1 >= node_.getSceneManager()->getNumGoals())
   {
     text << " All goals complete!";
-    if(user_demo_.started_)
-      endBasicMode();
+    done = true;
   }
   else
   {
@@ -1104,7 +1105,35 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 
   box.exec();
 
+  // If all goals are completed, then end the game.
+  if(done && user_demo_.started_)
+  {
+    endBasicMode();
+    return;
+  }
+
   playSimulator();
+
+  // The next state of the game is determined by the type of the next goal.
+  switch(node_.getSceneManager()->getGoal(goal_number + 1)->getType())
+  {
+  case Goal::PICK_UP:
+    {
+      ROS_INFO("Next goal: pick up.");
+
+      beginGraspSelection();
+
+      break;
+    }
+  case Goal::PLACE:
+    {
+      ROS_INFO("Next goal: place.");
+
+      break;
+    }
+  default:
+    break;
+  }
 }
 
 void DemonstrationVisualizer::tabChanged(int index)
@@ -1123,6 +1152,17 @@ void DemonstrationVisualizer::tabChanged(int index)
 
 void DemonstrationVisualizer::startBasicMode()
 {
+  if(node_.getSceneManager()->getNumGoals() == 0)
+  {
+    QMessageBox no_task_box;
+
+    no_task_box.setText("There are no goals in the current task!");
+    
+    no_task_box.exec();
+
+    return;
+  }
+
   start_button_->setEnabled(false);
   end_button_->setEnabled(true);
 
@@ -1553,6 +1593,8 @@ void DemonstrationVisualizer::setGripperPosition(int position)
 
 void DemonstrationVisualizer::beginGraspSelection()
 {
+  node_.pauseSimulator();
+
   accept_grasp_button_->setEnabled(true);
   grasp_distance_slider_->setEnabled(true);
   camera_before_grasp_ = camera_mode_;
@@ -1580,6 +1622,8 @@ void DemonstrationVisualizer::endGraspSelection()
       changeCameraMode(camera_before_grasp_);
       accept_grasp_button_->setEnabled(false);
       grasp_distance_slider_->setEnabled(false);
+
+      node_.playSimulator();
 
       break;
     }

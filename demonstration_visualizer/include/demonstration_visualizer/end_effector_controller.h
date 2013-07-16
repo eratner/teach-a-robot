@@ -33,8 +33,7 @@ public:
   virtual ~EndEffectorController();
 
   geometry_msgs::Twist moveTo(const geometry_msgs::Pose &current,
-			      const geometry_msgs::Pose &goal,
-			      geometry_msgs::Quaternion &next_orientation);
+			      const geometry_msgs::Pose &goal);
 
   void setState(State state);
 
@@ -64,8 +63,7 @@ private:
   geometry_msgs::Twist initial();
 
   geometry_msgs::Twist movingToGoal(const geometry_msgs::Pose &current,
-				    const geometry_msgs::Pose &goal,
-				    geometry_msgs::Quaternion &next_orientation);
+				    const geometry_msgs::Pose &goal);
 
   geometry_msgs::Twist invalidGoal();
 

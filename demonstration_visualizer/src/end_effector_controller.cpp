@@ -17,16 +17,13 @@ EndEffectorController::~EndEffectorController()
 }
 
 geometry_msgs::Twist EndEffectorController::moveTo(const geometry_msgs::Pose &current,
-						   const geometry_msgs::Pose &goal,
-						   geometry_msgs::Quaternion &next_orientation)
+						   const geometry_msgs::Pose &goal)
 {
   frames_++;
 
   double distance = std::sqrt(std::pow(goal.position.x - current.position.x, 2) +
 			      std::pow(goal.position.y - current.position.y, 2) + 
 			      std::pow(goal.position.z - current.position.z, 2));
-
-  next_orientation = current.orientation;
 
   switch(current_state_)
   {
@@ -38,7 +35,7 @@ geometry_msgs::Twist EndEffectorController::moveTo(const geometry_msgs::Pose &cu
       if(distance < 0.02)
 	return done();
       else
-	return movingToGoal(current, goal, next_orientation);
+	return movingToGoal(current, goal);
     }
   case INVALID_GOAL:
     return invalidGoal();
@@ -90,8 +87,7 @@ geometry_msgs::Twist EndEffectorController::initial()
 }
 
 geometry_msgs::Twist EndEffectorController::movingToGoal(const geometry_msgs::Pose &current,
-							 const geometry_msgs::Pose &goal,
-							 geometry_msgs::Quaternion &next_orientation)
+							 const geometry_msgs::Pose &goal)
 {
   printStateTransition(MOVING_TO_GOAL);
 
@@ -104,16 +100,6 @@ geometry_msgs::Twist EndEffectorController::movingToGoal(const geometry_msgs::Po
   r.x = (r.x/length) * speed_;
   r.y = (r.y/length) * speed_;
   r.z = (r.z/length) * speed_;
-
-  // @todo the method of interpolating orientations probably needs to improve.
-  double distance_moved = (0.1)*std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z);
-  double t = distance_moved/length;
-  tf::Quaternion current_orientation;
-  tf::quaternionMsgToTF(current.orientation, current_orientation);
-  tf::Quaternion goal_orientation;
-  tf::quaternionMsgToTF(goal.orientation, goal_orientation);
-  tf::Quaternion next = current_orientation.slerp(goal_orientation, t);
-  tf::quaternionTFToMsg(next, next_orientation);
 
   geometry_msgs::Twist vel;
   vel.linear.x = r.x;
@@ -166,10 +152,10 @@ void EndEffectorController::printStateTransition(State next_state)
 	       frames_,
 	       END_EFFECTOR_STATE_NAMES[current_state_]);
     }
-    last_state_ = current_state_;
-    current_state_ = next_state;
     frames_ = 0;
   }
+  last_state_ = current_state_;
+  current_state_ = next_state;
 
   // Check if the gripper marker should change color.
   if(last_state_ == INVALID_GOAL && current_state_ != INVALID_GOAL)

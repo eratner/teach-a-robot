@@ -69,6 +69,8 @@ public:
 
   void setBaseCommand(const geometry_msgs::Pose &);
 
+  bool setEndEffectorGoalPose(const geometry_msgs::Pose &);
+
   void setBaseVelocity(const geometry_msgs::Twist &);
 
   void setJointStates(const sensor_msgs::JointState &);

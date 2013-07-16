@@ -234,7 +234,6 @@ private:
   rviz::Display              *robot_model_;
   rviz::Display              *robot_interactive_markers_;
   rviz::Display              *visualization_marker_;
-  rviz::Display              *scene_interactive_markers_;
 
   QComboBox                  *select_mesh_;
   std::map<int, std::string> mesh_names_;

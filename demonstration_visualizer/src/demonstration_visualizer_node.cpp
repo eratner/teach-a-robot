@@ -38,7 +38,7 @@ DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
   delete demonstration_scene_manager_;
   delete recorder_;
   delete pviz_;
-
+  delete object_manager_;
 
   if(ros::isStarted())
   {
@@ -106,7 +106,9 @@ void DemonstrationVisualizerNode::run()
        !getSceneManager()->taskDone() || 
        getSceneManager()->getNumGoals() != 0)
     {
-      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose()))
+      bool goal_reachable = true;
+
+      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose(), 0.05))
       {
 	ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
 
@@ -149,13 +151,44 @@ void DemonstrationVisualizerNode::run()
 
 	    KDL::Frame object_in_gripper = gripper_in_map.Inverse() * object_in_map;
 	    
+	    // Get the pose of the gripper in the base frame.
+	    geometry_msgs::Pose base_pose = simulator_->getBasePose();
+	    KDL::Frame base_in_map(KDL::Rotation::Quaternion(base_pose.orientation.x,
+							     base_pose.orientation.y,
+							     base_pose.orientation.z,
+							     base_pose.orientation.w),
+				   KDL::Vector(base_pose.position.x,
+					       base_pose.position.y,
+					       base_pose.position.z)
+				   );
+
+	    KDL::Frame gripper_in_base = base_in_map.Inverse() * gripper_in_map;
+
+	    geometry_msgs::Pose goal_gripper_pose;
+	    goal_gripper_pose.position.x = gripper_in_base.p.x();
+	    goal_gripper_pose.position.y = gripper_in_base.p.y();
+	    goal_gripper_pose.position.z = gripper_in_base.p.z();
+	    double x, y, z, w;
+	    gripper_in_base.M.GetQuaternion(x, y, z, w);
+	    goal_gripper_pose.orientation.x = x;
+	    goal_gripper_pose.orientation.y = y;
+	    goal_gripper_pose.orientation.z = z;
+	    goal_gripper_pose.orientation.w = w;
+
+	    double roll, pitch, yaw;
+	    gripper_in_base.M.GetRPY(roll, pitch, yaw);
+	    ROS_INFO("[DVizNode] Goal reached, snapping end-effector to grasp pose (%f, %f, %f), (%f, %f, %f).",
+		     goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
+		     roll, pitch, yaw);
+
+	    goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose);
+
 	    simulator_->attach(pick_up_goal->getObjectID(),
 			       object_in_gripper);
 
-	    double r, p, y;
-	    object_in_gripper.M.GetRPY(r, p, y);
+	    object_in_gripper.M.GetRPY(roll, pitch, yaw);
 	    ROS_INFO("object in gripper = (%f, %f, %f), (%f, %f, %f)", object_in_gripper.p.x(),
-		     object_in_gripper.p.y(), object_in_gripper.p.z(), r, p, y);
+		     object_in_gripper.p.y(), object_in_gripper.p.z(), roll, pitch, yaw);
 
 	    break;
 	  }
@@ -163,9 +196,16 @@ void DemonstrationVisualizerNode::run()
 	  break;
 	}
 
-	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+	if(goal_reachable)
+	{
+	  Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
-	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
+	  getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
+	}
+	else
+	{
+	  ROS_ERROR("Unable to reach goal %d!", getSceneManager()->getCurrentGoal());
+	}
       }
     }
 
@@ -279,6 +319,11 @@ geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorMarkerPose()
 void DemonstrationVisualizerNode::setBaseCommand(const geometry_msgs::Pose &pose)
 {
   simulator_->setRobotBaseCommand(pose);
+}
+
+bool DemonstrationVisualizerNode::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
+{
+  return simulator_->setEndEffectorGoalPose(goal_pose);
 }
 
 void DemonstrationVisualizerNode::setBaseVelocity(const geometry_msgs::Twist &velocity)

@@ -8,7 +8,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 			   ObjectManager* object_manager)
   : playing_(true), 
     move_end_effector_while_dragging_(true),
-    move_base_while_dragging_(true),
+    move_base_while_dragging_(false),
     attached_object_(false),
     frame_rate_(10.0), 
     pviz_(pviz), 
@@ -237,7 +237,15 @@ void PR2Simulator::run()
 {
   if(isPlaying())
   {
-    if(!recorder_->isReplaying())
+    // Perform any snap motion that has been generated.
+    if(!isSnapDone())
+    {
+      ROS_INFO("[PR2Sim] Executing a snap motion (%d)...", snap_motion_count_);
+      setJointStates(snap_motion_[snap_motion_count_]);
+      snap_motion_count_++;
+    }
+
+    if(!recorder_->isReplaying() && isSnapDone())
       moveRobot();
 
     visualizeRobot();
@@ -258,7 +266,7 @@ void PR2Simulator::run()
     showEndEffectorWorkspaceArc();
 
     // Replay motion.
-    if(recorder_->isReplaying() && isPlaying())
+    if(recorder_->isReplaying())
     {
       if(recorder_->getJointsRemaining() == 0 && recorder_->getPosesRemaining() == 0)
       {
@@ -326,11 +334,9 @@ void PR2Simulator::moveRobot()
   body_pose.theta = new_theta;
 
   // Second, get the next proposed end-effector pose and resulting joint angles.
-  geometry_msgs::Quaternion next_orientation;
   geometry_msgs::Twist end_effector_vel = 
     end_effector_controller_.moveTo(end_effector_pose_.pose,
-				    end_effector_goal_pose_.pose,
-				    next_orientation);
+				    end_effector_goal_pose_.pose);
 
   dx = (1.0/getFrameRate())*end_effector_vel.linear.x;
   dy = (1.0/getFrameRate())*end_effector_vel.linear.y;
@@ -349,14 +355,10 @@ void PR2Simulator::moveRobot()
   end_effector_pose[0] = end_effector_pose_.pose.position.x + dx;
   end_effector_pose[1] = end_effector_pose_.pose.position.y + dy;
   end_effector_pose[2] = end_effector_pose_.pose.position.z + dz;
-  // end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
-  // end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
-  // end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
-  // end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
-  end_effector_pose[3] = next_orientation.x;
-  end_effector_pose[4] = next_orientation.y;
-  end_effector_pose[5] = next_orientation.z;
-  end_effector_pose[6] = next_orientation.w;
+  end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
+  end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
+  end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
+  end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
   
   // Use IK to find the required joint angles for the arm.
   std::vector<double> solution(7, 0);
@@ -368,7 +370,7 @@ void PR2Simulator::moveRobot()
 
   geometry_msgs::Pose object_pose;
   if(attached_object_){
-    ROS_ERROR("compute object pose");
+    // ROS_ERROR("compute object pose");
     computeObjectPose(end_effector_pose, body_pose, object_pose);
   }
 
@@ -454,14 +456,20 @@ void PR2Simulator::updateEndEffectorPose()
 {
   std::vector<double> r_arm_joints(7, 0);
   for(int i = 0; i < 7; ++i)
+  {
     r_arm_joints[i] = joint_states_.position.at(i+7);
+    // ROS_INFO("Joint %s has angle %f", joint_states_.name.at(i+7).c_str(), joint_states_.position.at(i+7));
+  }
 
   // Publish the pose of the right end effector.
   std::vector<double> fk_pose;
   if(!kdl_robot_model_.computePlanningLinkFK(r_arm_joints, fk_pose))
   {
-    ROS_ERROR("Failed to compute FK!");
+    ROS_ERROR("[PR2Sim] Failed to compute FK in updating the end-effector pose!");
   }
+
+  // ROS_INFO("Updating end-effector pose to (%f, %f, %f), (%f, %f, %f).", fk_pose[0], fk_pose[1],
+  // 	   fk_pose[2], fk_pose[3], fk_pose[4], fk_pose[5]);
 
   end_effector_pose_.pose.position.x = fk_pose[0];
   end_effector_pose_.pose.position.y = fk_pose[1];
@@ -471,14 +479,20 @@ void PR2Simulator::updateEndEffectorPose()
 										fk_pose[5]);
 }
 
-void PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
+bool PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
 {
   end_effector_goal_pose_.pose = goal_pose;
 
   if(isValidEndEffectorPose(goal_pose))
+  {
     end_effector_controller_.setState(EndEffectorController::READY);
+    return true;
+  }
   else
+  {
     end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
+    return false;
+  }
 }
 
 void PR2Simulator::updateEndEffectorVelocity(const geometry_msgs::Twist &vel)
@@ -535,7 +549,6 @@ void PR2Simulator::gripperMarkerFeedback(
       {
 	// ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
 	// 	     feedback->pose.position.y, feedback->pose.position.z);
-	end_effector_controller_.setState(EndEffectorController::READY);
 	setEndEffectorGoalPose(feedback->pose);
 	end_effector_goal_pose_.pose = feedback->pose;
       }
@@ -547,7 +560,6 @@ void PR2Simulator::gripperMarkerFeedback(
     {
       if(!move_end_effector_while_dragging_)
       {
-	end_effector_controller_.setState(EndEffectorController::READY);
 	ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
 		       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
 	setEndEffectorGoalPose(feedback->pose);
@@ -667,6 +679,108 @@ void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
   {
     base_movement_controller_.setState(BaseMovementController::READY);
   }
+}
+
+bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
+{
+  if(isValidEndEffectorPose(pose))
+  {
+    geometry_msgs::Pose current_pose = end_effector_pose_.pose;
+
+    // Generate an interpolation of end-effector poses from the current
+    // pose to the specified pose.
+    KDL::Vector r(pose.position.x - current_pose.position.x,
+		  pose.position.y - current_pose.position.y,
+		  pose.position.z - current_pose.position.z);
+    double distance = std::sqrt(r.x()*r.x() + r.y()*r.y() + r.z()*r.z());
+    // distance/((seconds)*(frames/second)) = distance/frame.
+    // @todo for now, all snap motions execute for 2 s, but this should be 
+    // a parameter.
+    double dr = distance/(2.0 * getFrameRate());
+    double dt = 1/(2.0 * getFrameRate());
+    KDL::Vector R((r.x()/distance) * dr,
+		  (r.y()/distance) * dr,
+		  (r.z()/distance) * dr);
+
+    snap_motion_count_ = 0;
+    snap_motion_.clear();
+    end_effector_goal_pose_.pose = pose;
+    sensor_msgs::JointState joint_state;
+    joint_state.name.resize(7);
+    joint_state.position.resize(7);
+    joint_state.name[0] = "r_shoulder_pan_joint";
+    joint_state.name[1] = "r_shoulder_lift_joint";
+    joint_state.name[2] = "r_upper_arm_roll_joint";
+    joint_state.name[3] = "r_elbow_flex_joint";
+    joint_state.name[4] = "r_forearm_roll_joint";
+    joint_state.name[5] = "r_wrist_flex_joint";
+    joint_state.name[6] = "r_wrist_roll_joint";
+    std::vector<double> r_arm_joints(7, 0);
+    std::vector<double> r_arm_solution(7, 0);
+    for(int i = 7; i < 14; ++i)
+    {
+      r_arm_joints[i-7] = joint_states_.position[i];
+    }
+
+    // For interpolating between orientations (slerp).
+    tf::Quaternion current_orientation;
+    tf::quaternionMsgToTF(current_pose.orientation, current_orientation);
+    tf::Quaternion goal_orientation;
+    tf::quaternionMsgToTF(pose.orientation, goal_orientation);
+
+    for(int i = 0; i < static_cast<int>(2.0 * getFrameRate()); ++i)
+    {
+      // First, find the next pose of the end-effector.
+      current_pose.position.x += R.x();
+      current_pose.position.y += R.y();
+      current_pose.position.z += R.z();
+
+      tf::Quaternion next_orientation = current_orientation.slerp(goal_orientation, dt * (i + 1));
+      tf::quaternionTFToMsg(next_orientation, current_pose.orientation);
+
+      // Next, use IK to find the corresponding joint angles.  
+      std::vector<double> end_effector_pose(7, 0);
+      end_effector_pose[0] = current_pose.position.x;
+      end_effector_pose[1] = current_pose.position.y;
+      end_effector_pose[2] = current_pose.position.z;
+      end_effector_pose[3] = current_pose.orientation.x;
+      end_effector_pose[4] = current_pose.orientation.y;
+      end_effector_pose[5] = current_pose.orientation.z;
+      end_effector_pose[6] = current_pose.orientation.w;
+
+      double roll, pitch, yaw;
+      KDL::Rotation rot = KDL::Rotation::Quaternion(current_pose.orientation.x,
+						    current_pose.orientation.y,
+						    current_pose.orientation.z,
+						    current_pose.orientation.w);
+      rot.GetRPY(roll, pitch, yaw);
+      ROS_INFO("next RPY = (%f, %f, %f)", roll, pitch, yaw);
+
+      if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, r_arm_solution))
+      {
+	ROS_ERROR("[PR2Sim] IK failed at snap motion interpolation point %d!", i);
+      }
+
+      for(int j = 0; j < 7; ++j)
+      {
+	joint_state.position[j] = r_arm_solution[j];
+	r_arm_joints[j] = r_arm_solution[j];
+      }
+
+      snap_motion_.push_back(joint_state);
+    }
+
+    ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", snap_motion_.size());
+
+    return true;
+  }
+
+  return false;
+}
+
+bool PR2Simulator::isSnapDone() const
+{
+  return (snap_motion_count_ >= snap_motion_.size());
 }
 
 void PR2Simulator::processKeyEvent(int key, int type)
@@ -812,8 +926,6 @@ void PR2Simulator::updateEndEffectorMarker()
 
   // Update the goal pose.
   setEndEffectorGoalPose(pose);
-
-  end_effector_controller_.setState(EndEffectorController::READY);
 }
 
 
