@@ -234,6 +234,14 @@ void DemonstrationVisualizerNode::updateGoals()
 	// Snap the object to the place pose.
 	object_manager_->moveObject(place_goal->getObjectID(), place_goal->getPlacePose());
 
+	// Reset the orientation of the gripper.
+	// geometry_msgs::Pose r_gripper_pose = simulator_->getEndEffectorPose();
+	// r_gripper_pose.orientation.x = 0.0;
+	// r_gripper_pose.orientation.y = 0.0;
+	// r_gripper_pose.orientation.z = 0.0;
+	// r_gripper_pose.orientation.w = 1.0;
+	// simulator_->snapEndEffectorTo(r_gripper_pose);
+	
 	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
 	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);

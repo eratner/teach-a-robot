@@ -704,7 +704,11 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 
     snap_motion_count_ = 0;
     snap_motion_.clear();
+
     end_effector_goal_pose_.pose = pose;
+    int_marker_server_->setPose("r_gripper_marker", pose);
+    int_marker_server_->applyChanges();
+
     sensor_msgs::JointState joint_state;
     joint_state.name.resize(7);
     joint_state.position.resize(7);
