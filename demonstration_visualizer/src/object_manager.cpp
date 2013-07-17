@@ -118,7 +118,6 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
     //element = element->FirstChildElement();
     for(element; element; element = element->NextSiblingElement())
     {
-      // @todo deal with reading in sphere lists.
       pr2_collision_checker::Sphere s;
       int id;
       if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS)

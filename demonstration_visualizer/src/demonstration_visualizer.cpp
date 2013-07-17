@@ -570,6 +570,52 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     else
       return QObject::eventFilter(obj, event);
   }
+  else if(event->type() == QEvent::MouseButtonPress)
+  {
+    QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
+    switch(mouse_event->button())
+    {
+    case Qt::MiddleButton:
+      {
+	if(camera_mode_ == FPS ||
+	   camera_mode_ == TOP_DOWN ||
+	   camera_mode_ == AUTO ||
+	   camera_mode_ == GOAL)
+	{
+	  return true;
+	}
+
+	break;
+      }
+    default:
+      break;
+    }
+
+    return QObject::eventFilter(obj, event);
+  }
+  else if(event->type() == QEvent::MouseButtonRelease)
+  {
+    QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
+    switch(mouse_event->button())
+    {
+    case Qt::MiddleButton:
+      {
+	if(camera_mode_ == FPS ||
+	   camera_mode_ == TOP_DOWN ||
+	   camera_mode_ == AUTO ||
+	   camera_mode_ == GOAL)
+	{
+	  return true;
+	}
+
+	break;
+      }
+    default:
+      break;
+    }
+
+    return QObject::eventFilter(obj, event);
+  }
   else
   {
     return QObject::eventFilter(obj, event);

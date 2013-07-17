@@ -60,11 +60,16 @@ void DemonstrationSceneManager::updateScene()
       std::vector<Goal *>::iterator it;
       for(it = goals_.begin(); it != goals_.end(); ++it)
       {
-	hideGoal(*it);
-
 	if((*it)->getGoalNumber() == current_goal_)
+	{
+	  ROS_INFO("Drawing goal %d", (*it)->getGoalNumber());
 	  drawGoal(*it, false);
-
+	}
+	else
+	{
+	  ROS_INFO("Hiding goal %d", (*it)->getGoalNumber());
+	  hideGoal(*it);
+	}
       }
     }
     
@@ -155,7 +160,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   TiXmlDocument doc(filename.c_str());
   if(!doc.LoadFile())
   {
-    ROS_ERROR("Demonstration scene manager failed to load file %s!", filename.c_str());
+    ROS_ERROR("[SceneManager] Failed to load file %s!", filename.c_str());
     return max_mesh_id;
   }
 
@@ -424,6 +429,8 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 	  return false;
 	}
 
+	geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
+	goal->setGraspPose(object_pose);
 	goal->setObjectID(object_id);
 
 	goals_.push_back(goal);
@@ -1157,10 +1164,12 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 	grasp_pose_fixed.position.z = position.z;
 
 	std::vector<visualization_msgs::Marker> gripper_markers;
-	pviz_->getGripperMeshesMarkerMsg(grasp_pose_fixed, 0.2, GOAL_MARKER_NAMESPACE, 1, true, gripper_markers);
+	pviz_->getGripperMeshesMarkerMsg(grasp_pose_fixed, 0.2, GOAL_MARKER_NAMESPACE, 
+					 5*pick_up_goal->getGoalNumber(), true, gripper_markers);
 
 	for(int i = 0; i < gripper_markers.size(); ++i)
       	{
+	  gripper_markers[i].header.frame_id = "/map";
 	  gripper_markers[i].color.a = 0.3;
 	  marker_pub_.publish(gripper_markers[i]);
 	}
@@ -1243,7 +1252,8 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
 
       std::vector<visualization_msgs::Marker> gripper_markers;
       pviz_->getGripperMeshesMarkerMsg(pick_up_goal->getGraspPose(), 0.2, 
-				       GOAL_MARKER_NAMESPACE, 1, true, gripper_markers);
+				       GOAL_MARKER_NAMESPACE, 5*pick_up_goal->getGoalNumber(), 
+				       true, gripper_markers);
 
       for(int i = 0; i < gripper_markers.size(); ++i)
       {
