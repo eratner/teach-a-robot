@@ -155,7 +155,7 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
       ROS_INFO("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
     }
     ROS_INFO("label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
-    collision_checker_->visualizeGroup(o.group_, o.group_.name, 0);
+    //collision_checker_->visualizeGroup(o.group_, o.group_.name, 0);
   }
 
   addObject(o);
