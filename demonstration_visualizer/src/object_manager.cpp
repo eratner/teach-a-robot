@@ -73,13 +73,13 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
 
   root_handle = TiXmlHandle(element);
 
-  ROS_INFO("Reading %s...", element->Value());
+  ROS_INFO("[om] Reading %s...", element->Value());
 
   // Read the mesh information.
-  element = root_handle.FirstChild().Element();
+  element = root_handle.FirstChild("object").Element();
   if(element == NULL)
   {
-    ROS_ERROR("[ObjectManager] Element is null while trying to parse object file.");
+    ROS_ERROR("[ObjectManager] Element is null while trying to parse collision_model file.");
     return false;
   }
 
@@ -113,47 +113,46 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
   {
     ROS_DEBUG("[om] movable! Reading the spheres...");
     // Read the spheres list from this file.
-    element = element->NextSiblingElement();
-    //element = element->FirstChildElement();
-    for(element; element; element = element->NextSiblingElement())
+    element = element->NextSiblingElement("sphere");
+    for(element; element; element = element->NextSiblingElement("sphere"))
     {
       pr2_collision_checker::Sphere s;
       int id;
       if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS)
       {
-	ROS_ERROR("[ObjectManager] Failed to read id for sphere!");
-	return false;
+        ROS_ERROR("[ObjectManager] Failed to read id for sphere!");
+        return false;
       }
       s.name = boost::lexical_cast<string>(id);
       double temp;
       if(element->QueryDoubleAttribute("x", &temp) != TIXML_SUCCESS)
       {
-	ROS_ERROR("[ObjectManager] Failed to read x-value for sphere!");
-	return false;
+        ROS_ERROR("[ObjectManager] Failed to read x-value for sphere!");
+        return false;
       }
       s.v.x(temp);
       if(element->QueryDoubleAttribute("y", &temp) != TIXML_SUCCESS)
       {
-	ROS_ERROR("[ObjectManager] Failed to read y-value for sphere!");
-	return false;
+        ROS_ERROR("[ObjectManager] Failed to read y-value for sphere!");
+        return false;
       }
       s.v.y(temp);
       if(element->QueryDoubleAttribute("z", &temp) != TIXML_SUCCESS)
       {
-	ROS_ERROR("[ObjectManager] Failed to read z-value for sphere!");
-	return false;
+        ROS_ERROR("[ObjectManager] Failed to read z-value for sphere!");
+        return false;
       }
       s.v.z(temp);
       if(element->QueryDoubleAttribute("radius", &s.radius) != TIXML_SUCCESS)
       {
-	ROS_ERROR("[ObjectManager] Failed to read radius for sphere!");
-	return false;
+        ROS_ERROR("[ObjectManager] Failed to read radius for sphere!");
+        return false;
       }
       s.priority = 1;
       o.group_.spheres.push_back(s);
       ROS_DEBUG("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
     }
-    ROS_INFO("label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
+    ROS_INFO("[om] label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
     //collision_checker_->visualizeGroup(o.group_, o.group_.name, 0);
   }
 
