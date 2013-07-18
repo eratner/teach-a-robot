@@ -141,6 +141,8 @@ public:
 
   geometry_msgs::Pose getEndEffectorPose();
 
+  geometry_msgs::Pose getEndEffectorPoseInBase() const;
+
   geometry_msgs::Pose getEndEffectorMarkerPose();
 
   void setMoveEndEffectorWhileDragging(bool);

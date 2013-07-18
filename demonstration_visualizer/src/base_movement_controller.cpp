@@ -5,7 +5,7 @@ namespace demonstration_visualizer {
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0), frame_rate_(10.0),
     linear_speed_(0.2), angular_speed_(0.2),
-    print_transitions_(false)
+    print_transitions_(true)
 {
 
 }
@@ -141,18 +141,21 @@ geometry_msgs::Twist BaseMovementController::rotate(double current_angle,
   double dist = 
     angles::normalize_angle_positive(angles::normalize_angle_positive(goal_angle) - 
 				      angles::normalize_angle_positive(current_angle));
-  if(dist < std::abs((1.0/getFrameRate()) * vel.angular.z))
+  if(dist > 0 && dist < std::abs((1.0/getFrameRate()) * vel.angular.z))
   {
+    ROS_INFO("dist = %f, ||1/f * angular_z|| = %f", dist, std::abs((1.0/getFrameRate()) * vel.angular.z)); 
     ROS_INFO("decrease in angular speed: dist = %f", dist);
     if(clockwise)
     {
       ROS_INFO("setting angular speed to %f (previously %f)", -1.0 * dist * getFrameRate(), vel.angular.z);
-      vel.angular.z = -1.0 * dist * getFrameRate();
+      vel.angular.z = std::floor(-1.0 * dist * getFrameRate() * 1000.0)/1000.0;
+      ROS_INFO("after rounding: %f", vel.angular.z);
     }
     else
     {
       ROS_INFO("setting angular speed to %f (previously %f)", dist * getFrameRate(), vel.angular.z);
-      vel.angular.z = dist * getFrameRate();
+      vel.angular.z = std::floor(dist * getFrameRate() * 1000.0)/1000.0;
+      ROS_INFO("after rounding: %f", vel.angular.z);
     }
   }
 

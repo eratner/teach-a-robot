@@ -1193,6 +1193,11 @@ geometry_msgs::Pose PR2Simulator::getEndEffectorMarkerPose()
   return end_effector_marker_pose;
 }
 
+geometry_msgs::Pose PR2Simulator::getEndEffectorPoseInBase() const
+{
+  return end_effector_pose_.pose;
+}
+
 void PR2Simulator::setMoveEndEffectorWhileDragging(bool move)
 {
   move_end_effector_while_dragging_ = move;

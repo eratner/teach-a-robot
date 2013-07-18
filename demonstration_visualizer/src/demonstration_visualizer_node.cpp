@@ -292,6 +292,11 @@ geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorPose()
   return simulator_->getEndEffectorPose();
 }
 
+geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorPoseInBase()
+{
+  return simulator_->getEndEffectorPoseInBase();
+}
+
 geometry_msgs::Pose DemonstrationVisualizerNode::getEndEffectorMarkerPose()
 {
   return simulator_->getEndEffectorMarkerPose();

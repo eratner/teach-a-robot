@@ -292,11 +292,14 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   camera_buttons_.push_back(top_down_camera);
   QPushButton *auto_camera = new QPushButton("Auto");
   camera_buttons_.push_back(auto_camera);
+  QPushButton *top_down_fps_camera = new QPushButton("Top Down/FPS");
+  camera_buttons_.push_back(top_down_fps_camera);
 
   camera_controls->addWidget(orbit_camera);
   camera_controls->addWidget(fps_camera);
-  camera_controls->addWidget(top_down_camera);
+  // camera_controls->addWidget(top_down_camera);
   camera_controls->addWidget(auto_camera);
+  camera_controls->addWidget(top_down_fps_camera);
   camera_group->setLayout(camera_controls);
 
   basic_layout->addWidget(camera_group);
@@ -455,6 +458,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   camera_signal_mapper->setMapping(top_down_camera, (int)TOP_DOWN);
   connect(auto_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
   camera_signal_mapper->setMapping(auto_camera, (int)AUTO);
+  connect(top_down_fps_camera, SIGNAL(clicked()), camera_signal_mapper, SLOT(map()));
+  camera_signal_mapper->setMapping(top_down_fps_camera, (int)TOP_DOWN_FPS);
 
   // Close window when ROS shuts down.
   connect(&node_, SIGNAL(rosShutdown()), this, SLOT(close()));
@@ -477,6 +482,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   x_fps_offset_ = 0;
   z_fps_offset_ = 0;
   current_state_ = NORMAL;
+  top_down_fps_camera_mode_ = 0;
+  last_top_down_fps_camera_mode_ = 1;
 
   setLayout(window_layout);
 
@@ -515,8 +522,28 @@ void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
     event->ignore();
   else
   {
-    node_.processKeyEvent(event->key(), QEvent::KeyPress);
-    QWidget::keyPressEvent(event);
+    // Use the spacebar to toggle between top down and FPS in the 
+    // Top Down/FPS mode.
+    if(camera_mode_ == TOP_DOWN_FPS &&
+       event->key() == Qt::Key_Space)
+    {
+      ROS_INFO("space");
+      if(top_down_fps_camera_mode_ == 0)
+      {
+	last_top_down_fps_camera_mode_ = 0;
+	top_down_fps_camera_mode_ = 1;
+      }
+      else
+      {
+	last_top_down_fps_camera_mode_ = 1;
+	top_down_fps_camera_mode_ = 0;
+      }
+    }
+    else
+    {
+      node_.processKeyEvent(event->key(), QEvent::KeyPress);
+      QWidget::keyPressEvent(event);
+    }
   }
 }
 
@@ -1410,9 +1437,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       if(x_fps_offset_ > 0)
       {
 	view_manager->getCurrent()->subProp("Position")->
-	  subProp("X")->setValue(base_pose.position.x - x_fps_offset_ * std::cos(current_base_yaw));
-	view_manager->getCurrent()->subProp("Position")->
-	  subProp("Y")->setValue(base_pose.position.y - x_fps_offset_ * std::sin(current_base_yaw));
+	  subProp("X")->setValue(-1.0 * x_fps_offset_);
       }
       if(z_fps_offset_ > 0)
 	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2 + z_fps_offset_);
@@ -1437,11 +1462,12 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
+
+	view_manager->getCurrent()->installEventFilter(this);
       }
+
       view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
       view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
-
-      view_manager->getCurrent()->installEventFilter(this);
 
       break;
     }
@@ -1455,7 +1481,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 
         ROS_INFO("[DViz] Switching to automatic camera control.");
         view_manager->setCurrentViewControllerType("rviz/Orbit");
-        view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+        view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
         view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
 
         auto_camera_state_ = "normal";
@@ -1538,6 +1564,89 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       }
       else{
         ROS_ERROR("auto camera is in a bad state");
+      }
+
+      break;
+    }
+  case TOP_DOWN_FPS:
+    {
+      if(previous_camera_mode_ != TOP_DOWN_FPS)
+      {
+	camera_buttons_[TOP_DOWN_FPS]->setEnabled(false);
+	if(previous_camera_mode_ != GOAL)
+	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
+        ROS_INFO("[DViz] Switching to top down/FPS camera control.");
+      }
+
+      if(top_down_fps_camera_mode_ == 0)
+      {
+	// Top Down camera mode.
+	if(last_top_down_fps_camera_mode_ != 0)
+	{
+	  view_manager->setCurrentViewControllerType("rviz/Orbit");
+	  view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
+
+	  last_top_down_fps_camera_mode_ = 0;
+	}
+	
+	view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
+
+	geometry_msgs::Point midpoint;
+	geometry_msgs::Pose base_pose = node_.getBasePose();
+	geometry_msgs::Pose goal_pose = B;
+	midpoint.x = (base_pose.position.x + goal_pose.position.x)/2.0;
+	midpoint.y = (base_pose.position.y + goal_pose.position.y)/2.0;
+	// midpoint.z = (base_pose.position.z + goal_pose.position.z)/2.0;
+	midpoint.z = 0.0;
+
+	// First focus camera to the appropriate position.
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(midpoint.x);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(midpoint.y);
+	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);
+
+	// Next choose the appropriate zoom
+	Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
+	// Vertical field of view.
+	float V = camera->getFOVy().valueRadians();
+	// Aspect ratio.
+	float r = camera->getAspectRatio();
+	// Horizontal field of view.
+	float H = 2*std::atan(0.5*std::tan(V) * r);
+	float th = std::min(H, V);
+	double dx = goal_pose.position.x - base_pose.position.x;
+	double dy = goal_pose.position.y - base_pose.position.y;
+	double dz = goal_pose.position.z - base_pose.position.z;
+	double d = std::sqrt(dx*dx + dy*dy + dz*dz) + 2.0;
+	double zoom = d/(2*tan(th/2.0));
+	view_manager->getCurrent()->subProp("Distance")->setValue(zoom);
+
+      }
+      else if(top_down_fps_camera_mode_ == 1)
+      {
+	// FPS camera mode.
+	if(last_top_down_fps_camera_mode_ != 1)
+	{
+	  view_manager->setCurrentViewControllerType("rviz/FPS");
+	  view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+	  view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
+	  view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
+	  view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+
+	  last_top_down_fps_camera_mode_ = 1;
+	}
+
+	geometry_msgs::Pose end_effector_pose = node_.getEndEffectorPoseInBase();
+
+	double theta = std::atan2(end_effector_pose.position.y, end_effector_pose.position.x);
+	double r = std::sqrt(std::pow(end_effector_pose.position.x, 2) + std::pow(end_effector_pose.position.y, 2));
+	double pitch = std::atan2(r * std::cos(theta), 1.2 - end_effector_pose.position.z);
+	view_manager->getCurrent()->subProp("Yaw")->setValue(theta);
+	view_manager->getCurrent()->subProp("Pitch")->setValue(pitch);
+      }
+      else
+      {
+	ROS_ERROR("[DViz] Top Down/FPS camera invalid mode!");
       }
 
       break;
@@ -1643,7 +1752,7 @@ void DemonstrationVisualizer::setFPSXOffset(int offset)
   if(camera_mode_ == FPS)
   {
     x_fps_offset_ = (double)offset/100;
-    ROS_INFO("[DViz] (FPS mode) Setting x-offset to %f.", x_fps_offset_);
+    // ROS_INFO("[DViz] (FPS mode) Setting x-offset to %f.", x_fps_offset_);
   }
 }
 
@@ -1652,7 +1761,7 @@ void DemonstrationVisualizer::setFPSZOffset(int offset)
   if(camera_mode_ == FPS)
   {
     z_fps_offset_ = (double)offset/100;
-    ROS_INFO("[DViz] (FPS mode) Setting z-offset to %f.", z_fps_offset_);
+    // ROS_INFO("[DViz] (FPS mode) Setting z-offset to %f.", z_fps_offset_);
   }
 }
 

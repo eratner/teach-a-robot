@@ -130,6 +130,7 @@ public:
 		    FPS,
 		    TOP_DOWN,
 		    AUTO,
+		    TOP_DOWN_FPS,
 		    GOAL };
 
   enum State { NORMAL = 0,
@@ -280,6 +281,9 @@ private:
   AddGoalDialog              add_goal_dialog_;
 
   State                      current_state_;
+
+  int                        top_down_fps_camera_mode_;
+  int                        last_top_down_fps_camera_mode_;
 
 };
 

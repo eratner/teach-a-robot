@@ -61,11 +61,14 @@ public:
   void processKeyEvent(int key, int type);
   
   /**
-   * Note that all poses are given in the world frame.
+   * Note that all poses are given in the world frame, if not 
+   * otherwise specified.
    */
   geometry_msgs::Pose getBasePose();
 
   geometry_msgs::Pose getEndEffectorPose();
+
+  geometry_msgs::Pose getEndEffectorPoseInBase();
 
   geometry_msgs::Pose getEndEffectorMarkerPose();
 
