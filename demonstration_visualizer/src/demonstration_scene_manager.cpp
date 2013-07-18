@@ -130,6 +130,8 @@ void DemonstrationSceneManager::updateScene()
 
 int DemonstrationSceneManager::loadScene(const std::string &filename)
 {
+  ros::Time t_start_load = ros::Time::now();
+
   // Clear existing meshes.
   std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
   std::vector<visualization_msgs::Marker>::iterator it;
@@ -234,11 +236,26 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
             size[2]);
   object_manager_->initializeCollisionChecker(size, origin);
 
+  // Read the filename containing the occupied voxels in the scene
+  TiXmlElement *voxel_element = element->NextSiblingElement("object_voxels");
+  std::string vfile;
+  if(voxel_element != NULL){
+    ROS_INFO("Found 'object_voxels' element in scene.");
+    if(voxel_element->QueryStringAttribute("file", &vfile) != TIXML_SUCCESS)
+      ROS_ERROR("'object_voxels' file is missing.");
+    else{
+      if(!object_manager_->addObjectsFromOccupiedVoxelsFile(vfile))
+        return false;
+      else
+        ROS_INFO("Successfully added object voxels from file.");
+    } 
+  }
+
   // Read each mesh.
-  element = element->NextSiblingElement();
+  element = element->NextSiblingElement("mesh");
   visualization_msgs::Marker mesh_marker;
 
-  for(element; element; element = element->NextSiblingElement())
+  for(element; element; element = element->NextSiblingElement("mesh"))
   {
     if(element->QueryIntAttribute("id", &mesh_marker.id) != TIXML_SUCCESS){
       ROS_ERROR("id is missing");
@@ -314,8 +331,12 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
   ROS_INFO("[dsm] Finished getting all the elements...now setting the meshes.");
 
-  ROS_INFO("Read %d meshes.", (int)object_manager_->getNumObjects());
+  ROS_INFO("[dsm] Read %d meshes.", (int)object_manager_->getNumObjects());
 
+  ros::Time t_end_load = ros::Time::now();
+  ROS_WARN("[dsm] Loading the scene took %0.3fsec", ros::Duration(t_end_load-t_start_load).toSec());
+
+  object_manager_->writeObjectsToOccupiedVoxelsFile("/tmp/object_voxel2.csv");
   return max_mesh_id;
 }
 
