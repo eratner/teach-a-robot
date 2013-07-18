@@ -476,6 +476,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   z_mode_ = false;
   x_fps_offset_ = 0;
   z_fps_offset_ = 0;
+  current_state_ = NORMAL;
 
   setLayout(window_layout);
 
@@ -494,6 +495,18 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
 
   delete visualization_manager_;
   visualization_manager_ = 0;
+}
+
+void DemonstrationVisualizer::changeState(State s)
+{
+  // @todo print state transition.
+
+  current_state_ = s;
+}
+
+DemonstrationVisualizer::State DemonstrationVisualizer::getState() const
+{
+  return current_state_;
 }
 
 void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
@@ -577,14 +590,20 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     {
     case Qt::MiddleButton:
       {
-	if(camera_mode_ == FPS ||
-	   camera_mode_ == TOP_DOWN ||
-	   camera_mode_ == AUTO ||
-	   camera_mode_ == GOAL)
+	if(camera_mode_ != ORBIT)
 	{
 	  return true;
 	}
 
+	break;
+      }
+    case Qt::RightButton:
+      {
+	if(camera_mode_ != ORBIT)
+	{
+	  return true;
+	}
+      
 	break;
       }
     default:
@@ -1551,6 +1570,17 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 
 void DemonstrationVisualizer::changeCameraMode(int mode)
 {
+  if(getState() == GRASP_SELECTION && camera_mode_ == GOAL)
+  {
+    QMessageBox box;
+
+    box.setText("Cannot change the camera mode while selecting a grasp!");
+
+    box.exec();
+
+    return;
+  }
+
   ROS_INFO("[DViz] Changing camera mode from %d to %d.", camera_mode_, mode);
 
   previous_camera_mode_ = (CameraMode)camera_mode_;
@@ -1639,13 +1669,21 @@ void DemonstrationVisualizer::setGripperPosition(int position)
 
 void DemonstrationVisualizer::beginGraspSelection()
 {
+  changeState(GRASP_SELECTION);
+
   node_.pauseSimulator();
 
   accept_grasp_button_->setEnabled(true);
   grasp_distance_slider_->setEnabled(true);
+
+  // Set the distance slider to the goal's current distance.
+  int current_goal = node_.getSceneManager()->getCurrentGoal();
+  PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
+  grasp_distance_slider_->setValue(static_cast<int>(goal->getGraspDistance()*100.0));
+
   camera_before_grasp_ = camera_mode_;
   changeCameraMode(GOAL);
-  node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
+  node_.showInteractiveGripper(current_goal);
 }
 
 void DemonstrationVisualizer::endGraspSelection()
@@ -1657,6 +1695,8 @@ void DemonstrationVisualizer::endGraspSelection()
   {
   case QMessageBox::Yes:
     {
+      changeState(NORMAL);
+
       int current_goal = node_.getSceneManager()->getCurrentGoal();
       std::stringstream s; 
       s << "grasp_marker_goal_" << current_goal;

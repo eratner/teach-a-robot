@@ -23,6 +23,7 @@
   <depend package="rospack" />
   <depend package="pviz" />
   <depend package="pr2_collision_checker" />
+  <depend package="angles" />
   <rosdep name="tinyxml" />
 
   <versioncontrol type="git" url="https://sbpl.pc.cs.cmu.edu/redmine/egraph-user-demos.git" />

@@ -68,11 +68,8 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
   // Advertise topic for publishing end-effector velocity commands.
   end_effector_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_vel_cmd", 1);
 
-  end_effector_marker_vel_pub_ = nh.advertise<geometry_msgs::Twist>("/end_effector_marker_vel", 1);
-
   base_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/vel_cmd", 1);
 
-  ROS_INFO("[dvn] Completed init().");
   return true;
 }
 
@@ -283,48 +280,6 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
 {
   // Pass along the key event to the simulator.
   simulator_->processKeyEvent(key, type);
-
-  switch(key)
-  {
-  case Qt::Key_Up:
-    {
-      // Move the end-effector in the positive z-direction.
-      if(type == QEvent::KeyPress)
-      {
-	geometry_msgs::Twist vel;
-	vel.linear.x = vel.linear.y = 0;
-	vel.linear.z = 0.1; 
-	end_effector_marker_vel_pub_.publish(vel);
-      }
-      else if(type == QEvent::KeyRelease)
-      {
-	geometry_msgs::Twist vel;
-	vel.linear.x = vel.linear.y = vel.linear.z = 0;
-	end_effector_marker_vel_pub_.publish(vel);
-      }
-      break;
-    }
-  case Qt::Key_Down:
-    {
-      // Move the end-effector in the negative z-direction.
-      if(type == QEvent::KeyPress)
-      {
-	geometry_msgs::Twist vel;
-	vel.linear.x = vel.linear.y = 0;
-	vel.linear.z = -0.1;
-	end_effector_marker_vel_pub_.publish(vel);
-      }
-      else if(type == QEvent::KeyRelease)
-      {
-	geometry_msgs::Twist vel;
-	vel.linear.x = vel.linear.y = vel.linear.z = 0;
-	end_effector_marker_vel_pub_.publish(vel);
-      }
-      break;
-    }
-  default:
-    break;
-  }
 }
 
 geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose()
@@ -443,7 +398,7 @@ void DemonstrationVisualizerNode::graspMarkerFeedback(
     const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
   )
 {
-  ROS_INFO("[DVizNode] Moving grasp interactive marker %s.", feedback->marker_name.c_str());
+  // ROS_INFO("[DVizNode] Moving grasp interactive marker %s.", feedback->marker_name.c_str());
 
   int i = feedback->marker_name.size()-1;
   for(; i >= 0; --i)

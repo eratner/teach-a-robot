@@ -10,6 +10,7 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Quaternion.h>
 #include <tf/transform_datatypes.h>
+#include <angles/angles.h>
 #include <cmath>
 
 namespace demonstration_visualizer {
@@ -52,12 +53,16 @@ public:
   
   double getAngularSpeed() const;
 
+  void setFrameRate(double);
+
+  double getFrameRate() const;
+
   /**
    * @brief A helper method to compute the necessary angular velocity to achieve
    *        the goal angle given the current angle, both in the range [0, 2 \pi),
    *        and a set angular speed.
    */
-  static geometry_msgs::Twist rotate(double current_angle, double goal_angle, double angular_speed);
+  geometry_msgs::Twist rotate(double current_angle, double goal_angle, double angular_speed);
 
   /**
    * @brief A helper method that determines whether two angles, both in the range 
@@ -81,6 +86,7 @@ public:
 private:
   State last_state_;
   int frames_;
+  double frame_rate_;
   double linear_speed_;
   double angular_speed_;
 

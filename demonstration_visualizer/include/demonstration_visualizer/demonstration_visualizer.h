@@ -132,9 +132,16 @@ public:
 		    AUTO,
 		    GOAL };
 
+  enum State { NORMAL = 0,
+	       GRASP_SELECTION };
+
   DemonstrationVisualizer(int argc, char **argv, QWidget *parent = 0);
 
   virtual ~DemonstrationVisualizer();
+
+  void changeState(State s);
+
+  State getState() const;
 
 protected:
   void keyPressEvent(QKeyEvent *event);
@@ -271,6 +278,8 @@ private:
   double                     z_fps_offset_;
 
   AddGoalDialog              add_goal_dialog_;
+
+  State                      current_state_;
 
 };
 

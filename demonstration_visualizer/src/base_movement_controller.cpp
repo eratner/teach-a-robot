@@ -3,7 +3,7 @@
 namespace demonstration_visualizer {
 
 BaseMovementController::BaseMovementController()
-  : last_state_(INITIAL), frames_(0),
+  : last_state_(INITIAL), frames_(0), frame_rate_(10.0),
     linear_speed_(0.2), angular_speed_(0.2),
     print_transitions_(false)
 {
@@ -114,6 +114,16 @@ double BaseMovementController::getAngularSpeed() const
   return angular_speed_;
 }
 
+void BaseMovementController::setFrameRate(double rate)
+{
+  frame_rate_ = rate;
+}
+
+double BaseMovementController::getFrameRate() const
+{
+  return frame_rate_;
+}
+
 geometry_msgs::Twist BaseMovementController::rotate(double current_angle, 
 						    double goal_angle,
 						    double angular_speed)
@@ -127,6 +137,24 @@ geometry_msgs::Twist BaseMovementController::rotate(double current_angle,
     vel.angular.z = -1.0 * angular_speed;
   else
     vel.angular.z = angular_speed;
+
+  double dist = 
+    angles::normalize_angle_positive(angles::normalize_angle_positive(goal_angle) - 
+				      angles::normalize_angle_positive(current_angle));
+  if(dist < std::abs((1.0/getFrameRate()) * vel.angular.z))
+  {
+    ROS_INFO("decrease in angular speed: dist = %f", dist);
+    if(clockwise)
+    {
+      ROS_INFO("setting angular speed to %f (previously %f)", -1.0 * dist * getFrameRate(), vel.angular.z);
+      vel.angular.z = -1.0 * dist * getFrameRate();
+    }
+    else
+    {
+      ROS_INFO("setting angular speed to %f (previously %f)", dist * getFrameRate(), vel.angular.z);
+      vel.angular.z = dist * getFrameRate();
+    }
+  }
 
   return vel;
 }

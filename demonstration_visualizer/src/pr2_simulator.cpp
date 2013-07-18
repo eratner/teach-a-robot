@@ -16,7 +16,9 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     object_manager_(object_manager),
     base_movement_controller_(),
     end_effector_controller_(int_marker_server),
-    recorder_(recorder)
+    recorder_(recorder),
+    snap_motion_count_(0),
+    moving_gripper_marker_(false)
 {
   ros::NodeHandle nh;
 
@@ -94,11 +96,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 					   100,
 					   &PR2Simulator::updateEndEffectorVelocity,
 					   this);
-
-  end_effector_marker_vel_sub_ = nh.subscribe("end_effector_marker_vel",
-					      1,
-					      &PR2Simulator::updateEndEffectorMarkerVelocity,
-					      this);
 
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
 
@@ -848,6 +845,26 @@ void PR2Simulator::processKeyEvent(int key, int type)
     case Qt::Key_D:
       key_vel_cmd_.linear.y = -0.2;
       break;
+    case Qt::Key_Up:
+      {
+	moving_gripper_marker_ = true;
+
+	end_effector_marker_vel_.linear.x = 0;
+	end_effector_marker_vel_.linear.y = 0;
+	end_effector_marker_vel_.linear.z = 0.1;
+
+	break;
+      }
+    case Qt::Key_Down:
+      {
+	moving_gripper_marker_ = true;
+
+	end_effector_marker_vel_.linear.x = 0;
+	end_effector_marker_vel_.linear.y = 0;
+	end_effector_marker_vel_.linear.z = -0.1;
+
+	break;
+      }
     default:
       break;
     }
@@ -892,6 +909,26 @@ void PR2Simulator::processKeyEvent(int key, int type)
     case Qt::Key_D:
       key_vel_cmd_.linear.y = 0;
       break;
+    case Qt::Key_Up:
+      {
+	moving_gripper_marker_ = false;
+
+	end_effector_marker_vel_.linear.x = 0;
+	end_effector_marker_vel_.linear.y = 0;
+	end_effector_marker_vel_.linear.z = 0;
+
+	break;
+      }
+    case Qt::Key_Down:
+      {
+	moving_gripper_marker_ = false;
+
+	end_effector_marker_vel_.linear.x = 0;
+	end_effector_marker_vel_.linear.y = 0;
+	end_effector_marker_vel_.linear.z = 0;
+
+	break;
+      }
     default:
       break;
     }
@@ -902,9 +939,10 @@ void PR2Simulator::processKeyEvent(int key, int type)
 
 void PR2Simulator::updateEndEffectorMarker()
 {
-  if(end_effector_controller_.getState() == EndEffectorController::DONE ||
+  if((end_effector_controller_.getState() == EndEffectorController::DONE ||
      end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
-     recorder_->isReplaying())
+     recorder_->isReplaying()) &&
+     !moving_gripper_marker_)
   {
     int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_->applyChanges();

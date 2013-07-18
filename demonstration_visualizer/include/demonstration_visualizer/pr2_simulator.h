@@ -172,7 +172,6 @@ private:
 
   ros::Subscriber vel_cmd_sub_;
   ros::Subscriber end_effector_vel_cmd_sub_;
-  ros::Subscriber end_effector_marker_vel_sub_;
   
   ros::Publisher marker_pub_;
 
@@ -197,6 +196,8 @@ private:
 
   std::vector<sensor_msgs::JointState> snap_motion_;
   int snap_motion_count_;
+
+  bool moving_gripper_marker_;
 
 };
 

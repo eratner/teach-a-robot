@@ -100,7 +100,6 @@ private:
   std::string world_frame_;
 
   ros::Publisher end_effector_vel_cmd_pub_;
-  ros::Publisher end_effector_marker_vel_pub_;
   ros::Publisher base_vel_cmd_pub_;
 
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
