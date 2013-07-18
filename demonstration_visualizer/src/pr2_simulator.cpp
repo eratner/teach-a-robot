@@ -166,6 +166,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   control.markers[0].header = std_msgs::Header();
 
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+  // control.orientation_mode = visualization_msgs::InteractiveMarkerControl::FIXED;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
   

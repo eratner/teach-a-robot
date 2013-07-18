@@ -5,7 +5,7 @@ namespace demonstration_visualizer {
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0), frame_rate_(10.0),
     linear_speed_(0.2), angular_speed_(0.2),
-    print_transitions_(true)
+    print_transitions_(false)
 {
 
 }

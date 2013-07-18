@@ -527,7 +527,6 @@ void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
     if(camera_mode_ == TOP_DOWN_FPS &&
        event->key() == Qt::Key_Space)
     {
-      ROS_INFO("space");
       if(top_down_fps_camera_mode_ == 0)
       {
 	last_top_down_fps_camera_mode_ = 0;
@@ -641,24 +640,24 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::MouseButtonRelease)
   {
-    QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
-    switch(mouse_event->button())
-    {
-    case Qt::MiddleButton:
-      {
-	if(camera_mode_ == FPS ||
-	   camera_mode_ == TOP_DOWN ||
-	   camera_mode_ == AUTO ||
-	   camera_mode_ == GOAL)
-	{
-	  return true;
-	}
+    // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
+    // switch(mouse_event->button())
+    // {
+    // case Qt::MiddleButton:
+    //   {
+    // 	if(camera_mode_ == FPS ||
+    // 	   camera_mode_ == TOP_DOWN ||
+    // 	   camera_mode_ == AUTO ||
+    // 	   camera_mode_ == GOAL)
+    // 	{
+    // 	  return true;
+    // 	}
 
-	break;
-      }
-    default:
-      break;
-    }
+    // 	break;
+    //   }
+    // default:
+    //   break;
+    // }
 
     return QObject::eventFilter(obj, event);
   }
@@ -1588,6 +1587,8 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	  view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
 
 	  last_top_down_fps_camera_mode_ = 0;
+	  
+	  view_manager->getCurrent()->installEventFilter(this);
 	}
 	
 	view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
@@ -1634,14 +1635,17 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	  view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
 
 	  last_top_down_fps_camera_mode_ = 1;
+
+	  view_manager->getCurrent()->installEventFilter(this);
 	}
 
 	geometry_msgs::Pose end_effector_pose = node_.getEndEffectorPoseInBase();
+	geometry_msgs::Pose base_pose = node_.getBasePose();
 
 	double theta = std::atan2(end_effector_pose.position.y, end_effector_pose.position.x);
 	double r = std::sqrt(std::pow(end_effector_pose.position.x, 2) + std::pow(end_effector_pose.position.y, 2));
-	double pitch = std::atan2(r * std::cos(theta), 1.2 - end_effector_pose.position.z);
-	view_manager->getCurrent()->subProp("Yaw")->setValue(theta);
+	double pitch = M_PI/2.0 - std::atan2(r * std::cos(theta), 1.2 - end_effector_pose.position.z);
+	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(base_pose.orientation) + theta);
 	view_manager->getCurrent()->subProp("Pitch")->setValue(pitch);
       }
       else
