@@ -36,11 +36,16 @@ class ObjectManager{
 
     std::vector<Object> getObjects() const;
 
+    bool addObjectsFromOccupiedVoxelsFile(std::string filename);
+
+    bool writeObjectsToOccupiedVoxelsFile(std::string filename);
+
   private:
     pr2_collision_checker::PR2CollisionSpace* collision_checker_;
     std::map<int, Object> objects_;
     std::string rarm_file_;
     std::string larm_file_;
+    bool load_objects_from_voxels_file_;
 };
 
 #endif
