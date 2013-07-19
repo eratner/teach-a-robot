@@ -72,13 +72,13 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[5] = -0.0962141;
   joint_states_.position[6] = -0.0864407;
   // Move the right arm in slightly. @todo these should be constants somewhere.
-  joint_states_.position[7] = -0.002109;
-  joint_states_.position[8] = 0.655300;
-  joint_states_.position[9] = 0.000000;
-  joint_states_.position[10] = -1.517650;
-  joint_states_.position[11] = -3.138816;
-  joint_states_.position[12] = -0.862352;
-  joint_states_.position[13] = 3.139786;
+  // joint_states_.position[7] = -0.002109;
+  // joint_states_.position[8] = 0.655300;
+  // joint_states_.position[9] = 0.000000;
+  // joint_states_.position[10] = -1.517650;
+  // joint_states_.position[11] = -3.138816;
+  // joint_states_.position[12] = -0.862352;
+  // joint_states_.position[13] = 3.139786;
 
   for(int i = 7; i < 15; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
@@ -363,6 +363,7 @@ void PR2Simulator::moveRobot()
   if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
   {
     // ROS_ERROR("[PR2Sim] IK failed in move robot!");
+
     return;
   }
 
@@ -488,8 +489,38 @@ bool PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
   }
   else
   {
-    end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
-    return false;
+    ROS_INFO("IK failed at (%f, %f, %f), but...", goal_pose.position.x, goal_pose.position.y, 
+	     goal_pose.position.z);
+    std::vector<std::pair<double, double> > intervals;
+    intervals.push_back(std::make_pair(-0.15 + goal_pose.position.x, 0.15 + goal_pose.position.x));
+    intervals.push_back(std::make_pair(-0.15 + goal_pose.position.y, 0.15 + goal_pose.position.y));
+    intervals.push_back(std::make_pair(goal_pose.position.z, goal_pose.position.z));
+    std::vector<double> d;
+    d.push_back(0.01);
+    d.push_back(0.01);
+    d.push_back(0);
+    geometry_msgs::Pose pose;
+    pose.position.x = goal_pose.position.x;
+    pose.position.y = goal_pose.position.y;
+    pose.position.z = goal_pose.position.z;
+    pose.orientation = goal_pose.orientation;
+    double x, y, z;
+
+    if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
+    {
+      ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
+      end_effector_goal_pose_.pose.position.x = x;
+      end_effector_goal_pose_.pose.position.y = y;
+      end_effector_goal_pose_.pose.position.z = z;
+      end_effector_controller_.setState(EndEffectorController::READY);
+      return true;
+    }
+    else
+    {
+      ROS_INFO("...nevermind :(");
+      end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
+      return false;
+    }
   }
 }
 
@@ -1207,6 +1238,100 @@ void PR2Simulator::setMoveEndEffectorWhileDragging(bool move)
 void PR2Simulator::setMoveBaseWhileDragging(bool move)
 {
   move_base_while_dragging_ = move;
+}
+
+bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &current_pose,
+						   const std::vector<std::pair<double, double> > &intervals,
+						   const std::vector<double> &d,
+						   double &x, double &y, double &z,
+						   bool verbose)
+{
+  // @todo for now we assume inputs are correct, but in the future we should check.
+  if(verbose)
+  {
+    ROS_INFO("Searching from position (%f, %f, %f) over intervals %f <= x < %f, %f <= y < %f"
+	     " and %f <= z < %f with resolutions dx = %f, dy = %f, and dz = %f.",
+	     current_pose.position.x, current_pose.position.y, current_pose.position.z,
+	     intervals[0].first, intervals[0].second, intervals[1].first, intervals[1].second,
+	     intervals[2].first, intervals[2].second, d[0], d[1], d[2]);
+  }
+
+  int n = 0;
+  double cx = current_pose.position.x;
+  double cy = current_pose.position.y;
+  double cz = current_pose.position.z;
+  std::vector<double> r_arm_joints(7, 0);
+  std::vector<double> r_arm_solution(7, 0);
+  std::vector<double> candidate_pose(7, 0);
+  for(int i = 7; i < 14; ++i)
+  {
+    r_arm_joints[i-7] = joint_states_.position[i];
+  }
+  geometry_msgs::Pose candidate;
+  candidate.position.x = cx;
+  candidate.position.y = cy;
+  candidate.position.z = cz;
+  candidate.orientation = current_pose.orientation;
+  // Continue to search while there still exist valid positions.
+  while((candidate.position.x - d[0] >= intervals[0].first && candidate.position.x + d[0] < intervals[0].second) ||
+	(candidate.position.y - d[1] >= intervals[1].first && candidate.position.y + d[1] < intervals[1].second) ||
+	(candidate.position.z - d[2] >= intervals[2].first && candidate.position.z + d[2] < intervals[2].second))
+  {
+    for(int i = -1; i <= 1; ++i)
+    {
+      for(int j = -1; j <= 1; ++j)
+      {
+	for(int k = -1; k <= 1; ++k)
+	{
+	  // Assign the candidate value to each coordinate if it 
+	  // falls within that coordinate's bounds.
+	  if((cx + i*n*d[0]) >= intervals[0].first && (cx + i*n*d[0]) < intervals[0].second)
+	  {
+	    candidate.position.x = cx + i*n*d[0];
+	    // ROS_INFO("trying x = %f", candidate.position.x);
+	  }
+	  if((cy + j*n*d[1]) >= intervals[1].first && (cy + j*n*d[1]) < intervals[1].second)
+	  {
+	    candidate.position.y = cy + j*n*d[1];
+	    // ROS_INFO("trying y = %f", candidate.position.y);
+	  }
+	  if((cz + k*n*d[2]) >= intervals[2].first && (cz + k*n*d[2]) < intervals[2].second)
+	  {
+	    candidate.position.z = cz + k*n*d[2];
+	    // ROS_INFO("trying z = %f", candidate.position.z);
+	  }
+
+	  // Test the new candidate position.
+	  candidate_pose[0] = candidate.position.x;
+	  candidate_pose[1] = candidate.position.y;
+	  candidate_pose[2] = candidate.position.z;
+	  candidate_pose[3] = candidate.orientation.x;
+	  candidate_pose[4] = candidate.orientation.y;
+	  candidate_pose[5] = candidate.orientation.z;
+	  candidate_pose[6] = candidate.orientation.w;
+	  if(kdl_robot_model_.computeIK(candidate_pose, r_arm_joints, r_arm_solution))
+	  {
+	    if(verbose)
+	    {
+	      ROS_INFO("Search found a valid IK solution at position (%f, %f, %f) from "
+		       "initial position (%f, %f, %f).", candidate.position.x, 
+		       candidate.position.y, candidate.position.z, current_pose.position.x, 
+		       current_pose.position.y, current_pose.position.z);
+	    }
+
+	    x = candidate.position.x;
+	    y = candidate.position.y;
+	    z = candidate.position.z;
+	    return true;
+	  }
+	}
+      }
+    }
+
+    n++;
+  }
+
+  return false;
 }
 
 } // namespace demonstration_visualizer

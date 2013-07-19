@@ -149,6 +149,12 @@ public:
 
   void setMoveBaseWhileDragging(bool);
 
+  bool closestValidEndEffectorPosition(const geometry_msgs::Pose &current_pose,
+				       const std::vector<std::pair<double, double> > &intervals,
+				       const std::vector<double> &d,
+				       double &x, double &y, double &z,
+				       bool verbose = false);
+
 private:
   bool playing_;
 

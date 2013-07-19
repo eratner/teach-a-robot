@@ -1666,6 +1666,9 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
         view_manager->setCurrentViewControllerType("rviz/Orbit");
         view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
         view_manager->getCurrent()->subProp("Distance")->setValue(1.5);
+
+	// hack
+	last_top_down_fps_camera_mode_ = 2;
       }
 
       view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(B.position.x);
