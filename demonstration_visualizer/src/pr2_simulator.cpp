@@ -18,7 +18,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     end_effector_controller_(int_marker_server),
     recorder_(recorder),
     snap_motion_count_(0),
-    moving_gripper_marker_(false)
+    moving_gripper_marker_(false),
+    move_robot_markers_(true)
 {
   ros::NodeHandle nh;
 
@@ -233,6 +234,15 @@ bool PR2Simulator::isPlaying() const
 
 void PR2Simulator::run()
 {
+  // If moving the robot using interactive markers (i.e. the base and end-effector
+  // carrots) is disabled, then ensure that the carrots stay in place.
+  if(!canMoveRobotMarkers())
+  {
+    int_marker_server_->setPose("base_marker", base_pose_.pose);
+    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_->applyChanges();     
+  }
+
   if(isPlaying())
   {
     // Perform any snap motion that has been generated.
@@ -512,6 +522,8 @@ bool PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
       end_effector_goal_pose_.pose.position.x = x;
       end_effector_goal_pose_.pose.position.y = y;
       end_effector_goal_pose_.pose.position.z = z;
+      int_marker_server_->setPose("r_gripper_marker", end_effector_goal_pose_.pose);
+      int_marker_server_->applyChanges();
       end_effector_controller_.setState(EndEffectorController::READY);
       return true;
     }
@@ -537,7 +549,7 @@ void PR2Simulator::baseMarkerFeedback(
   {
   case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
     {
-      if(move_base_while_dragging_)
+      if(move_base_while_dragging_ && canMoveRobotMarkers())
       {
 	base_movement_controller_.setState(BaseMovementController::READY);
 	goal_pose_.pose = feedback->pose;
@@ -548,7 +560,7 @@ void PR2Simulator::baseMarkerFeedback(
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      if(!move_base_while_dragging_)
+      if(!move_base_while_dragging_ && canMoveRobotMarkers())
       {
 	base_movement_controller_.setState(BaseMovementController::READY);
 	goal_pose_.pose = feedback->pose;
@@ -574,7 +586,7 @@ void PR2Simulator::gripperMarkerFeedback(
   {
   case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
     {
-      if(move_end_effector_while_dragging_)
+      if(move_end_effector_while_dragging_ && canMoveRobotMarkers())
       {
 	// ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
 	// 	     feedback->pose.position.y, feedback->pose.position.z);
@@ -587,7 +599,7 @@ void PR2Simulator::gripperMarkerFeedback(
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
     {
-      if(!move_end_effector_while_dragging_)
+      if(!move_end_effector_while_dragging_ && canMoveRobotMarkers())
       {
 	ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
 		       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
@@ -1332,6 +1344,16 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
   }
 
   return false;
+}
+
+bool PR2Simulator::canMoveRobotMarkers() const
+{
+  return move_robot_markers_;
+}
+
+void PR2Simulator::setMoveRobotMarkers(bool move)
+{
+  move_robot_markers_ = move;
 }
 
 } // namespace demonstration_visualizer

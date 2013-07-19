@@ -86,6 +86,10 @@ public:
 
   void graspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
+  void disableRobotMarkerControl();
+
+  void enableRobotMarkerControl();
+
 Q_SIGNALS:
   void rosShutdown();
   void goalComplete(int);

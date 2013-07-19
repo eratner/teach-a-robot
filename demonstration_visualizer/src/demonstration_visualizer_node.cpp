@@ -199,8 +199,8 @@ void DemonstrationVisualizerNode::updateGoals()
 
 	goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose);
 
-	simulator_->attach(pick_up_goal->getObjectID(),
-			   object_in_gripper);
+	// simulator_->attach(pick_up_goal->getObjectID(),
+	// 		   object_in_gripper);
 
 	object_in_gripper.M.GetRPY(roll, pitch, yaw);
 	ROS_INFO("object in gripper = (%f, %f, %f), (%f, %f, %f)", object_in_gripper.p.x(),
@@ -208,6 +208,8 @@ void DemonstrationVisualizerNode::updateGoals()
 
 	if(goal_reachable)
 	{
+	  simulator_->attach(pick_up_goal->getObjectID(), object_in_gripper);
+	  
 	  Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
 	  getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
@@ -414,6 +416,16 @@ void DemonstrationVisualizerNode::graspMarkerFeedback(
 
   getSceneManager()->setGraspPose(atoi(feedback->marker_name.substr(i+1).c_str()),
 				     feedback->pose);
+}
+
+void DemonstrationVisualizerNode::disableRobotMarkerControl()
+{
+  simulator_->setMoveRobotMarkers(false);
+}
+
+void DemonstrationVisualizerNode::enableRobotMarkerControl()
+{
+  simulator_->setMoveRobotMarkers(true);
 }
 
 } // namespace demonstration_visualizer

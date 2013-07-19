@@ -155,6 +155,10 @@ public:
 				       double &x, double &y, double &z,
 				       bool verbose = false);
 
+  bool canMoveRobotMarkers() const;
+
+  void setMoveRobotMarkers(bool);
+
 private:
   bool playing_;
 
@@ -206,6 +210,7 @@ private:
   int snap_motion_count_;
 
   bool moving_gripper_marker_;
+  bool move_robot_markers_;
 
 };
 

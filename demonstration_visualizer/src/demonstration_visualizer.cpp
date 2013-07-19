@@ -1788,6 +1788,7 @@ void DemonstrationVisualizer::beginGraspSelection()
   changeState(GRASP_SELECTION);
 
   node_.pauseSimulator();
+  node_.disableRobotMarkerControl();
 
   accept_grasp_button_->setEnabled(true);
   grasp_distance_slider_->setEnabled(true);
@@ -1826,6 +1827,7 @@ void DemonstrationVisualizer::endGraspSelection()
       grasp_distance_slider_->setEnabled(false);
 
       node_.playSimulator();
+      node_.enableRobotMarkerControl();
 
       break;
     }
