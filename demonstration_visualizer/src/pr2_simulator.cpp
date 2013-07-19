@@ -346,9 +346,9 @@ void PR2Simulator::moveRobot()
     end_effector_controller_.moveTo(end_effector_pose_.pose,
 				    end_effector_goal_pose_.pose);
 
-  dx = (1.0/getFrameRate())*end_effector_vel.linear.x;
-  dy = (1.0/getFrameRate())*end_effector_vel.linear.y;
-  double dz = (1.0/getFrameRate())*end_effector_vel.linear.z;
+  dx = (1.0/getFrameRate())*end_effector_vel.linear.x + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.x;
+  dy = (1.0/getFrameRate())*end_effector_vel.linear.y + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.y;
+  double dz = (1.0/getFrameRate())*end_effector_vel.linear.z + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.z;
 
   // Attempt to find joint angles for the arm using the arm IK solver.
   std::vector<double> r_arm_joints(7, 0);
@@ -373,8 +373,45 @@ void PR2Simulator::moveRobot()
   if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
   {
     // ROS_ERROR("[PR2Sim] IK failed in move robot!");
+    // Try once more to find a valid IK solution by searching locally for valid
+    // end-effector positions.
+    ROS_INFO("IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
+	     end_effector_pose[1], end_effector_pose[2]);
+    std::vector<std::pair<double, double> > intervals;
+    intervals.push_back(std::make_pair(-0.05 + end_effector_pose[0], 
+				       0.05 + end_effector_pose[0]));
+    intervals.push_back(std::make_pair(-0.05 + end_effector_pose[1], 
+				       0.05 + end_effector_pose[1]));
+    intervals.push_back(std::make_pair(end_effector_pose[2], 
+				       end_effector_pose[2]));
+    std::vector<double> d;
+    d.push_back(0.005);
+    d.push_back(0.005);
+    d.push_back(0);
+    geometry_msgs::Pose pose;
+    pose.position.x = end_effector_pose[0];
+    pose.position.y = end_effector_pose[1];
+    pose.position.z = end_effector_pose[2];
+    pose.orientation = end_effector_pose_.pose.orientation;
+    double x, y, z;
 
-    return;
+    if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
+    {
+      ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
+      end_effector_pose[0] = x;
+      end_effector_pose[1] = y;
+      end_effector_pose[2] = z;
+      if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
+      {
+	ROS_ERROR("This should never happen!");
+	return;
+      }
+    }
+    else
+    {
+      ROS_INFO("...nevermind :(");
+      return;
+    }
   }
 
   geometry_msgs::Pose object_pose;
@@ -497,43 +534,44 @@ bool PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
     end_effector_controller_.setState(EndEffectorController::READY);
     return true;
   }
-  else
-  {
-    ROS_INFO("IK failed at (%f, %f, %f), but...", goal_pose.position.x, goal_pose.position.y, 
-	     goal_pose.position.z);
-    std::vector<std::pair<double, double> > intervals;
-    intervals.push_back(std::make_pair(-0.15 + goal_pose.position.x, 0.15 + goal_pose.position.x));
-    intervals.push_back(std::make_pair(-0.15 + goal_pose.position.y, 0.15 + goal_pose.position.y));
-    intervals.push_back(std::make_pair(goal_pose.position.z, goal_pose.position.z));
-    std::vector<double> d;
-    d.push_back(0.01);
-    d.push_back(0.01);
-    d.push_back(0);
-    geometry_msgs::Pose pose;
-    pose.position.x = goal_pose.position.x;
-    pose.position.y = goal_pose.position.y;
-    pose.position.z = goal_pose.position.z;
-    pose.orientation = goal_pose.orientation;
-    double x, y, z;
+  // else if(moving_gripper_marker_)
+  // {
+  //   ROS_INFO("IK failed at (%f, %f, %f), but...", goal_pose.position.x, goal_pose.position.y, 
+  // 	     goal_pose.position.z);
+  //   std::vector<std::pair<double, double> > intervals;
+  //   intervals.push_back(std::make_pair(-0.03 + goal_pose.position.x, 0.03 + goal_pose.position.x));
+  //   intervals.push_back(std::make_pair(-0.03 + goal_pose.position.y, 0.03 + goal_pose.position.y));
+  //   intervals.push_back(std::make_pair(goal_pose.position.z, goal_pose.position.z));
+  //   std::vector<double> d;
+  //   d.push_back(0.005);
+  //   d.push_back(0.005);
+  //   d.push_back(0);
+  //   geometry_msgs::Pose pose;
+  //   pose.position.x = goal_pose.position.x;
+  //   pose.position.y = goal_pose.position.y;
+  //   pose.position.z = goal_pose.position.z;
+  //   pose.orientation = goal_pose.orientation;
+  //   double x, y, z;
 
-    if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
-    {
-      ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
-      end_effector_goal_pose_.pose.position.x = x;
-      end_effector_goal_pose_.pose.position.y = y;
-      end_effector_goal_pose_.pose.position.z = z;
-      int_marker_server_->setPose("r_gripper_marker", end_effector_goal_pose_.pose);
-      int_marker_server_->applyChanges();
-      end_effector_controller_.setState(EndEffectorController::READY);
-      return true;
-    }
-    else
-    {
-      ROS_INFO("...nevermind :(");
-      end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
-      return false;
-    }
-  }
+  //   if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
+  //   {
+  //     ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
+  //     end_effector_goal_pose_.pose.position.x = x;
+  //     end_effector_goal_pose_.pose.position.y = y;
+  //     end_effector_goal_pose_.pose.position.z = z;
+  //     int_marker_server_->setPose("r_gripper_marker", end_effector_goal_pose_.pose);
+  //     int_marker_server_->applyChanges();
+  //     end_effector_controller_.setState(EndEffectorController::READY);
+  //     return true;
+  //   }
+  //   else
+  //   {
+  //     ROS_INFO("...nevermind :(");
+  //   }
+  // }
+
+  end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
+  return false;
 }
 
 void PR2Simulator::updateEndEffectorVelocity(const geometry_msgs::Twist &vel)
@@ -629,25 +667,6 @@ void PR2Simulator::setSpeed(double linear, double angular)
 
 void PR2Simulator::resetRobot()
 {
-  // TESTING 
-  // ROS_INFO("*** TESTING ***");
-  // geometry_msgs::Pose test_pose;
-  // test_pose.position.x = 0.0;
-  // test_pose.position.y = 0.0;
-  // test_pose.position.z = 0.0;
-  // test_pose.orientation.w = 1.0;
-  // std::vector<std::pair<double, double> > intervals;
-  // intervals.push_back(std::make_pair(-0.1 + test_pose.position.x, 0.1 + test_pose.position.x));
-  // intervals.push_back(std::make_pair(-0.1 + test_pose.position.y, 0.1 + test_pose.position.y));
-  // intervals.push_back(std::make_pair(test_pose.position.z, test_pose.position.z));
-  // std::vector<double> d;
-  // d.push_back(0.02);
-  // d.push_back(0.02);
-  // d.push_back(0);
-  // double x, y, z;
-  // closestValidEndEffectorPosition(test_pose, intervals, d, x, y, z, true);
-  // ROS_INFO("*** END TESTING ***");
-
   ROS_INFO("[PR2Sim] Resetting robot...");
 
   // Reset the base pose.
@@ -912,9 +931,12 @@ void PR2Simulator::processKeyEvent(int key, int type)
       {
 	moving_gripper_marker_ = true;
 
-	end_effector_marker_vel_.linear.x = 0;
-	end_effector_marker_vel_.linear.y = 0;
-	end_effector_marker_vel_.linear.z = 0.1;
+	// end_effector_marker_vel_.linear.x = 0;
+	// end_effector_marker_vel_.linear.y = 0;
+	// end_effector_marker_vel_.linear.z = 0.1;
+	end_effector_vel_cmd_.linear.x = 0;
+	end_effector_vel_cmd_.linear.y = 0;
+	end_effector_vel_cmd_.linear.z = 0.1;
 
 	break;
       }
@@ -922,9 +944,12 @@ void PR2Simulator::processKeyEvent(int key, int type)
       {
 	moving_gripper_marker_ = true;
 
-	end_effector_marker_vel_.linear.x = 0;
-	end_effector_marker_vel_.linear.y = 0;
-	end_effector_marker_vel_.linear.z = -0.1;
+	// end_effector_marker_vel_.linear.x = 0;
+	// end_effector_marker_vel_.linear.y = 0;
+	// end_effector_marker_vel_.linear.z = -0.1;
+	end_effector_vel_cmd_.linear.x = 0;
+	end_effector_vel_cmd_.linear.y = 0;
+	end_effector_vel_cmd_.linear.z = -0.1;
 
 	break;
       }
@@ -976,9 +1001,12 @@ void PR2Simulator::processKeyEvent(int key, int type)
       {
 	moving_gripper_marker_ = false;
 
-	end_effector_marker_vel_.linear.x = 0;
-	end_effector_marker_vel_.linear.y = 0;
-	end_effector_marker_vel_.linear.z = 0;
+	// end_effector_marker_vel_.linear.x = 0;
+	// end_effector_marker_vel_.linear.y = 0;
+	// end_effector_marker_vel_.linear.z = 0;
+	end_effector_vel_cmd_.linear.x = 0;
+	end_effector_vel_cmd_.linear.y = 0;
+	end_effector_vel_cmd_.linear.z = 0;
 
 	break;
       }
@@ -986,9 +1014,12 @@ void PR2Simulator::processKeyEvent(int key, int type)
       {
 	moving_gripper_marker_ = false;
 
-	end_effector_marker_vel_.linear.x = 0;
-	end_effector_marker_vel_.linear.y = 0;
-	end_effector_marker_vel_.linear.z = 0;
+	// end_effector_marker_vel_.linear.x = 0;
+	// end_effector_marker_vel_.linear.y = 0;
+	// end_effector_marker_vel_.linear.z = 0;
+	end_effector_vel_cmd_.linear.x = 0;
+	end_effector_vel_cmd_.linear.y = 0;
+	end_effector_vel_cmd_.linear.z = 0;
 
 	break;
       }
@@ -1004,8 +1035,8 @@ void PR2Simulator::updateEndEffectorMarker()
 {
   if((end_effector_controller_.getState() == EndEffectorController::DONE ||
      end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
-     recorder_->isReplaying()) &&
-     !moving_gripper_marker_)
+     recorder_->isReplaying()) /*&&*/
+     /*!moving_gripper_marker_*/)
   {
     int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_->applyChanges();
@@ -1361,7 +1392,7 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
 	  candidate_pose[4] = candidate.orientation.y;
 	  candidate_pose[5] = candidate.orientation.z;
 	  candidate_pose[6] = candidate.orientation.w;
-	  if(kdl_robot_model_.computeIK(candidate_pose, r_arm_joints, r_arm_solution))
+	  if(kdl_robot_model_.computeIK(candidate_pose, r_arm_joints, r_arm_solution) && n > 0)
 	  {
 	    if(verbose)
 	    {

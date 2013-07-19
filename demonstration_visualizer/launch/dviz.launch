@@ -12,7 +12,7 @@
   <!-- <node name="pr2_simple_sim" pkg="pr2_simple_simulator" type="pr2_simple_sim" output="$(arg output)" /> -->
   
   <!-- DViz -->
-  <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)" >
+  <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)">
     <rosparam file="$(find pr2_collision_checker)/config/pr2_both_arms.yaml" command="load"/>
     <rosparam file="$(find pr2_collision_checker)/config/pr2_body.yaml" command="load"/>
 
