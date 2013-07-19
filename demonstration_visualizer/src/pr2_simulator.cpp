@@ -629,6 +629,25 @@ void PR2Simulator::setSpeed(double linear, double angular)
 
 void PR2Simulator::resetRobot()
 {
+  // TESTING 
+  // ROS_INFO("*** TESTING ***");
+  // geometry_msgs::Pose test_pose;
+  // test_pose.position.x = 0.0;
+  // test_pose.position.y = 0.0;
+  // test_pose.position.z = 0.0;
+  // test_pose.orientation.w = 1.0;
+  // std::vector<std::pair<double, double> > intervals;
+  // intervals.push_back(std::make_pair(-0.1 + test_pose.position.x, 0.1 + test_pose.position.x));
+  // intervals.push_back(std::make_pair(-0.1 + test_pose.position.y, 0.1 + test_pose.position.y));
+  // intervals.push_back(std::make_pair(test_pose.position.z, test_pose.position.z));
+  // std::vector<double> d;
+  // d.push_back(0.02);
+  // d.push_back(0.02);
+  // d.push_back(0);
+  // double x, y, z;
+  // closestValidEndEffectorPosition(test_pose, intervals, d, x, y, z, true);
+  // ROS_INFO("*** END TESTING ***");
+
   ROS_INFO("[PR2Sim] Resetting robot...");
 
   // Reset the base pose.
@@ -1285,33 +1304,54 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
   candidate.position.z = cz;
   candidate.orientation = current_pose.orientation;
   // Continue to search while there still exist valid positions.
+  int i_limit = 0;
+  int j_limit = 0;
+  int k_limit = 0;
+  bool i_limit_reached = false;
+  bool j_limit_reached = false;
+  bool k_limit_reached = false;
   while((candidate.position.x - d[0] >= intervals[0].first && candidate.position.x + d[0] < intervals[0].second) ||
 	(candidate.position.y - d[1] >= intervals[1].first && candidate.position.y + d[1] < intervals[1].second) ||
 	(candidate.position.z - d[2] >= intervals[2].first && candidate.position.z + d[2] < intervals[2].second))
   {
-    for(int i = -1; i <= 1; ++i)
+    // ROS_INFO("n = %d, i_limit = %d, j_limit = %d, k_limit = %d", n, i_limit, j_limit, k_limit);
+    for(int i = -i_limit; i <= i_limit; ++i)
     {
-      for(int j = -1; j <= 1; ++j)
+      for(int j = -j_limit; j <= j_limit; ++j)
       {
-	for(int k = -1; k <= 1; ++k)
+	for(int k = -k_limit; k <= k_limit; ++k)
 	{
+	  if(std::abs(i) < n && std::abs(j) < n && std::abs(k) < n)
+	    continue;
+
 	  // Assign the candidate value to each coordinate if it 
 	  // falls within that coordinate's bounds.
-	  if((cx + i*n*d[0]) >= intervals[0].first && (cx + i*n*d[0]) < intervals[0].second)
+	  if((cx + i*d[0]) >= intervals[0].first && (cx + i*d[0]) < intervals[0].second)
 	  {
-	    candidate.position.x = cx + i*n*d[0];
+	    candidate.position.x = cx + i*d[0];
 	    // ROS_INFO("trying x = %f", candidate.position.x);
 	  }
-	  if((cy + j*n*d[1]) >= intervals[1].first && (cy + j*n*d[1]) < intervals[1].second)
+	  else
+	    i_limit_reached = true;
+
+	  if((cy + j*d[1]) >= intervals[1].first && (cy + j*d[1]) < intervals[1].second)
 	  {
-	    candidate.position.y = cy + j*n*d[1];
+	    candidate.position.y = cy + j*d[1];
 	    // ROS_INFO("trying y = %f", candidate.position.y);
 	  }
-	  if((cz + k*n*d[2]) >= intervals[2].first && (cz + k*n*d[2]) < intervals[2].second)
+	  else
+	    j_limit_reached = true;
+
+	  if((cz + k*d[2]) >= intervals[2].first && (cz + k*d[2]) < intervals[2].second)
 	  {
-	    candidate.position.z = cz + k*n*d[2];
+	    candidate.position.z = cz + k*d[2];
 	    // ROS_INFO("trying z = %f", candidate.position.z);
 	  }
+	  else
+	    k_limit_reached = true;
+
+	  // ROS_INFO("trying candidate (%f, %f, %f)", candidate.position.x, candidate.position.y,
+	  // 	   candidate.position.z);
 
 	  // Test the new candidate position.
 	  candidate_pose[0] = candidate.position.x;
@@ -1335,12 +1375,18 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
 	    y = candidate.position.y;
 	    z = candidate.position.z;
 	    return true;
-	  }
+	  }	  
 	}
       }
     }
 
     n++;
+    if(!i_limit_reached)
+      i_limit = n;
+    if(!j_limit_reached)
+      j_limit = n;
+    if(!k_limit_reached)
+      k_limit = n;
   }
 
   return false;
