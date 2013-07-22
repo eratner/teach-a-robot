@@ -73,13 +73,13 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[5] = -0.0962141;
   joint_states_.position[6] = -0.0864407;
   // Move the right arm in slightly. @todo these should be constants somewhere.
-  // joint_states_.position[7] = -0.002109;
-  // joint_states_.position[8] = 0.655300;
-  // joint_states_.position[9] = 0.000000;
-  // joint_states_.position[10] = -1.517650;
-  // joint_states_.position[11] = -3.138816;
-  // joint_states_.position[12] = -0.862352;
-  // joint_states_.position[13] = 3.139786;
+  joint_states_.position[7] = -0.002109;
+  joint_states_.position[8] = 0.655300;
+  joint_states_.position[9] = 0.000000;
+  joint_states_.position[10] = -1.517650;
+  joint_states_.position[11] = -3.138816;
+  joint_states_.position[12] = -0.862352;
+  joint_states_.position[13] = 3.139786;
 
   for(int i = 7; i < 15; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
@@ -372,21 +372,29 @@ void PR2Simulator::moveRobot()
   std::vector<double> solution(7, 0);
   if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
   {
-    // ROS_ERROR("[PR2Sim] IK failed in move robot!");
+    // Do not attempt an IK search if the simulator is executing a snap motion.
+    if(!isSnapDone())
+    {
+      ROS_ERROR("[PR2Sim] IK failed in move robot!");
+      return;
+    }
+
+    ROS_INFO("EE vel. lin. z = %f", end_effector_vel_cmd_.linear.z);
+
     // Try once more to find a valid IK solution by searching locally for valid
     // end-effector positions.
     ROS_INFO("IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
 	     end_effector_pose[1], end_effector_pose[2]);
     std::vector<std::pair<double, double> > intervals;
-    intervals.push_back(std::make_pair(-0.05 + end_effector_pose[0], 
-				       0.05 + end_effector_pose[0]));
-    intervals.push_back(std::make_pair(-0.05 + end_effector_pose[1], 
-				       0.05 + end_effector_pose[1]));
+    intervals.push_back(std::make_pair(-0.03 + end_effector_pose[0], 
+				       0.03 + end_effector_pose[0]));
+    intervals.push_back(std::make_pair(-0.03 + end_effector_pose[1], 
+				       0.03 + end_effector_pose[1]));
     intervals.push_back(std::make_pair(end_effector_pose[2], 
 				       end_effector_pose[2]));
     std::vector<double> d;
-    d.push_back(0.005);
-    d.push_back(0.005);
+    d.push_back(0.002);
+    d.push_back(0.002);
     d.push_back(0);
     geometry_msgs::Pose pose;
     pose.position.x = end_effector_pose[0];
@@ -764,6 +772,11 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 {
   if(isValidEndEffectorPose(pose))
   {
+    // @todo sometimes the key release command gets lost
+    end_effector_vel_cmd_.linear.x = 0;
+    end_effector_vel_cmd_.linear.y = 0;
+    end_effector_vel_cmd_.linear.z = 0;
+
     geometry_msgs::Pose current_pose = end_effector_pose_.pose;
 
     // Generate an interpolation of end-effector poses from the current
@@ -1421,6 +1434,16 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
   }
 
   return false;
+}
+
+void PR2Simulator::resetGripperOrientation()
+{
+  geometry_msgs::Pose reset_pose = end_effector_pose_.pose;
+  reset_pose.orientation.x = 0;
+  reset_pose.orientation.y = 0;
+  reset_pose.orientation.z = 0;
+  reset_pose.orientation.w = 1;
+  snapEndEffectorTo(reset_pose);
 }
 
 bool PR2Simulator::canMoveRobotMarkers() const

@@ -149,11 +149,18 @@ public:
 
   void setMoveBaseWhileDragging(bool);
 
+  /**
+   * @brief Performs a basic search to look for the closest valid IK solution for various 
+   *        (x, y, z) positions within a given range of the current position. 
+   *
+   */
   bool closestValidEndEffectorPosition(const geometry_msgs::Pose &current_pose,
 				       const std::vector<std::pair<double, double> > &intervals,
 				       const std::vector<double> &d,
 				       double &x, double &y, double &z,
 				       bool verbose = false);
+
+  void resetGripperOrientation();
 
   bool canMoveRobotMarkers() const;
 

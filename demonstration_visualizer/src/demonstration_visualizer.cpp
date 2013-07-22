@@ -306,11 +306,14 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   QGroupBox *controls_group = new QGroupBox("Controls");
   QVBoxLayout *user_controls_layout = new QVBoxLayout();
-  z_mode_button_ = new QPushButton("Enable Z-Mode");
-  user_controls_layout->addWidget(z_mode_button_);
+  // z_mode_button_ = new QPushButton("Enable Z-Mode");
+  // user_controls_layout->addWidget(z_mode_button_);
   accept_grasp_button_ = new QPushButton("Accept Grasp");
   user_controls_layout->addWidget(accept_grasp_button_);
   accept_grasp_button_->setEnabled(false);
+  change_grasp_button_ = new QPushButton("Change Grasp");
+  user_controls_layout->addWidget(change_grasp_button_);
+  change_grasp_button_->setEnabled(false);
   QHBoxLayout *grasp_distance_layout = new QHBoxLayout();
   QLabel *grasp_distance_label = new QLabel("Grasp Distance: ");
   grasp_distance_slider_ = new QSlider(Qt::Horizontal);
@@ -402,7 +405,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   robot_model_ = visualization_manager_->createDisplay("rviz/MarkerArray", "Robot", true);
   ROS_ASSERT(robot_model_ != NULL);
   robot_model_->subProp("Marker Topic")->setValue("/visualization_marker_array");
-  
+
   // Create an interactive markers display.
   robot_interactive_markers_ = visualization_manager_->createDisplay("rviz/InteractiveMarkers", 
 								     "DViz Interactive Markers", 
@@ -467,8 +470,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(&node_, SIGNAL(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)), this, 
 	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
 
-  connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
+  // connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
   connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
+  connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
@@ -484,6 +488,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   current_state_ = NORMAL;
   top_down_fps_camera_mode_ = 0;
   last_top_down_fps_camera_mode_ = 1;
+  grasp_selected_ = false;
 
   setLayout(window_layout);
 
@@ -629,7 +634,7 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
 	{
 	  return true;
 	}
-      
+
 	break;
       }
     default:
@@ -640,24 +645,24 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::MouseButtonRelease)
   {
-    // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
-    // switch(mouse_event->button())
-    // {
-    // case Qt::MiddleButton:
-    //   {
-    // 	if(camera_mode_ == FPS ||
-    // 	   camera_mode_ == TOP_DOWN ||
-    // 	   camera_mode_ == AUTO ||
-    // 	   camera_mode_ == GOAL)
-    // 	{
-    // 	  return true;
-    // 	}
+     // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
+     // switch(mouse_event->button())
+     // {
+     // case Qt::MiddleButton:
+     //   {
+     // 	if(camera_mode_ == FPS ||
+     // 	   camera_mode_ == TOP_DOWN ||
+     // 	   camera_mode_ == AUTO ||
+     // 	   camera_mode_ == GOAL)
+     // 	{
+     // 	  return true;
+     // 	}
 
-    // 	break;
-    //   }
-    // default:
-    //   break;
-    // }
+     // 	break;
+     //   }
+     // default:
+     //   break;
+     // }
 
     return QObject::eventFilter(obj, event);
   }
@@ -850,17 +855,17 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
   switch(mode)
   {
   case Qt::Unchecked:
-    {
-      node_.getSceneManager()->setEditMeshesMode(false);
+  {
+    node_.getSceneManager()->setEditMeshesMode(false);
 
-      break;
-    }
+    break;
+  }
   case Qt::Checked:
-    {
-      node_.getSceneManager()->setEditMeshesMode(true);
+  {
+    node_.getSceneManager()->setEditMeshesMode(true);
 
-      break;
-    }
+    break;
+  }
   default:
     ROS_ERROR("[DViz] Invalid edit scene mode!");
     break;
@@ -895,47 +900,47 @@ void DemonstrationVisualizer::loadScene()
 			      QMessageBox::Yes, QMessageBox::No))
   {
   case QMessageBox::Yes:
+  {
+    node_.pauseSimulator();
+
+    // Load the scene into the demonstration scene manager.
+    int max_mesh_id = node_.getSceneManager()->loadScene(filename.toStdString());
+
+    if(max_mesh_id < 0)
     {
-      node_.pauseSimulator();
-
-      // Load the scene into the demonstration scene manager.
-      int max_mesh_id = node_.getSceneManager()->loadScene(filename.toStdString());
-
-      if(max_mesh_id < 0)
-      {
-	ROS_ERROR("[DViz] Failed to load scene from %s!", filename.toStdString().c_str());
-	return;
-      }
-      
-      // Visualize each mesh marker.
-      std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
-      std::vector<visualization_msgs::Marker>::iterator it;
-      for(it = meshes.begin(); it != meshes.end(); ++it)
-      {
-	int i = it->mesh_resource.size()-1;
-	for(; i >= 0; i--)
-	{
-	  if(it->mesh_resource[i] == '/')
-	    break;
-	}
-
-	std::string mesh_name = it->mesh_resource.substr(i+1);
-	mesh_names_.insert(std::pair<int, std::string>(it->id, mesh_name));
-
-	select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(it->id));
-
-	ROS_INFO_STREAM("Adding mesh " << it->id << " ns = "
-			<< it->ns << " mesh_resource = " 
-			<< it->mesh_resource << " pos = ("
-			<< it->pose.position.x << ", " 
-			<< it->pose.position.y << ", "
-			<< it->pose.position.z << ").");
-      }
-
-      next_mesh_id_ = max_mesh_id+1;
-
-      break;
+      ROS_ERROR("[DViz] Failed to load scene from %s!", filename.toStdString().c_str());
+      return;
     }
+
+    // Visualize each mesh marker.
+    std::vector<visualization_msgs::Marker> meshes = node_.getSceneManager()->getMeshes();
+    std::vector<visualization_msgs::Marker>::iterator it;
+    for(it = meshes.begin(); it != meshes.end(); ++it)
+    {
+      int i = it->mesh_resource.size()-1;
+      for(; i >= 0; i--)
+      {
+	if(it->mesh_resource[i] == '/')
+	  break;
+      }
+
+      std::string mesh_name = it->mesh_resource.substr(i+1);
+      mesh_names_.insert(std::pair<int, std::string>(it->id, mesh_name));
+
+      select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(it->id));
+
+      ROS_INFO_STREAM("Adding mesh " << it->id << " ns = "
+		      << it->ns << " mesh_resource = " 
+		      << it->mesh_resource << " pos = ("
+		      << it->pose.position.x << ", " 
+		      << it->pose.position.y << ", "
+		      << it->pose.position.z << ").");
+    }
+
+    next_mesh_id_ = max_mesh_id+1;
+
+    break;
+  }
   case QMessageBox::No:
     break;
   default:
@@ -996,24 +1001,24 @@ void DemonstrationVisualizer::loadTask()
 			      QMessageBox::Yes, QMessageBox::No))
   {
   case QMessageBox::Yes:
+  {
+    // Load the task into the demonstration scene manager.
+    node_.getSceneManager()->loadTask(filename.toStdString());
+    goals_list_->clear();
+    std::vector<Goal *> goals = node_.getSceneManager()->getGoals();
+    for(int i = 0; i < goals.size(); ++i)
     {
-      // Load the task into the demonstration scene manager.
-      node_.getSceneManager()->loadTask(filename.toStdString());
-      goals_list_->clear();
-      std::vector<Goal *> goals = node_.getSceneManager()->getGoals();
-      for(int i = 0; i < goals.size(); ++i)
-      {
-	std::stringstream goal_desc;
-	goal_desc << "Goal " << i+1 << ": " << goals[i]->getDescription();
-	goals_list_->addItem(QString(goal_desc.str().c_str()));
-      }
-      
-      // Bold the first entry to indicate that is the current goal.
-      QFont font = goals_list_->item(0)->font();
-      font.setBold(true);
-      goals_list_->item(0)->setFont(font);
-      break;
+      std::stringstream goal_desc;
+      goal_desc << "Goal " << i+1 << ": " << goals[i]->getDescription();
+      goals_list_->addItem(QString(goal_desc.str().c_str()));
     }
+
+    // Bold the first entry to indicate that is the current goal.
+    QFont font = goals_list_->item(0)->font();
+    font.setBold(true);
+    goals_list_->item(0)->setFont(font);
+    break;
+  }
   case QMessageBox::No:
     break;
   default:
@@ -1119,7 +1124,7 @@ void DemonstrationVisualizer::addTaskGoal()
 
   ROS_INFO("[DViz] Adding goal of type %s with description \"%s\" and object id %d.",
 	   Goal::GoalTypeNames[type], description.c_str(), object_id);
-  
+
 
   if(node_.getSceneManager()->getNumGoals() == 0)
     goals_list_->clear();
@@ -1191,7 +1196,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   {
     text << " Next goal:\n" << node_.getSceneManager()->getGoalDescription(goal_number+1);
   }
-  
+
   box.setText(QString(text.str().c_str()));
 
   box.exec();
@@ -1209,19 +1214,23 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   switch(node_.getSceneManager()->getGoal(goal_number + 1)->getType())
   {
   case Goal::PICK_UP:
-    {
-      ROS_INFO("Next goal: pick up.");
+  {
+    ROS_INFO("Next goal: pick up.");
 
-      beginGraspSelection();
+    grasp_selected_ = false;
 
-      break;
-    }
+    beginGraspSelection();
+	
+    break;
+  }
   case Goal::PLACE:
-    {
-      ROS_INFO("Next goal: place.");
+  {
+    ROS_INFO("Next goal: place.");
 
-      break;
-    }
+    change_grasp_button_->setEnabled(false);
+
+    break;
+  }
   default:
     break;
   }
@@ -1248,7 +1257,7 @@ void DemonstrationVisualizer::startBasicMode()
     QMessageBox no_task_box;
 
     no_task_box.setText("There are no goals in the current task!");
-    
+
     no_task_box.exec();
 
     return;
@@ -1284,7 +1293,7 @@ void DemonstrationVisualizer::startBasicMode()
   setEditSceneMode(Qt::Unchecked);
 
   user_demo_.start();
- 
+
   // Select the interaction tool. (@todo make the tools constants somewhere)
   changeTool(2);
 
@@ -1300,34 +1309,34 @@ void DemonstrationVisualizer::startBasicMode()
   node_.getMotionRecorder()->beginRecording(package_path);
 }
 
-void DemonstrationVisualizer::endBasicMode()
-{
-  end_button_->setEnabled(false);
-  start_button_->setEnabled(true);
+ void DemonstrationVisualizer::endBasicMode()
+ {
+   end_button_->setEnabled(false);
+   start_button_->setEnabled(true);
 
-  pauseSimulator();
+   pauseSimulator();
 
-  changeTool(1);
+   changeTool(1);
 
-  setEditGoalsMode(Qt::Checked);
+   setEditGoalsMode(Qt::Checked);
 
-  setEditSceneMode(Qt::Checked);
+   setEditSceneMode(Qt::Checked);
 
-  ros::Duration d = user_demo_.stop();
+   ros::Duration d = user_demo_.stop();
 
-  std::stringstream time;
-  time << static_cast<boost::posix_time::time_duration>(d.toBoost());
-  std::string time_str = time.str().substr(0, 8);
+   std::stringstream time;
+   time << static_cast<boost::posix_time::time_duration>(d.toBoost());
+   std::string time_str = time.str().substr(0, 8);
 
-  // End recording.
-  node_.getMotionRecorder()->endRecording();
+   // End recording.
+   node_.getMotionRecorder()->endRecording();
 
-  // Show the base path at the end.
-  node_.showBasePath();
+   // Show the base path at the end.
+   node_.showBasePath();
 
-  ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %s.",
-	   user_demo_.goals_completed_, time_str.c_str());
-}
+   ROS_INFO("[DViz] User demonstration ended. Completed in %d goals in %s.",
+	    user_demo_.goals_completed_, time_str.c_str());
+ }
 
 void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const geometry_msgs::Pose &B)
 {
@@ -1346,151 +1355,260 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
   switch(camera_mode_)
   {
   case ORBIT:
+  {
+    if(previous_camera_mode_ != ORBIT)
     {
-      if(previous_camera_mode_ != ORBIT)
-      {
-	camera_buttons_[ORBIT]->setEnabled(false);
-	if(previous_camera_mode_ != GOAL)
-	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
+      camera_buttons_[ORBIT]->setEnabled(false);
+      if(previous_camera_mode_ != GOAL)
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
-	ROS_INFO("[DViz] Switching to rviz/Orbit view.");
-	view_manager->setCurrentViewControllerType("rviz/Orbit");
-	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
-      }
-      
-      // Ensure that the user never moves the camera below the ground.
-      if(view_manager->getCurrent()->subProp("Pitch")->getValue().toDouble() < 0.0)
-	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
-
-      break;
+      ROS_INFO("[DViz] Switching to rviz/Orbit view.");
+      view_manager->setCurrentViewControllerType("rviz/Orbit");
+      view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+      view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
     }
+
+    // Ensure that the user never moves the camera below the ground.
+    if(view_manager->getCurrent()->subProp("Pitch")->getValue().toDouble() < 0.0)
+      view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
+
+    break;
+  }
   case FPS:
+  {
+    if(previous_camera_mode_ != FPS)
     {
-      if(previous_camera_mode_ != FPS)
-      {
-	camera_buttons_[FPS]->setEnabled(false);
-	if(previous_camera_mode_ != GOAL)
-	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
+      camera_buttons_[FPS]->setEnabled(false);
+      if(previous_camera_mode_ != GOAL)
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
-	ROS_INFO("[DViz] Switching to rviz/FPS view.");
-	view_manager->setCurrentViewControllerType("rviz/FPS");
-	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+      ROS_INFO("[DViz] Switching to rviz/FPS view.");
+      view_manager->setCurrentViewControllerType("rviz/FPS");
+      view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+      view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
 
-	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
-	view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
+      view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
 
-	// Filter mouse scroll wheel events so that the user cannot zoom in/out.
-	view_manager->getCurrent()->installEventFilter(this);
-      }
-
-      geometry_msgs::Twist vel_cmd;
-      // @todo set a new goal orientation for the base.
-      double current_camera_yaw = view_manager->getCurrent()->subProp("Yaw")->getValue().toDouble();
-      geometry_msgs::Pose base_pose = node_.getBasePose();
-      double current_base_yaw = tf::getYaw(base_pose.orientation) < 0 ? 
-	tf::getYaw(base_pose.orientation) + 2*M_PI : tf::getYaw(base_pose.orientation);
-
-      // Note that B is always the larger angle. We wish to move in the direction that minimizes
-      // the angular distance between the angular position of the camera and the base. These angles
-      // are in the range [0, 2\pi), so we need to account for the discontinuity. 
-      double A = 0.0;
-      double B = 0.0;
-      bool base_angle_larger = current_base_yaw > current_camera_yaw;
-
-      if(base_angle_larger)
-      {
-	B = current_base_yaw;
-	A = current_camera_yaw;
-      }
-      else
-      {
-	B = current_camera_yaw;
-	A = current_base_yaw;
-      }
-
-      bool clockwise = (base_angle_larger && (B - A) < (2*M_PI - B + A)) ||
-	(!base_angle_larger && (B - A) > (2*M_PI - B + A));
-
-      if((clockwise ? (2*M_PI - B + A) > 0.1 : std::abs(B - A) > 0.1))
-      {
-	if(clockwise)
-	  vel_cmd.angular.z = -0.3;
-	else
-	  vel_cmd.angular.z = 0.3;
-      }
-      else
-      {
-	vel_cmd.angular.z = 0;
-      }
-
-      node_.setBaseVelocity(vel_cmd);
-
-      // Offset the position of the FPS camera, if set.
-      if(x_fps_offset_ > 0)
-      {
-	view_manager->getCurrent()->subProp("Position")->
-	  subProp("X")->setValue(-1.0 * x_fps_offset_);
-      }
-      if(z_fps_offset_ > 0)
-	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2 + z_fps_offset_);
-
-      if(x_fps_offset_ > 0 && z_fps_offset_ > 0)
-	view_manager->getCurrent()->subProp("Pitch")->setValue(std::atan2(z_fps_offset_, x_fps_offset_));
-
-      break;
+      // Filter mouse scroll wheel events so that the user cannot zoom in/out.
+      view_manager->getCurrent()->installEventFilter(this);
     }
-  case TOP_DOWN:
-    {
-      if(previous_camera_mode_ != TOP_DOWN)
-      {
-	camera_buttons_[TOP_DOWN]->setEnabled(false);
-	if(previous_camera_mode_ != GOAL)
-	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
-	ROS_INFO("[DViz] Switching to rviz/Orbit top-down view.");
+    geometry_msgs::Twist vel_cmd;
+    // @todo set a new goal orientation for the base.
+    double current_camera_yaw = view_manager->getCurrent()->subProp("Yaw")->getValue().toDouble();
+    geometry_msgs::Pose base_pose = node_.getBasePose();
+    double current_base_yaw = tf::getYaw(base_pose.orientation) < 0 ? 
+      tf::getYaw(base_pose.orientation) + 2*M_PI : tf::getYaw(base_pose.orientation);
+
+    // Note that B is always the larger angle. We wish to move in the direction that minimizes
+    // the angular distance between the angular position of the camera and the base. These angles
+    // are in the range [0, 2\pi), so we need to account for the discontinuity. 
+    double A = 0.0;
+    double B = 0.0;
+    bool base_angle_larger = current_base_yaw > current_camera_yaw;
+
+    if(base_angle_larger)
+    {
+      B = current_base_yaw;
+      A = current_camera_yaw;
+    }
+    else
+    {
+      B = current_camera_yaw;
+      A = current_base_yaw;
+    }
+
+    bool clockwise = (base_angle_larger && (B - A) < (2*M_PI - B + A)) ||
+      (!base_angle_larger && (B - A) > (2*M_PI - B + A));
+
+    if((clockwise ? (2*M_PI - B + A) > 0.1 : std::abs(B - A) > 0.1))
+    {
+      if(clockwise)
+	vel_cmd.angular.z = -0.3;
+      else
+	vel_cmd.angular.z = 0.3;
+    }
+    else
+    {
+      vel_cmd.angular.z = 0;
+    }
+
+    node_.setBaseVelocity(vel_cmd);
+
+    // Offset the position of the FPS camera, if set.
+    if(x_fps_offset_ > 0)
+    {
+      view_manager->getCurrent()->subProp("Position")->
+	subProp("X")->setValue(-1.0 * x_fps_offset_);
+    }
+    if(z_fps_offset_ > 0)
+      view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2 + z_fps_offset_);
+
+    if(x_fps_offset_ > 0 && z_fps_offset_ > 0)
+      view_manager->getCurrent()->subProp("Pitch")->setValue(std::atan2(z_fps_offset_, x_fps_offset_));
+
+    break;
+  }
+  case TOP_DOWN:
+  {
+    if(previous_camera_mode_ != TOP_DOWN)
+    {
+      camera_buttons_[TOP_DOWN]->setEnabled(false);
+      if(previous_camera_mode_ != GOAL)
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
+      ROS_INFO("[DViz] Switching to rviz/Orbit top-down view.");
+      view_manager->setCurrentViewControllerType("rviz/Orbit");
+      view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+      view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
+      view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
+
+      view_manager->getCurrent()->installEventFilter(this);
+    }
+
+    view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
+    view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
+
+    break;
+  }
+  case AUTO:
+  {
+    if(previous_camera_mode_ != AUTO)
+    {
+      camera_buttons_[AUTO]->setEnabled(false);
+      if(previous_camera_mode_ != GOAL)
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
+      ROS_INFO("[DViz] Switching to automatic camera control.");
+      view_manager->setCurrentViewControllerType("rviz/Orbit");
+      view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
+      view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
+
+      auto_camera_state_ = "normal";
+      auto_camera_cached_yaw_ = 0.0;
+    }
+
+    geometry_msgs::Point midpoint;
+    midpoint.x = (A.position.x + B.position.x)/2.0;
+    midpoint.y = (A.position.y + B.position.y)/2.0;
+    midpoint.z = (A.position.z + B.position.z)/2.0;
+
+    // First focus camera to the appropriate position.
+    view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(midpoint.x);
+    view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(midpoint.y);
+    view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);
+
+    // Next choose the appropriate zoom
+    Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
+    // Vertical field of view.
+    float V = camera->getFOVy().valueRadians();
+    //float H = camera->getFOVx().valueRadians();
+    // Aspect ratio.
+    float r = camera->getAspectRatio();
+    // Horizontal field of view.
+    float H = 2*std::atan(0.5*std::tan(V) * r);
+    float th = std::min(H,V);
+    double dx = B.position.x - A.position.x;
+    double dy = B.position.y - A.position.y;
+    double dz = B.position.z - A.position.z;
+    double d = sqrt(dx*dx+dy*dy+dz*dz) + 4.0;
+    double zoom = d/(2*tan(th/2.0));
+    view_manager->getCurrent()->subProp("Distance")->setValue(zoom);
+
+    //roll is 0 since we always want the camera straight up and down (with respect to gravity)
+    // @todo the view controller does not allow us to set the roll.
+    //view_manager->getCurrent()->subProp("Roll")->setValue(0.0);
+    view_manager->getCurrent()->getCamera()->roll(Ogre::Radian(0.0));
+
+    //choose the pitch and yaw to be on the highest point on the circle orthogonal to the line
+    //this is computed by crossing the hand to goal vector with a vector that has no z component and is rotated 90 degress in xy
+    double v1x = dx;
+    double v1y = dy;
+    double v1z = dz;
+    double v2x = -v1y;
+    double v2y = v1x;
+    double v2z = 0;
+    double v3x = v1y*v2z - v1z*v2y;
+    double v3y = v1z*v2x - v1x*v2z;
+    double v3z = v1x*v2y - v1y*v2x;
+
+    double yaw_angle = atan2(v3y,v3x);
+    double xy_length = sqrt(v3x*v3x+v3y*v3y);
+    double pitch_angle = atan2(v3z, xy_length);
+
+    //determine if we are in a special region on the sphere
+    if(strcmp(auto_camera_state_.c_str(),"normal")==0){
+      if(pitch_angle > 85.0*M_PI/180.0)
+	auto_camera_state_ = "north pole";
+      if(pitch_angle < 15.0*M_PI/180.0)
+	auto_camera_state_ = "equator";
+
+      view_manager->getCurrent()->subProp("Yaw")->setValue(yaw_angle);
+      view_manager->getCurrent()->subProp("Pitch")->setValue(pitch_angle);
+      auto_camera_cached_yaw_ = yaw_angle;
+      auto_camera_cached_pitch_ = pitch_angle;
+    }
+    else if(strcmp(auto_camera_state_.c_str(),"north pole")==0){
+      if(pitch_angle < 80.0*M_PI/180.0)
+	auto_camera_state_ = "normal";
+
+      view_manager->getCurrent()->subProp("Yaw")->setValue(auto_camera_cached_yaw_);
+      view_manager->getCurrent()->subProp("Pitch")->setValue(auto_camera_cached_pitch_);
+    }
+    else if(strcmp(auto_camera_state_.c_str(),"equator")==0){
+      if(pitch_angle > 30.0*M_PI/180.0)
+	auto_camera_state_ = "normal";
+
+      view_manager->getCurrent()->subProp("Yaw")->setValue(auto_camera_cached_yaw_);
+      view_manager->getCurrent()->subProp("Pitch")->setValue(auto_camera_cached_pitch_);
+    }
+    else{
+      ROS_ERROR("auto camera is in a bad state");
+    }
+
+    break;
+  }
+  case TOP_DOWN_FPS:
+  {
+    if(previous_camera_mode_ != TOP_DOWN_FPS)
+    {
+      camera_buttons_[TOP_DOWN_FPS]->setEnabled(false);
+      if(previous_camera_mode_ != GOAL)
+	camera_buttons_[previous_camera_mode_]->setEnabled(true);
+
+      ROS_INFO("[DViz] Switching to top down/FPS camera control.");
+    }
+
+    if(top_down_fps_camera_mode_ == 0)
+    {
+      // Top Down camera mode.
+      if(last_top_down_fps_camera_mode_ != 0)
+      {
 	view_manager->setCurrentViewControllerType("rviz/Orbit");
-	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
+
+	last_top_down_fps_camera_mode_ = 0;
 
 	view_manager->getCurrent()->installEventFilter(this);
       }
 
       view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
-      view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
-
-      break;
-    }
-  case AUTO:
-    {
-      if(previous_camera_mode_ != AUTO)
-      {
-        camera_buttons_[AUTO]->setEnabled(false);
-	if(previous_camera_mode_ != GOAL)
-	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
-
-        ROS_INFO("[DViz] Switching to automatic camera control.");
-        view_manager->setCurrentViewControllerType("rviz/Orbit");
-        view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
-        view_manager->getCurrent()->subProp("Distance")->setValue(4.0);
-
-        auto_camera_state_ = "normal";
-        auto_camera_cached_yaw_ = 0.0;
-      }
 
       geometry_msgs::Point midpoint;
-      midpoint.x = (A.position.x + B.position.x)/2.0;
-      midpoint.y = (A.position.y + B.position.y)/2.0;
-      midpoint.z = (A.position.z + B.position.z)/2.0;
+      geometry_msgs::Pose base_pose = node_.getBasePose();
+      geometry_msgs::Pose goal_pose = B;
+      midpoint.x = (base_pose.position.x + goal_pose.position.x)/2.0;
+      midpoint.y = (base_pose.position.y + goal_pose.position.y)/2.0;
+      // midpoint.z = (base_pose.position.z + goal_pose.position.z)/2.0;
+      midpoint.z = 0.0;
 
       // First focus camera to the appropriate position.
       view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(midpoint.x);
@@ -1501,182 +1619,73 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
       // Vertical field of view.
       float V = camera->getFOVy().valueRadians();
-      //float H = camera->getFOVx().valueRadians();
       // Aspect ratio.
       float r = camera->getAspectRatio();
       // Horizontal field of view.
       float H = 2*std::atan(0.5*std::tan(V) * r);
-      float th = std::min(H,V);
-      double dx = B.position.x - A.position.x;
-      double dy = B.position.y - A.position.y;
-      double dz = B.position.z - A.position.z;
-      double d = sqrt(dx*dx+dy*dy+dz*dz) + 4.0;
+      float th = std::min(H, V);
+      double dx = goal_pose.position.x - base_pose.position.x;
+      double dy = goal_pose.position.y - base_pose.position.y;
+      double dz = goal_pose.position.z - base_pose.position.z;
+      double d = std::sqrt(dx*dx + dy*dy + dz*dz) + 2.0;
       double zoom = d/(2*tan(th/2.0));
       view_manager->getCurrent()->subProp("Distance")->setValue(zoom);
 
-      //roll is 0 since we always want the camera straight up and down (with respect to gravity)
-      // @todo the view controller does not allow us to set the roll.
-      //view_manager->getCurrent()->subProp("Roll")->setValue(0.0);
-      view_manager->getCurrent()->getCamera()->roll(Ogre::Radian(0.0));
-
-      //choose the pitch and yaw to be on the highest point on the circle orthogonal to the line
-      //this is computed by crossing the hand to goal vector with a vector that has no z component and is rotated 90 degress in xy
-      double v1x = dx;
-      double v1y = dy;
-      double v1z = dz;
-      double v2x = -v1y;
-      double v2y = v1x;
-      double v2z = 0;
-      double v3x = v1y*v2z - v1z*v2y;
-      double v3y = v1z*v2x - v1x*v2z;
-      double v3z = v1x*v2y - v1y*v2x;
-
-      double yaw_angle = atan2(v3y,v3x);
-      double xy_length = sqrt(v3x*v3x+v3y*v3y);
-      double pitch_angle = atan2(v3z, xy_length);
-
-      //determine if we are in a special region on the sphere
-      if(strcmp(auto_camera_state_.c_str(),"normal")==0){
-        if(pitch_angle > 85.0*M_PI/180.0)
-          auto_camera_state_ = "north pole";
-        if(pitch_angle < 15.0*M_PI/180.0)
-          auto_camera_state_ = "equator";
-
-        view_manager->getCurrent()->subProp("Yaw")->setValue(yaw_angle);
-        view_manager->getCurrent()->subProp("Pitch")->setValue(pitch_angle);
-        auto_camera_cached_yaw_ = yaw_angle;
-        auto_camera_cached_pitch_ = pitch_angle;
-      }
-      else if(strcmp(auto_camera_state_.c_str(),"north pole")==0){
-        if(pitch_angle < 80.0*M_PI/180.0)
-          auto_camera_state_ = "normal";
-
-        view_manager->getCurrent()->subProp("Yaw")->setValue(auto_camera_cached_yaw_);
-        view_manager->getCurrent()->subProp("Pitch")->setValue(auto_camera_cached_pitch_);
-      }
-      else if(strcmp(auto_camera_state_.c_str(),"equator")==0){
-        if(pitch_angle > 30.0*M_PI/180.0)
-          auto_camera_state_ = "normal";
-
-        view_manager->getCurrent()->subProp("Yaw")->setValue(auto_camera_cached_yaw_);
-        view_manager->getCurrent()->subProp("Pitch")->setValue(auto_camera_cached_pitch_);
-      }
-      else{
-        ROS_ERROR("auto camera is in a bad state");
-      }
-
-      break;
     }
-  case TOP_DOWN_FPS:
+    else if(top_down_fps_camera_mode_ == 1)
     {
-      if(previous_camera_mode_ != TOP_DOWN_FPS)
+      // FPS camera mode.
+      if(last_top_down_fps_camera_mode_ != 1)
       {
-	camera_buttons_[TOP_DOWN_FPS]->setEnabled(false);
-	if(previous_camera_mode_ != GOAL)
-	  camera_buttons_[previous_camera_mode_]->setEnabled(true);
+	view_manager->setCurrentViewControllerType("rviz/FPS");
+	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
+	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
+	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
 
-        ROS_INFO("[DViz] Switching to top down/FPS camera control.");
+	last_top_down_fps_camera_mode_ = 1;
+
+	view_manager->getCurrent()->installEventFilter(this);
       }
 
-      if(top_down_fps_camera_mode_ == 0)
-      {
-	// Top Down camera mode.
-	if(last_top_down_fps_camera_mode_ != 0)
-	{
-	  view_manager->setCurrentViewControllerType("rviz/Orbit");
-	  view_manager->getCurrent()->subProp("Target Frame")->setValue("/map");
+      geometry_msgs::Pose end_effector_pose = node_.getEndEffectorPoseInBase();
+      geometry_msgs::Pose base_pose = node_.getBasePose();
 
-	  last_top_down_fps_camera_mode_ = 0;
-	  
-	  view_manager->getCurrent()->installEventFilter(this);
-	}
-	
-	view_manager->getCurrent()->subProp("Pitch")->setValue(M_PI/2.0);
-
-	geometry_msgs::Point midpoint;
-	geometry_msgs::Pose base_pose = node_.getBasePose();
-	geometry_msgs::Pose goal_pose = B;
-	midpoint.x = (base_pose.position.x + goal_pose.position.x)/2.0;
-	midpoint.y = (base_pose.position.y + goal_pose.position.y)/2.0;
-	// midpoint.z = (base_pose.position.z + goal_pose.position.z)/2.0;
-	midpoint.z = 0.0;
-
-	// First focus camera to the appropriate position.
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(midpoint.x);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(midpoint.y);
-	view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(midpoint.z);
-
-	// Next choose the appropriate zoom
-	Ogre::Camera *camera = view_manager->getCurrent()->getCamera();
-	// Vertical field of view.
-	float V = camera->getFOVy().valueRadians();
-	// Aspect ratio.
-	float r = camera->getAspectRatio();
-	// Horizontal field of view.
-	float H = 2*std::atan(0.5*std::tan(V) * r);
-	float th = std::min(H, V);
-	double dx = goal_pose.position.x - base_pose.position.x;
-	double dy = goal_pose.position.y - base_pose.position.y;
-	double dz = goal_pose.position.z - base_pose.position.z;
-	double d = std::sqrt(dx*dx + dy*dy + dz*dz) + 2.0;
-	double zoom = d/(2*tan(th/2.0));
-	view_manager->getCurrent()->subProp("Distance")->setValue(zoom);
-
-      }
-      else if(top_down_fps_camera_mode_ == 1)
-      {
-	// FPS camera mode.
-	if(last_top_down_fps_camera_mode_ != 1)
-	{
-	  view_manager->setCurrentViewControllerType("rviz/FPS");
-	  view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
-	  view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
-	  view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
-	  view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
-
-	  last_top_down_fps_camera_mode_ = 1;
-
-	  view_manager->getCurrent()->installEventFilter(this);
-	}
-
-	geometry_msgs::Pose end_effector_pose = node_.getEndEffectorPoseInBase();
-	geometry_msgs::Pose base_pose = node_.getBasePose();
-
-	double theta = std::atan2(end_effector_pose.position.y, end_effector_pose.position.x);
-	double r = std::sqrt(std::pow(end_effector_pose.position.x, 2) + std::pow(end_effector_pose.position.y, 2));
-	double pitch = M_PI/2.0 - std::atan2(r * std::cos(theta), 1.2 - end_effector_pose.position.z);
-	view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(base_pose.orientation) + theta);
-	view_manager->getCurrent()->subProp("Pitch")->setValue(pitch);
-      }
-      else
-      {
-	ROS_ERROR("[DViz] Top Down/FPS camera invalid mode!");
-      }
-
-      break;
+      double theta = std::atan2(end_effector_pose.position.y, end_effector_pose.position.x);
+      double r = std::sqrt(std::pow(end_effector_pose.position.x, 2) + std::pow(end_effector_pose.position.y, 2));
+      double pitch = M_PI/2.0 - std::atan2(r * std::cos(theta), 1.2 - end_effector_pose.position.z);
+      view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(base_pose.orientation) + theta);
+      view_manager->getCurrent()->subProp("Pitch")->setValue(pitch);
     }
+    else
+    {
+      ROS_ERROR("[DViz] Top Down/FPS camera invalid mode!");
+    }
+
+    break;
+  }
   case GOAL:
+  {
+    if(previous_camera_mode_ != GOAL)
     {
-      if(previous_camera_mode_ != GOAL)
-      {
-        camera_buttons_[previous_camera_mode_]->setEnabled(true);
-	
-	// Set the focal point of the camera to be the goal.
-        ROS_INFO("[DViz] Switching to goal camera mode.");
-        view_manager->setCurrentViewControllerType("rviz/Orbit");
-        view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
-        view_manager->getCurrent()->subProp("Distance")->setValue(1.5);
+      camera_buttons_[previous_camera_mode_]->setEnabled(true);
 
-	// hack
-	last_top_down_fps_camera_mode_ = 2;
-      }
+      // Set the focal point of the camera to be the goal.
+      ROS_INFO("[DViz] Switching to goal camera mode.");
+      view_manager->setCurrentViewControllerType("rviz/Orbit");
+      view_manager->getCurrent()->subProp("Target Frame")->setValue("map");
+      view_manager->getCurrent()->subProp("Distance")->setValue(1.5);
 
-      view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(B.position.x);
-      view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(B.position.y);
-      view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(B.position.z);
-
-      break;
+      // hack
+      last_top_down_fps_camera_mode_ = 2;
     }
+
+    view_manager->getCurrent()->subProp("Focal Point")->subProp("X")->setValue(B.position.x);
+    view_manager->getCurrent()->subProp("Focal Point")->subProp("Y")->setValue(B.position.y);
+    view_manager->getCurrent()->subProp("Focal Point")->subProp("Z")->setValue(B.position.z);
+
+    break;
+  }
   default:
     break;
   }
@@ -1775,7 +1784,7 @@ void DemonstrationVisualizer::setFPSZOffset(int offset)
 void DemonstrationVisualizer::setGripperPosition(int position)
 {
   double p = (double)position/1000.0;
-
+  
   sensor_msgs::JointState joints;
   joints.name.push_back("r_gripper_joint");
   joints.position.push_back(p);
@@ -1791,6 +1800,10 @@ void DemonstrationVisualizer::beginGraspSelection()
   node_.disableRobotMarkerControl();
 
   accept_grasp_button_->setEnabled(true);
+  
+  if(grasp_selected_)
+    change_grasp_button_->setEnabled(false);
+
   grasp_distance_slider_->setEnabled(true);
 
   // Set the distance slider to the goal's current distance.
@@ -1811,26 +1824,29 @@ void DemonstrationVisualizer::endGraspSelection()
 			      QMessageBox::Yes, QMessageBox::No))
   {
   case QMessageBox::Yes:
-    {
-      changeState(NORMAL);
+  {
+    changeState(NORMAL);
 
-      int current_goal = node_.getSceneManager()->getCurrentGoal();
-      std::stringstream s; 
-      s << "grasp_marker_goal_" << current_goal;
-      node_.getInteractiveMarkerServer()->erase(s.str());
-      node_.getInteractiveMarkerServer()->applyChanges();
-      PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
-      goal->setGraspDone(true);
-      node_.getSceneManager()->setGoalsChanged();
-      changeCameraMode(camera_before_grasp_);
-      accept_grasp_button_->setEnabled(false);
-      grasp_distance_slider_->setEnabled(false);
+    grasp_selected_ = true;
 
-      node_.playSimulator();
-      node_.enableRobotMarkerControl();
+    int current_goal = node_.getSceneManager()->getCurrentGoal();
+    std::stringstream s; 
+    s << "grasp_marker_goal_" << current_goal;
+    node_.getInteractiveMarkerServer()->erase(s.str());
+    node_.getInteractiveMarkerServer()->applyChanges();
+    PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
+    goal->setGraspDone(true);
+    node_.getSceneManager()->setGoalsChanged();
+    changeCameraMode(camera_before_grasp_);
+    accept_grasp_button_->setEnabled(false);
+    change_grasp_button_->setEnabled(true);
+    grasp_distance_slider_->setEnabled(false);
 
-      break;
-    }
+    node_.playSimulator();
+    node_.enableRobotMarkerControl();
+
+    break;
+  }
   case QMessageBox::No:
     break;
   default:
