@@ -24,6 +24,8 @@
   <depend package="pviz" />
   <depend package="pr2_collision_checker" />
   <depend package="angles" />
+  <depend package="sbpl_geometry_utils" />
+
   <rosdep name="tinyxml" />
 
   <versioncontrol type="git" url="https://sbpl.pc.cs.cmu.edu/redmine/egraph-user-demos.git" />

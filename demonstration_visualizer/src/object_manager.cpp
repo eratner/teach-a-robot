@@ -1,4 +1,5 @@
-#include<demonstration_visualizer/object_manager.h>
+#include <demonstration_visualizer/object_manager.h>
+#include <sbpl_geometry_utils/SphereEncloser.h>
 
 using namespace std;
 using namespace visualization_msgs;
@@ -7,6 +8,7 @@ using namespace geometry_msgs;
 ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename){
   rarm_file_ = rarm_filename;
   larm_file_ = larm_filename;
+  debug_visualizations_ = false;
   load_objects_from_voxels_file_ = false;
   collision_checker_ = NULL;
   ROS_DEBUG("[om] Initializing object manager.");
@@ -15,7 +17,7 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
 }
 
 void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
-  ROS_ERROR("[om] Initializing the collision checker.");
+  ROS_DEBUG("[om] Initializing the collision checker.");
 
   if(collision_checker_ != NULL)
   {
@@ -34,7 +36,8 @@ void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<doubl
     ROS_ERROR("[om] Failed to initialize the collision checker.");
     return;
   }
-  ROS_INFO("Initialized the collision checker.");
+  collision_checker_->visualizeResult(debug_visualizations_);
+  ROS_INFO("[om] Initialized the collision checker.");
 }
 
 
@@ -43,7 +46,7 @@ void ObjectManager::addObject(Object o){
   objects_.insert(make_pair<int, Object>(o.mesh_marker_.id, o));
 
   if(!o.movable && !load_objects_from_voxels_file_){
-    if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource, o.mesh_marker_.pose, "I NEED A NAME"))
+    if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource, o.mesh_marker_.pose, o.label))
       ROS_ERROR("[om] Failed to add static object.");
   }
 }
@@ -79,20 +82,20 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
   element = root_handle.FirstChild("object").Element();
   if(element == NULL)
   {
-    ROS_ERROR("[ObjectManager] Element is null while trying to parse collision_model file.");
+    ROS_ERROR("[om] Element is null while trying to parse collision_model file.");
     return false;
   }
 
   std::string label;
   if(element->QueryStringAttribute("label", &label) != TIXML_SUCCESS)
   {
-    ROS_ERROR("[ObjectManager] label for the collision_model is missing.");
+    ROS_ERROR("[om] label for the collision_model is missing.");
     return false;
   }
 
   if(element->QueryStringAttribute("mesh_resource", &mesh_marker.mesh_resource) != TIXML_SUCCESS)
   {
-    ROS_ERROR("[ObjectManager] mesh_resource for the collision_model is missing.");
+    ROS_ERROR("[om] mesh_resource for the collision_model is missing.");
     return false;
   }
 
@@ -112,51 +115,85 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
   if(movable)
   {
     ROS_DEBUG("[om] movable! Reading the spheres...");
-    // Read the spheres list from this file.
     element = element->NextSiblingElement("sphere");
-    for(element; element; element = element->NextSiblingElement("sphere"))
+
+    if(!element)
     {
+      // If no spheres found in file, generate them
+      double enclosing_sphere_radius = 0.04;
+      ROS_INFO("[om] No spheres were found for '%s', so generating them instead with radius, %0.3fm", label.c_str() , enclosing_sphere_radius); 
+      std::vector<int> triangles;
+      std::vector<geometry_msgs::Point> vertices; 
+      if(!leatherman::getMeshComponentsFromResource(mesh_marker.mesh_resource, mesh_marker.scale, triangles, vertices))
+      {
+        ROS_ERROR("[om] Failed to get triangles & indeces from the mesh resource.");
+        return false;
+      }
+      std::vector<std::vector<double> > sph;
+      sbpl::SphereEncloser::encloseMesh(vertices, triangles, enclosing_sphere_radius, sph);
+
       pr2_collision_checker::Sphere s;
-      int id;
-      if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS)
-      {
-        ROS_ERROR("[ObjectManager] Failed to read id for sphere!");
-        return false;
-      }
-      s.name = boost::lexical_cast<string>(id);
-      double temp;
-      if(element->QueryDoubleAttribute("x", &temp) != TIXML_SUCCESS)
-      {
-        ROS_ERROR("[ObjectManager] Failed to read x-value for sphere!");
-        return false;
-      }
-      s.v.x(temp);
-      if(element->QueryDoubleAttribute("y", &temp) != TIXML_SUCCESS)
-      {
-        ROS_ERROR("[ObjectManager] Failed to read y-value for sphere!");
-        return false;
-      }
-      s.v.y(temp);
-      if(element->QueryDoubleAttribute("z", &temp) != TIXML_SUCCESS)
-      {
-        ROS_ERROR("[ObjectManager] Failed to read z-value for sphere!");
-        return false;
-      }
-      s.v.z(temp);
-      if(element->QueryDoubleAttribute("radius", &s.radius) != TIXML_SUCCESS)
-      {
-        ROS_ERROR("[ObjectManager] Failed to read radius for sphere!");
-        return false;
-      }
+      s.radius = enclosing_sphere_radius;
       s.priority = 1;
-      o.group_.spheres.push_back(s);
-      ROS_DEBUG("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
+      for(size_t k = 0; k < sph.size(); ++k)
+      {
+        s.name = boost::lexical_cast<string>(int(k));
+        s.v.x(sph[k][0]);
+        s.v.y(sph[k][1]);
+        s.v.z(sph[k][2]);
+        o.group_.spheres.push_back(s);
+      }
+      ROS_INFO("[om] Generated %d spheres for object group '%s'.", int(o.group_.spheres.size()), label.c_str());
     }
-    ROS_INFO("[om] label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
-    //collision_checker_->visualizeGroup(o.group_, o.group_.name, 0);
+    else
+    {
+      // Read the spheres list from this file.
+      for(element; element; element = element->NextSiblingElement("sphere"))
+      {
+        pr2_collision_checker::Sphere s;
+        int id;
+        if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS)
+        {
+          ROS_ERROR("[om] Failed to read id for sphere!");
+          return false;
+        }
+        s.name = boost::lexical_cast<string>(id);
+        double temp;
+        if(element->QueryDoubleAttribute("x", &temp) != TIXML_SUCCESS)
+        {
+          ROS_ERROR("[om] Failed to read x-value for sphere!");
+          return false;
+        }
+        s.v.x(temp);
+        if(element->QueryDoubleAttribute("y", &temp) != TIXML_SUCCESS)
+        {
+          ROS_ERROR("[om] Failed to read y-value for sphere!");
+          return false;
+        }
+        s.v.y(temp);
+        if(element->QueryDoubleAttribute("z", &temp) != TIXML_SUCCESS)
+        {
+          ROS_ERROR("[om] Failed to read z-value for sphere!");
+          return false;
+        }
+        s.v.z(temp);
+        if(element->QueryDoubleAttribute("radius", &s.radius) != TIXML_SUCCESS)
+        {
+          ROS_ERROR("[om] Failed to read radius for sphere!");
+          return false;
+        }
+        s.priority = 1;
+        o.group_.spheres.push_back(s);
+        ROS_DEBUG("[om] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
+      }
+      ROS_INFO("[om] label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
+    }
+    if(debug_visualizations_)
+      collision_checker_->visualizeGroup(o.group_, o.label+ boost::lexical_cast<string>(o.mesh_marker_.id), 0);
   }
 
   addObject(o);
+  return true;
 }
 
 void ObjectManager::removeObject(int id) {
@@ -200,18 +237,18 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
     return true;
 
   //check robot against world
-  // ROS_INFO("[om] Collision checking time! robot-world first");
+  ROS_DEBUG("[om] Collision checking time! robot-world first");
   if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp, false, dist))
   {
     return false;
   }
   //check robot against itself
-  // ROS_INFO("[om] Collision checking time! robot-robot first");
+  ROS_DEBUG("[om] Collision checking time! robot-robot first");
   if(!collision_checker_->checkRobotAgainstRobot(rangles, langles, bp, false, dist))
     return false;
   //check robot against all objects
   for(unsigned int i=0; i<objects_.size(); i++){
-    if(i==skip_id)
+    if(int(i)==skip_id)
       continue;
     if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), false/*true*/, false, dist))
       return false;
@@ -237,13 +274,13 @@ bool ObjectManager::checkObjectMove(int id, Pose p,
     return false;
   //check object against all other objects
   for(unsigned int i=0; i<objects_.size(); i++){
-    if(i==id)
+    if(int(i)==id)
       continue;
     if(!collision_checker_->checkGroupAgainstGroup(&(objects_[i].group_),&(temp.group_),dist))
       return false;
   }
 
-  //check any extera constraints
+  //check any extra constraints
   return objects_[id].checkConstraints(p);
 }
 
