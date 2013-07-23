@@ -55,6 +55,8 @@ public:
 
   void saveTask(const std::string &filename);
 
+  void resetTask();
+
   void addMeshFromFile(const std::string &filename, int mesh_id);
 
   void addMesh(const visualization_msgs::Marker &marker,

@@ -36,9 +36,9 @@ DemonstrationVisualizerNode::~DemonstrationVisualizerNode()
 {
   delete simulator_;
   delete demonstration_scene_manager_;
+  delete object_manager_;
   delete recorder_;
   delete pviz_;
-  delete object_manager_;
 
   if(ros::isStarted())
   {

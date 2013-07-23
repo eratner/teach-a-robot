@@ -56,7 +56,8 @@ public:
   PickUpGoal(int goal_number, 
 	     const std::string &description,
 	     int object_id = 0,
-	     const geometry_msgs::Pose &grasp = geometry_msgs::Pose());
+	     const geometry_msgs::Pose &grasp = geometry_msgs::Pose(),
+             const geometry_msgs::Pose &object_pose = geometry_msgs::Pose());
 
   virtual ~PickUpGoal();
 
@@ -70,6 +71,10 @@ public:
 
   void setGraspPose(const geometry_msgs::Pose &grasp);
 
+  geometry_msgs::Pose getInitialObjectPose() const;
+  
+  void setInitialObjectPose(const geometry_msgs::Pose &pose);
+
   bool isGraspDone() const;
 
   void setGraspDone(bool);
@@ -81,6 +86,7 @@ public:
 private:
   int object_id_;
   geometry_msgs::Pose grasp_pose_;
+  geometry_msgs::Pose initial_object_pose_;
   bool grasp_done_;
   double grasp_distance_;
 

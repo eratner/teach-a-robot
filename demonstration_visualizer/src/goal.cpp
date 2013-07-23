@@ -62,9 +62,11 @@ PickUpGoal::PickUpGoal()
 PickUpGoal::PickUpGoal(int goal_number, 
 		       const std::string &description,
 		       int object_id,
-		       const geometry_msgs::Pose &grasp)
+		       const geometry_msgs::Pose &grasp,
+		       const geometry_msgs::Pose &object_pose)
   : Goal(goal_number, description), object_id_(object_id),
-    grasp_pose_(grasp), grasp_done_(false), grasp_distance_(0.25)
+    grasp_pose_(grasp), initial_object_pose_(object_pose), 
+    grasp_done_(false), grasp_distance_(0.25)
 {
 
 }
@@ -97,6 +99,16 @@ geometry_msgs::Pose PickUpGoal::getGraspPose() const
 void PickUpGoal::setGraspPose(const geometry_msgs::Pose &grasp)
 {
   grasp_pose_ = grasp;
+}
+
+geometry_msgs::Pose PickUpGoal::getInitialObjectPose() const
+{
+  return initial_object_pose_;
+}
+
+void PickUpGoal::setInitialObjectPose(const geometry_msgs::Pose &pose)
+{
+  initial_object_pose_ = pose;
 }
 
 bool PickUpGoal::isGraspDone() const

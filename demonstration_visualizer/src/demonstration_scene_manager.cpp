@@ -452,6 +452,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 
 	geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
 	goal->setGraspPose(object_pose);
+	goal->setInitialObjectPose(object_pose);
 	goal->setObjectID(object_id);
 
 	goals_.push_back(goal);
@@ -590,6 +591,31 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
   }
 
   doc.SaveFile(filename.c_str());
+}
+
+void DemonstrationSceneManager::resetTask()
+{
+  if(goals_.size() > 0)
+    current_goal_ = 0;
+  else
+    current_goal_ = -1;
+
+  std::vector<Goal *>::iterator it;
+  for(it = goals_.begin(); it != goals_.end(); ++it)
+  {
+    if((*it)->getType() == Goal::PICK_UP)
+    {
+      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(*it);
+      geometry_msgs::Pose initial_object_pose = pick_up_goal->getInitialObjectPose();
+      // Reset the grasp pose to the default.
+      pick_up_goal->setGraspPose(initial_object_pose);
+      pick_up_goal->setGraspDistance(0.25);
+      // Reset the object to its initial pose.
+      object_manager_->moveObject(pick_up_goal->getObjectID(), initial_object_pose);
+    }
+  }
+  
+  setGoalsChanged();
 }
 
 void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int mesh_id)
@@ -734,6 +760,7 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
 
       geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
       goal->setGraspPose(object_pose);
+      goal->setInitialObjectPose(object_pose);
       goal->setObjectID(object_id);
 
       goals_.push_back(goal);
@@ -769,19 +796,19 @@ bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::P
   switch(goals_.at(goal_number)->getType())
   {
   case Goal::PICK_UP:
-    { 
-      break;
-    }
+  { 
+    break;
+  }
   case Goal::PLACE:
-    {
-      PlaceGoal *place_goal = static_cast<PlaceGoal *>(goals_.at(goal_number));
+  {
+    PlaceGoal *place_goal = static_cast<PlaceGoal *>(goals_.at(goal_number));
 
-      place_goal->setPlacePose(pose);
+    place_goal->setPlacePose(pose);
 
-      drawGoal(place_goal, editGoalsMode());
+    drawGoal(place_goal, editGoalsMode());
 
-      break;
-    }
+    break;
+  }
   default:
     break;
   }

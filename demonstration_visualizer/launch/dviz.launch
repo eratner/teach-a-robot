@@ -9,7 +9,7 @@
   <param name="robot_description_semantic" textfile="$(find pr2_description)/robots/pr2.srdf" />
 
   <!-- DViz -->
-  <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)">
+  <node name="dviz" pkg="demonstration_visualizer" type="dviz" output="$(arg output)" launch-prefix="gdb -ex run --args">
     <rosparam file="$(find pr2_collision_checker)/config/pr2_both_arms.yaml" command="load"/>
     <rosparam file="$(find pr2_collision_checker)/config/pr2_body.yaml" command="load"/>
 

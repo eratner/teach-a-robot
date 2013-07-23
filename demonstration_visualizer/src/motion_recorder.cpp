@@ -40,9 +40,12 @@ void MotionRecorder::endRecording()
   if(is_recording_)
   {
     is_recording_ = false;
+
     // Stop recording.
     ROS_INFO("[MotionRec] Recording finished with %d messages.", write_bag_.getSize());
     write_bag_.close();
+
+    base_path_ = getBasePath(write_bag_path_);
   }
 }
 

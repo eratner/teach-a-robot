@@ -695,7 +695,8 @@ void DemonstrationVisualizer::resetTask()
 {
   user_demo_.goals_completed_ = 0;
 
-  node_.getSceneManager()->setCurrentGoal(0);
+  // node_.getSceneManager()->setCurrentGoal(0);
+  node_.getSceneManager()->resetTask();
 
   // Reset the goal list.
   for(int i = 0; i < node_.getSceneManager()->getNumGoals(); ++i)
@@ -706,7 +707,7 @@ void DemonstrationVisualizer::resetTask()
     goals_list_->item(i)->setFont(font);     
   }
 
-  node_.getSceneManager()->setGoalsChanged(true);
+  // node_.getSceneManager()->setGoalsChanged();
 }
 
 void DemonstrationVisualizer::changeTool(int tool_index)

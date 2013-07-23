@@ -591,35 +591,34 @@ void PR2Simulator::baseMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
 )
 {
-  ROS_INFO("base feedback");
   switch(feedback->event_type)
   {
   case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
+  {
+    if(move_base_while_dragging_ && canMoveRobotMarkers())
     {
-      if(move_base_while_dragging_ && canMoveRobotMarkers())
-      {
-	base_movement_controller_.setState(BaseMovementController::READY);
-	goal_pose_.pose = feedback->pose;
-      }
-      break;
+      base_movement_controller_.setState(BaseMovementController::READY);
+      goal_pose_.pose = feedback->pose;
     }
+    break;
+  }
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
+  {
+    if(!move_base_while_dragging_ && canMoveRobotMarkers())
     {
-      if(!move_base_while_dragging_ && canMoveRobotMarkers())
-      {
-	base_movement_controller_.setState(BaseMovementController::READY);
-	goal_pose_.pose = feedback->pose;
-	// double yaw = std::atan2(goal_pose_.pose.position.y - base_pose_.pose.position.y,
-	// 			      goal_pose_.pose.position.x - base_pose_.pose.position.x);
-	// ROS_INFO("[PR2SimpleSim] New goal set at (x, y, yaw) = (%f, %f, %f).", 
-	// 	       goal_pose_.pose.position.x,
-	// 	       goal_pose_.pose.position.y,
-	// 	       yaw * (180.0/M_PI));
-      }
-      break;
+      base_movement_controller_.setState(BaseMovementController::READY);
+      goal_pose_.pose = feedback->pose;
+      // double yaw = std::atan2(goal_pose_.pose.position.y - base_pose_.pose.position.y,
+      // 			      goal_pose_.pose.position.x - base_pose_.pose.position.x);
+      // ROS_INFO("[PR2SimpleSim] New goal set at (x, y, yaw) = (%f, %f, %f).", 
+      // 	       goal_pose_.pose.position.x,
+      // 	       goal_pose_.pose.position.y,
+      // 	       yaw * (180.0/M_PI));
     }
+    break;
+  }
   default:
     break;
   }
@@ -632,28 +631,28 @@ void PR2Simulator::gripperMarkerFeedback(
   switch(feedback->event_type)
   {
   case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
+  {
+    if(move_end_effector_while_dragging_ && canMoveRobotMarkers())
     {
-      if(move_end_effector_while_dragging_ && canMoveRobotMarkers())
-      {
-	// ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
-	// 	     feedback->pose.position.y, feedback->pose.position.z);
-	setEndEffectorGoalPose(feedback->pose);
-	end_effector_goal_pose_.pose = feedback->pose;
-      }
-      break;
+      // ROS_INFO("pose update at (%f, %f, %f)!", feedback->pose.position.x, 
+      // 	     feedback->pose.position.y, feedback->pose.position.z);
+      setEndEffectorGoalPose(feedback->pose);
+      end_effector_goal_pose_.pose = feedback->pose;
     }
+    break;
+  }
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
+  {
+    if(!move_end_effector_while_dragging_ && canMoveRobotMarkers())
     {
-      if(!move_end_effector_while_dragging_ && canMoveRobotMarkers())
-      {
-	ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
-		       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
-	setEndEffectorGoalPose(feedback->pose);
-      }
-      break;
+      ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
+	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
+      setEndEffectorGoalPose(feedback->pose);
     }
+    break;
+  }
   default:
     break;
   }
@@ -884,6 +883,11 @@ void PR2Simulator::processKeyEvent(int key, int type)
 {
   if(type == QEvent::KeyPress)
   {
+    // @todo For now, we will stop all key press events from being processed if the 
+    // simulator is paused. In the future, this may not be desirable.
+    if(!isPlaying())
+      return;
+
     switch(key)
     {
     case Qt::Key_Z:
