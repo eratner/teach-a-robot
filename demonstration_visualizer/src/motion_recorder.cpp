@@ -145,7 +145,8 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
 
 visualization_msgs::Marker MotionRecorder::getBasePath()
 {
-  return getBasePath(write_bag_path_);
+  // return getBasePath(write_bag_path_);
+  return base_path_;
 }
 
 void MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)

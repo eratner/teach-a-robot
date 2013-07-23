@@ -591,6 +591,7 @@ void PR2Simulator::baseMarkerFeedback(
   const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
 )
 {
+  ROS_INFO("base feedback");
   switch(feedback->event_type)
   {
   case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
