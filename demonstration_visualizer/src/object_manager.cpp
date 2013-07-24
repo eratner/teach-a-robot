@@ -8,9 +8,15 @@ using namespace geometry_msgs;
 ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename){
   rarm_file_ = rarm_filename;
   larm_file_ = larm_filename;
-  debug_visualizations_ = false;
+  enable_debug_visualizations_ = false;
+  disable_collision_checking_ = false;
   load_objects_from_voxels_file_ = false;
   collision_checker_ = NULL;
+   
+  ros::NodeHandle ph("~");
+  ph.param("enable_debug_visualizations", enable_debug_visualizations_, false);
+  ph.param("disable_collision_checking",  disable_collision_checking_, false);
+
   ROS_DEBUG("[om] Initializing object manager.");
   ROS_DEBUG("[om] right_arm_file: %s",rarm_file_.c_str());
   ROS_DEBUG("[om]  left_arm_file: %s",larm_file_.c_str());
@@ -18,6 +24,12 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
 
 void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
   ROS_DEBUG("[om] Initializing the collision checker.");
+
+  if(disable_collision_checking_)
+  {
+    ROS_INFO("[om] Collision checking is disabled. Not initializing the collision checker.");
+    return;
+  }
 
   if(collision_checker_ != NULL)
   {
@@ -36,7 +48,7 @@ void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<doubl
     ROS_ERROR("[om] Failed to initialize the collision checker.");
     return;
   }
-  collision_checker_->visualizeResult(debug_visualizations_);
+  collision_checker_->visualizeResult(enable_debug_visualizations_);
   ROS_INFO("[om] Initialized the collision checker.");
 }
 
@@ -44,6 +56,9 @@ void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<doubl
 void ObjectManager::addObject(Object o){
 
   objects_.insert(make_pair<int, Object>(o.mesh_marker_.id, o));
+
+  if(disable_collision_checking_)
+    return;
 
   if(!o.movable && !load_objects_from_voxels_file_){
     if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource, o.mesh_marker_.pose, o.label))
@@ -188,7 +203,7 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
       }
       ROS_INFO("[om] label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
     }
-    if(debug_visualizations_)
+    if(enable_debug_visualizations_ && !disable_collision_checking_)
       collision_checker_->visualizeGroup(o.group_, o.label+ boost::lexical_cast<string>(o.mesh_marker_.id), 0);
   }
 
@@ -233,7 +248,7 @@ Marker ObjectManager::getMarker(int id){
 
 bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langles, BodyPose bp, int skip_id){
   double dist;
-  if(collision_checker_ == NULL)
+  if(collision_checker_ == NULL || disable_collision_checking_)
     return true;
 
   //check robot against world
@@ -259,7 +274,7 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
 bool ObjectManager::checkObjectMove(int id, Pose p,
                                     vector<double> rangles, vector<double> langles, BodyPose bp){
   //if this is a static object (one that isn't supposed to move) we can put it anywhere
-  if(!objects_[id].movable)
+  if(!objects_[id].movable || disable_collision_checking_)
     return true;
 
   //collision check
@@ -325,7 +340,7 @@ vector<Object> ObjectManager::getObjects() const
 
 bool ObjectManager::addObjectsFromOccupiedVoxelsFile(std::string filename)
 {
-  if(collision_checker_ == NULL)
+  if(collision_checker_ == NULL || disable_collision_checking_)
     return false;
 
   if(!collision_checker_->getObjectVoxelsFromFile(filename))
@@ -337,7 +352,7 @@ bool ObjectManager::addObjectsFromOccupiedVoxelsFile(std::string filename)
 
 bool ObjectManager::writeObjectsToOccupiedVoxelsFile(std::string filename)
 {
-  if(collision_checker_ == NULL)
+  if(collision_checker_ == NULL || disable_collision_checking_)
     return false;
 
   return collision_checker_->writeObjectVoxelsToFile(filename);
