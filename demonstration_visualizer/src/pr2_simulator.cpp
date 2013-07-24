@@ -273,8 +273,6 @@ void PR2Simulator::run()
       recorder_->recordJoints(joint_states_);
     }
 
-    showEndEffectorWorkspaceArc();
-
     // Replay motion.
     if(recorder_->isReplaying())
     {

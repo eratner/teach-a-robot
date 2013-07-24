@@ -1174,117 +1174,120 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
   switch(goal->getType())
   {
   case Goal::PICK_UP:
+  {
+    PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
+
+    // Draw the shadow of the gripper around the object, where the user
+    // has selected the grasp.
+    if(pick_up_goal->isGraspDone())
     {
-      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
+      geometry_msgs::Pose grasp_pose = pick_up_goal->getGraspPose();
 
-      // Draw the shadow of the gripper around the object, where the user
-      // has selected the grasp.
-      if(pick_up_goal->isGraspDone())
+      // Combine the grasp marker pose in the map frame with the 
+      // grasp distance to get the actual grasp pose in the map
+      // frame.
+      tf::Transform marker_in_map(tf::Quaternion(grasp_pose.orientation.x,
+						 grasp_pose.orientation.y,
+						 grasp_pose.orientation.z,
+						 grasp_pose.orientation.w),
+				  tf::Vector3(grasp_pose.position.x,
+					      grasp_pose.position.y,
+					      grasp_pose.position.z)
+	);
+
+      tf::Transform gripper_in_marker(tf::Quaternion::getIdentity(),
+				      tf::Vector3(-1.0*pick_up_goal->getGraspDistance(),
+						  0.0,
+						  0.0)
+	);
+
+      tf::Transform gripper_in_map = marker_in_map * gripper_in_marker;
+
+      geometry_msgs::Pose grasp_pose_fixed;
+      tf::quaternionTFToMsg(gripper_in_map.getRotation(), grasp_pose_fixed.orientation);
+      geometry_msgs::Vector3 position;
+      tf::vector3TFToMsg(gripper_in_map.getOrigin(), position);
+      grasp_pose_fixed.position.x = position.x;
+      grasp_pose_fixed.position.y = position.y;
+      grasp_pose_fixed.position.z = position.z;
+
+      std::vector<visualization_msgs::Marker> gripper_markers;
+      // pviz_->getGripperMeshesMarkerMsg(grasp_pose_fixed, 0.2, GOAL_MARKER_NAMESPACE, 
+      // 				 5*pick_up_goal->getGoalNumber(), true, gripper_markers);
+      pviz_->getGripperMeshesMarkerMsg(grasp_pose_fixed, 0.2, GOAL_MARKER_NAMESPACE, 
+				       5*pick_up_goal->getGoalNumber(), 
+				       pick_up_goal->getGripperJointPosition(), gripper_markers);
+
+      for(int i = 0; i < gripper_markers.size(); ++i)
       {
-	geometry_msgs::Pose grasp_pose = pick_up_goal->getGraspPose();
-
-	// Combine the grasp marker pose in the map frame with the 
-	// grasp distance to get the actual grasp pose in the map
-	// frame.
-	tf::Transform marker_in_map(tf::Quaternion(grasp_pose.orientation.x,
-						   grasp_pose.orientation.y,
-						   grasp_pose.orientation.z,
-						   grasp_pose.orientation.w),
-				    tf::Vector3(grasp_pose.position.x,
-						grasp_pose.position.y,
-						grasp_pose.position.z)
-				    );
-
-	tf::Transform gripper_in_marker(tf::Quaternion::getIdentity(),
-					tf::Vector3(-1.0*pick_up_goal->getGraspDistance(),
-						    0.0,
-						    0.0)
-					);
-
-	tf::Transform gripper_in_map = marker_in_map * gripper_in_marker;
-
-	geometry_msgs::Pose grasp_pose_fixed;
-	tf::quaternionTFToMsg(gripper_in_map.getRotation(), grasp_pose_fixed.orientation);
-	geometry_msgs::Vector3 position;
-	tf::vector3TFToMsg(gripper_in_map.getOrigin(), position);
-	grasp_pose_fixed.position.x = position.x;
-	grasp_pose_fixed.position.y = position.y;
-	grasp_pose_fixed.position.z = position.z;
-
-	std::vector<visualization_msgs::Marker> gripper_markers;
-	pviz_->getGripperMeshesMarkerMsg(grasp_pose_fixed, 0.2, GOAL_MARKER_NAMESPACE, 
-					 5*pick_up_goal->getGoalNumber(), true, gripper_markers);
-
-	for(int i = 0; i < gripper_markers.size(); ++i)
-      	{
-	  gripper_markers[i].header.frame_id = "/map";
-	  gripper_markers[i].color.a = 0.3;
-	  marker_pub_.publish(gripper_markers[i]);
-	}
+	gripper_markers[i].header.frame_id = "/map";
+	gripper_markers[i].color.a = 0.3;
+	marker_pub_.publish(gripper_markers[i]);
       }
-
-      break;
     }
+
+    break;
+  }
   case Goal::PLACE:
-    {
-      PlaceGoal *place_goal = static_cast<PlaceGoal *>(goal);
+  {
+    PlaceGoal *place_goal = static_cast<PlaceGoal *>(goal);
 
-      // Draw a shadow of the object that can be moved around to indicate
-      // where the user should place the object. 
-      visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
+    // Draw a shadow of the object that can be moved around to indicate
+    // where the user should place the object. 
+    visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
       
-      object.header.frame_id = "/map";
-      object.header.stamp = ros::Time();
-      object.ns = "dviz_place_goal";
-      object.id = place_goal->getGoalNumber();
-      object.type = visualization_msgs::Marker::MESH_RESOURCE;
-      object.action = visualization_msgs::Marker::ADD;
-      object.pose = place_goal->getPlacePose();
-      object.mesh_use_embedded_materials = false;
-      object.color.r = 0;
-      object.color.g = 0;
-      object.color.b = 1;
-      object.color.a = 0.4;
+    object.header.frame_id = "/map";
+    object.header.stamp = ros::Time();
+    object.ns = "dviz_place_goal";
+    object.id = place_goal->getGoalNumber();
+    object.type = visualization_msgs::Marker::MESH_RESOURCE;
+    object.action = visualization_msgs::Marker::ADD;
+    object.pose = place_goal->getPlacePose();
+    object.mesh_use_embedded_materials = false;
+    object.color.r = 0;
+    object.color.g = 0;
+    object.color.b = 1;
+    object.color.a = 0.4;
 
-      if(attach_interactive_marker)
-      {
-	// Attach an interactive marker to control this marker.
-	visualization_msgs::InteractiveMarker int_marker;
-	int_marker.header.frame_id = "/map";
-	int_marker.pose = object.pose;
+    if(attach_interactive_marker)
+    {
+      // Attach an interactive marker to control this marker.
+      visualization_msgs::InteractiveMarker int_marker;
+      int_marker.header.frame_id = "/map";
+      int_marker.pose = object.pose;
 
-	// Give each interactive marker a unique name according to each goal's unique id.
-	std::stringstream marker_name;
-	marker_name << "goal_marker_" << object.id;
+      // Give each interactive marker a unique name according to each goal's unique id.
+      std::stringstream marker_name;
+      marker_name << "goal_marker_" << object.id;
 
-	int_marker.name = marker_name.str();
+      int_marker.name = marker_name.str();
 
-	std::stringstream mesh_desc;
-	mesh_desc << "Move " << marker_name.str();
-	int_marker.description = mesh_desc.str();
+      std::stringstream mesh_desc;
+      mesh_desc << "Move " << marker_name.str();
+      int_marker.description = mesh_desc.str();
 
-	// Add a non-interactive control for the mesh.
-	visualization_msgs::InteractiveMarkerControl control;
-	control.always_visible = true;
-	control.markers.push_back(object);
+      // Add a non-interactive control for the mesh.
+      visualization_msgs::InteractiveMarkerControl control;
+      control.always_visible = true;
+      control.markers.push_back(object);
 
-	int_marker.controls.push_back(control);
+      int_marker.controls.push_back(control);
 
-	// Attach a 6-DOF control for moving the place goal around.
-	attach6DOFControl(int_marker);
+      // Attach a 6-DOF control for moving the place goal around.
+      attach6DOFControl(int_marker);
 
-	int_marker_server_->insert(int_marker,
-				   goal_feedback_
-				   );
-	int_marker_server_->applyChanges();
-      }
-      else
-      {
-	marker_pub_.publish(object);
-      }
-
-      break;
+      int_marker_server_->insert(int_marker,
+				 goal_feedback_
+	);
+      int_marker_server_->applyChanges();
     }
+    else
+    {
+      marker_pub_.publish(object);
+    }
+
+    break;
+  }
   default:
     break;
   }
@@ -1295,45 +1298,45 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
   switch(goal->getType())
   {
   case Goal::PICK_UP:
+  {
+    PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
+
+    std::vector<visualization_msgs::Marker> gripper_markers;
+    pviz_->getGripperMeshesMarkerMsg(pick_up_goal->getGraspPose(), 0.2, 
+				     GOAL_MARKER_NAMESPACE, 5*pick_up_goal->getGoalNumber(), 
+				     pick_up_goal->getGripperJointPosition(), gripper_markers);
+
+    for(int i = 0; i < gripper_markers.size(); ++i)
     {
-      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
-
-      std::vector<visualization_msgs::Marker> gripper_markers;
-      pviz_->getGripperMeshesMarkerMsg(pick_up_goal->getGraspPose(), 0.2, 
-				       GOAL_MARKER_NAMESPACE, 5*pick_up_goal->getGoalNumber(), 
-				       true, gripper_markers);
-
-      for(int i = 0; i < gripper_markers.size(); ++i)
-      {
-	gripper_markers[i].action = visualization_msgs::Marker::DELETE;
-	marker_pub_.publish(gripper_markers[i]);
-      }
-
-      break;
+      gripper_markers[i].action = visualization_msgs::Marker::DELETE;
+      marker_pub_.publish(gripper_markers[i]);
     }
+
+    break;
+  }
   case Goal::PLACE:
-    {
-      PlaceGoal *place_goal = static_cast<PlaceGoal *>(goal);
+  {
+    PlaceGoal *place_goal = static_cast<PlaceGoal *>(goal);
 
-      visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
-      int goal_number = place_goal->getGoalNumber();
+    visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
+    int goal_number = place_goal->getGoalNumber();
 
-      std::stringstream marker_name;
-      marker_name << "goal_marker_" << goal_number;
+    std::stringstream marker_name;
+    marker_name << "goal_marker_" << goal_number;
 
-      int_marker_server_->erase(marker_name.str());
-      int_marker_server_->applyChanges();
+    int_marker_server_->erase(marker_name.str());
+    int_marker_server_->applyChanges();
 
-      object.header.frame_id = "/map";
-      object.header.stamp = ros::Time();
-      object.ns = "dviz_place_goal";
-      object.id = place_goal->getGoalNumber();
-      object.action = visualization_msgs::Marker::DELETE;
+    object.header.frame_id = "/map";
+    object.header.stamp = ros::Time();
+    object.ns = "dviz_place_goal";
+    object.id = place_goal->getGoalNumber();
+    object.action = visualization_msgs::Marker::DELETE;
 
-      marker_pub_.publish(object);
+    marker_pub_.publish(object);
 
-      break;
-    }
+    break;
+  }
   default:
     break;
   }

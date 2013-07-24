@@ -358,7 +358,7 @@ void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
   origin.position.y = origin.position.z = 0;
   origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
   origin.orientation.w = 1;
-  pviz_->getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, true, markers);
+  pviz_->getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, goal->getGripperJointPosition(), markers);
 
   for(int i = 0; i < int(markers.size()); ++i)
   {

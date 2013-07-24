@@ -1785,11 +1785,28 @@ void DemonstrationVisualizer::setGripperPosition(int position)
 {
   double p = (double)position/1000.0;
   
-  sensor_msgs::JointState joints;
-  joints.name.push_back("r_gripper_joint");
-  joints.position.push_back(p);
+  if(getState() == GRASP_SELECTION)
+  {
+    int current_goal = node_.getSceneManager()->getCurrentGoal();
 
-  node_.setJointStates(joints);
+    if(node_.getSceneManager()->getGoal(current_goal)->getType() != Goal::PICK_UP)
+    {
+      ROS_ERROR("[DViz] Goal of wrong type! (This should not occur.)");
+      return;
+    }
+
+    PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
+    goal->setGripperJointPosition(p);
+    node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
+  }
+  else
+  {
+    sensor_msgs::JointState joints;
+    joints.name.push_back("r_gripper_joint");
+    joints.position.push_back(p);
+
+    node_.setJointStates(joints);
+  }
 }
 
 void DemonstrationVisualizer::beginGraspSelection()
