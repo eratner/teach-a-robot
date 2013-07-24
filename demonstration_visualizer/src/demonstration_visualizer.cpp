@@ -1001,7 +1001,7 @@ void DemonstrationVisualizer::loadTask()
       node_.getSceneManager()->loadTask(filename.toStdString());
       goals_list_->clear();
       std::vector<Goal *> goals = node_.getSceneManager()->getGoals();
-      for(int i = 0; i < goals.size(); ++i)
+      for(int i = 0; i < int(goals.size()); ++i)
       {
 	std::stringstream goal_desc;
 	goal_desc << "Goal " << i+1 << ": " << goals[i]->getDescription();
