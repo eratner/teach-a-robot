@@ -261,6 +261,7 @@ private:
   QPushButton                *end_button_;
   QPushButton                *z_mode_button_;
   QPushButton                *accept_grasp_button_;
+  QPushButton                *change_grasp_button_;
   QSlider                    *grasp_distance_slider_;
 
   std::vector<QPushButton *> camera_buttons_;
@@ -284,6 +285,8 @@ private:
 
   int                        top_down_fps_camera_mode_;
   int                        last_top_down_fps_camera_mode_;
+
+  bool                       grasp_selected_;
 
 };
 

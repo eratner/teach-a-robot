@@ -145,6 +145,13 @@ bool KDLRobotModel::getJointLimits(std::string joint_name, double &min_limit, do
   while(link && (link->name != chain_root_name_) && !found_joint)
   {
     boost::shared_ptr<const urdf::Joint> joint = urdf_->getJoint(link->parent_joint->name);
+
+    if(!joint)
+    {
+      ROS_ERROR("Joint \"%s\" not found!", link->parent_joint->name.c_str());
+      continue;
+    }
+
     if(joint->name.compare(joint_name) == 0)
     {
       if(joint->type != urdf::Joint::UNKNOWN && joint->type != urdf::Joint::FIXED)
