@@ -47,6 +47,8 @@ class ObjectManager{
     std::map<int, Object> objects_;
     std::string rarm_file_;
     std::string larm_file_;
+    bool enable_debug_visualizations_;
+    bool disable_collision_checking_;
     bool load_objects_from_voxels_file_;
 };
 

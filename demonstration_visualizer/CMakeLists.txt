@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 project(demonstration_visualizer)
 
+set(ROS_BUILD_TYPE Debug)
+
 rosbuild_init()
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
@@ -30,8 +32,8 @@ rosbuild_add_executable(dviz
   src/base_movement_controller.cpp
   src/end_effector_controller.cpp
   src/motion_recorder.cpp
-  src/robot_model.cpp
-  src/kdl_robot_model.cpp
+# src/robot_model.cpp
+# src/kdl_robot_model.cpp
   src/goal.cpp
   ${RCC_FILES}
   ${MOC_FILES}
@@ -39,4 +41,5 @@ rosbuild_add_executable(dviz
 
 target_link_libraries(dviz 
   ${QT_LIBRARIES}
+  sbpl_manipulation_components_pr2
 )

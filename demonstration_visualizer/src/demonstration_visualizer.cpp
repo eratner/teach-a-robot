@@ -1008,9 +1008,28 @@ void DemonstrationVisualizer::loadTask()
     std::vector<Goal *> goals = node_.getSceneManager()->getGoals();
     for(int i = 0; i < goals.size(); ++i)
     {
+<<<<<<< HEAD
+      // Load the task into the demonstration scene manager.
+      node_.getSceneManager()->loadTask(filename.toStdString());
+      goals_list_->clear();
+      std::vector<Goal *> goals = node_.getSceneManager()->getGoals();
+      for(int i = 0; i < int(goals.size()); ++i)
+      {
+	std::stringstream goal_desc;
+	goal_desc << "Goal " << i+1 << ": " << goals[i]->getDescription();
+	goals_list_->addItem(QString(goal_desc.str().c_str()));
+      }
+      
+      // Bold the first entry to indicate that is the current goal.
+      QFont font = goals_list_->item(0)->font();
+      font.setBold(true);
+      goals_list_->item(0)->setFont(font);
+      break;
+=======
       std::stringstream goal_desc;
       goal_desc << "Goal " << i+1 << ": " << goals[i]->getDescription();
       goals_list_->addItem(QString(goal_desc.str().c_str()));
+>>>>>>> origin/unstable
     }
 
     // Bold the first entry to indicate that is the current goal.

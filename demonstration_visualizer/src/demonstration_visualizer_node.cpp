@@ -360,7 +360,7 @@ void DemonstrationVisualizerNode::showInteractiveGripper(int goal_number)
   origin.orientation.w = 1;
   pviz_->getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, true, markers);
 
-  for(int i = 0; i < markers.size(); ++i)
+  for(int i = 0; i < int(markers.size()); ++i)
   {
     markers.at(i).header.frame_id = "";
     control.markers.push_back(markers.at(i));

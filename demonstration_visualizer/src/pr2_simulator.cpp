@@ -178,6 +178,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 			     );
   int_marker_server_->applyChanges();
 
+  ROS_DEBUG("[PR2SimpleSim] About to initialize the kinematic model.");
   std::string robot_description;
   std::string robot_param = "";
   if(!nh.searchParam("robot_description", robot_param))
@@ -186,7 +187,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   }
   nh.param<std::string>(robot_param, robot_description, "");
   std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end()-1);
-  kdl_robot_model_.init(robot_description, planning_joints);
+  if(!kdl_robot_model_.init(robot_description, planning_joints))
+    ROS_ERROR("[PR2SimpleSim] Failed to initialize the KDLRobotModel for the PR2."); 
   kdl_robot_model_.setPlanningLink("r_wrist_roll_link");
 
   // Set the map to torso_lift_link transform.
@@ -866,7 +868,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
       snap_motion_.push_back(joint_state);
     }
 
-    ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", snap_motion_.size());
+    ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", int(snap_motion_.size()));
 
     return true;
   }
@@ -876,7 +878,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 
 bool PR2Simulator::isSnapDone() const
 {
-  return (snap_motion_count_ >= snap_motion_.size());
+  return (snap_motion_count_ >= int(snap_motion_.size()));
 }
 
 void PR2Simulator::processKeyEvent(int key, int type)
