@@ -1,0 +1,24 @@
+- git:
+  local-name: pr2_collision_checker
+  uri: https://github.com/bcohen/pr2_collision_checker.git
+  version: groovy
+- git:
+  local-name: sbpl_manipulation
+  uri: https://github.com/bcohen/sbpl_manipulation.git
+  version: master
+- git:
+  local-name: leatherman
+  uri: https://github.com/bcohen/leatherman.git
+  version: groovy
+- git:
+  local-name: pviz
+  uri: https://github.com/eratner/pviz.git
+  version: master
+- git:
+  local-name: sbpl_geometry_utils
+  uri: https://github.com/sbpl/sbpl_geometry_utils.git
+  version: master
+- git:
+  local-name: egraph-user-demos
+  uri: https://sbpl.pc.cs.cmu.edu/redmine/egraph-user-demos.git
+  version: unstable
