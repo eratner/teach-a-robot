@@ -25,6 +25,7 @@
   <depend package="pr2_collision_checker" />
   <depend package="angles" />
   <depend package="sbpl_geometry_utils" />
+  <depend package="sbpl_manipulation_components_pr2" />
 
   <rosdep name="tinyxml" />
 
