@@ -83,12 +83,17 @@ public:
 
   void setGraspDistance(double);
 
+  double getGripperJointPosition() const;
+
+  void setGripperJointPosition(double);
+
 private:
   int object_id_;
   geometry_msgs::Pose grasp_pose_;
   geometry_msgs::Pose initial_object_pose_;
   bool grasp_done_;
   double grasp_distance_;
+  double gripper_joint_position_;
 
 };
 

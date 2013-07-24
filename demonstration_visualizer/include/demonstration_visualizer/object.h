@@ -8,6 +8,8 @@
 #include <pr2_collision_checker/pr2_collision_space.h>
 #include <string>
 
+namespace demonstration_visualizer {
+
 class Object{
   public:
     Object();
@@ -23,5 +25,7 @@ class Object{
     std::string label;
 
 };
+
+} // namespace demonstration_visualizer
 
 #endif

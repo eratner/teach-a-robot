@@ -10,6 +10,8 @@
 
 #include <map>
 
+namespace demonstration_visualizer {
+
 class ObjectManager{
   public:
     ObjectManager(std::string rarm_file, std::string larm_file);
@@ -47,5 +49,7 @@ class ObjectManager{
     std::string larm_file_;
     bool load_objects_from_voxels_file_;
 };
+
+} // namespace demonstration_visualizer
 
 #endif

@@ -4,6 +4,8 @@ using namespace std;
 using namespace visualization_msgs;
 using namespace geometry_msgs;
 
+namespace demonstration_visualizer {
+
 ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename){
   rarm_file_ = rarm_filename;
   larm_file_ = larm_filename;
@@ -306,3 +308,4 @@ bool ObjectManager::writeObjectsToOccupiedVoxelsFile(std::string filename)
   return collision_checker_->writeObjectVoxelsToFile(filename);
 }
 
+} // namespace demonstration_visualizer

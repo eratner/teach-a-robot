@@ -1,6 +1,8 @@
-#include<demonstration_visualizer/object.h>
+#include <demonstration_visualizer/object.h>
 #include <boost/lexical_cast.hpp>
 #include <kdl/frames.hpp>
+
+namespace demonstration_visualizer {
 
 Object::Object() {
   movable = false;
@@ -76,3 +78,4 @@ bool Object::checkConstraints(geometry_msgs::Pose p){
   return true;
 }
 
+} // namespace demonstration_visualizer

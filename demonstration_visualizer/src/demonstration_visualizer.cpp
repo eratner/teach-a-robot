@@ -325,6 +325,17 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   grasp_distance_layout->addWidget(grasp_distance_slider_);
   user_controls_layout->addLayout(grasp_distance_layout);
 
+  QHBoxLayout *gripper_position_layout = new QHBoxLayout();
+  QLabel *gripper_position_label = new QLabel("Grasp Position: ");
+  gripper_position_layout->addWidget(gripper_position_label);
+  QSlider *gripper_position = new QSlider(Qt::Horizontal);
+  // @todo make these constants.
+  gripper_position->setMinimum(0);
+  gripper_position->setMaximum(400);
+  gripper_position->setValue(0);
+  gripper_position_layout->addWidget(gripper_position);
+  user_controls_layout->addLayout(gripper_position_layout);
+
   QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
   QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
   fps_x_offset_layout->addWidget(fps_x_offset_label);
@@ -344,17 +355,6 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   fps_z_offset->setValue(0);
   fps_z_offset_layout->addWidget(fps_z_offset);
   user_controls_layout->addLayout(fps_z_offset_layout);
-
-  QHBoxLayout *gripper_position_layout = new QHBoxLayout();
-  QLabel *gripper_position_label = new QLabel("Gripper Position: ");
-  gripper_position_layout->addWidget(gripper_position_label);
-  QSlider *gripper_position = new QSlider(Qt::Horizontal);
-  // @todo make these constants.
-  gripper_position->setMinimum(0);
-  gripper_position->setMaximum(400);
-  gripper_position->setValue(0);
-  gripper_position_layout->addWidget(gripper_position);
-  user_controls_layout->addLayout(gripper_position_layout);
 
   controls_group->setLayout(user_controls_layout);
 
@@ -474,10 +474,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
   connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
+  connect(gripper_position, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
-
-  connect(gripper_position, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
 
   next_mesh_id_ = 3;
   selected_mesh_ = -1;

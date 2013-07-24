@@ -66,7 +66,8 @@ PickUpGoal::PickUpGoal(int goal_number,
 		       const geometry_msgs::Pose &object_pose)
   : Goal(goal_number, description), object_id_(object_id),
     grasp_pose_(grasp), initial_object_pose_(object_pose), 
-    grasp_done_(false), grasp_distance_(0.25)
+    grasp_done_(false), grasp_distance_(0.25), 
+    gripper_joint_position_(0.0)
 {
 
 }
@@ -129,6 +130,16 @@ double PickUpGoal::getGraspDistance() const
 void PickUpGoal::setGraspDistance(double distance)
 {
   grasp_distance_ = distance;
+}
+
+double PickUpGoal::getGripperJointPosition() const
+{
+  return gripper_joint_position_;
+}
+
+void PickUpGoal::setGripperJointPosition(double position)
+{
+  gripper_joint_position_ = position;
 }
 
 PlaceGoal::PlaceGoal()
