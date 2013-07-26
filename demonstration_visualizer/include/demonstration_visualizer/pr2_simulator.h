@@ -17,7 +17,6 @@
 #include <demonstration_visualizer/motion_recorder.h>
 #include <demonstration_visualizer/object_manager.h>
 #include <sbpl_manipulation_components_pr2/pr2_kdl_robot_model.h>
-//#include <sbpl_manipulation_components/kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
 
 #include <Qt>
@@ -209,7 +208,6 @@ private:
   geometry_msgs::PoseStamped goal_pose_;
 
   sbpl_arm_planner::PR2KDLRobotModel kdl_robot_model_;
-  //sbpl_arm_planner::KDLRobotModel kdl_robot_model_;
   KDL::Frame map_in_torso_lift_link_;
   std::map<std::string, int> joints_map_;
 
