@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <boost/filesystem.hpp>
 
 namespace demonstration_visualizer {
 

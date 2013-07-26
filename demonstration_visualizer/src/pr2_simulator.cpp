@@ -760,6 +760,13 @@ void PR2Simulator::resetRobot()
   base_path.action = visualization_msgs::Marker::DELETE;
   base_path.type = visualization_msgs::Marker::LINE_STRIP;
   marker_pub_.publish(base_path);
+
+  // If the simulator is paused, we need to manually update the 
+  // visualization of the robot.
+  if(!isPlaying())
+  {
+    visualizeRobot();
+  }
 }
 
 void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
