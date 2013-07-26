@@ -197,7 +197,8 @@ void DemonstrationVisualizerNode::updateGoals()
 		 goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
 		 roll, pitch, yaw);
 
-	goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose);
+	goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
+	                                               pick_up_goal->getGripperJointPosition());
 
 	// simulator_->attach(pick_up_goal->getObjectID(),
 	// 		   object_in_gripper);

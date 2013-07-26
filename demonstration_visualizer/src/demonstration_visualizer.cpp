@@ -1800,14 +1800,14 @@ void DemonstrationVisualizer::setGripperPosition(int position)
     goal->setGripperJointPosition(p);
     node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
   }
-  else
-  {
-    sensor_msgs::JointState joints;
-    joints.name.push_back("r_gripper_joint");
-    joints.position.push_back(p);
+  // else
+  // {
+  //   sensor_msgs::JointState joints;
+  //   joints.name.push_back("r_gripper_joint");
+  //   joints.position.push_back(p);
 
-    node_.setJointStates(joints);
-  }
+  //   node_.setJointStates(joints);
+  // }
 }
 
 void DemonstrationVisualizer::beginGraspSelection()
@@ -1861,6 +1861,7 @@ void DemonstrationVisualizer::endGraspSelection()
     accept_grasp_button_->setEnabled(false);
     change_grasp_button_->setEnabled(true);
     grasp_distance_slider_->setEnabled(false);
+    gripper_position_slider_->setEnabled(false);
 
     node_.playSimulator();
     node_.enableRobotMarkerControl();

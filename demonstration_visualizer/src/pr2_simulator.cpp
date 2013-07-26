@@ -84,8 +84,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Set the gripper to be open initially.
   joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
-  for(int i = 7; i < 15; ++i)
-    joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
+  for(int i = 0; i < 15; ++i)
+    joint_states_.velocity[i] = joint_states_.effort[i] = 0;
 
   // Create a mapping from joint names to index.
   for(int i = 0; i < 15; ++i)
@@ -804,7 +804,7 @@ void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
   }
 }
 
-bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
+bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose, double gripper_joint)
 {
   if(isValidEndEffectorPose(pose))
   {
@@ -815,14 +815,14 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 
     geometry_msgs::Pose current_pose = end_effector_pose_.pose;
 
-    // DEBUGGING: Find the shortest angular distance between the current and goal 
-    // orientation quaternions.
-    tf::Quaternion curr;
-    tf::quaternionMsgToTF(current_pose.orientation, curr);
-    tf::Quaternion goal;
-    tf::quaternionMsgToTF(pose.orientation, goal);
-    double shortest = (double)curr.angleShortestPath(goal);
-    ROS_ERROR("shortest angular path = %f", shortest);
+    // // DEBUGGING: Find the shortest angular distance between the current and goal 
+    // // orientation quaternions.
+    // tf::Quaternion curr;
+    // tf::quaternionMsgToTF(current_pose.orientation, curr);
+    // tf::Quaternion goal;
+    // tf::quaternionMsgToTF(pose.orientation, goal);
+    // double shortest = (double)curr.angleShortestPath(goal);
+    // ROS_ERROR("shortest angular path = %f", shortest);
 
     // Generate an interpolation of end-effector poses from the current
     // pose to the specified pose.
@@ -847,8 +847,8 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
     int_marker_server_->applyChanges();
 
     sensor_msgs::JointState joint_state;
-    joint_state.name.resize(7);
-    joint_state.position.resize(7);
+    joint_state.name.resize(8);
+    joint_state.position.resize(8);
     joint_state.name[0] = "r_shoulder_pan_joint";
     joint_state.name[1] = "r_shoulder_lift_joint";
     joint_state.name[2] = "r_upper_arm_roll_joint";
@@ -856,6 +856,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
     joint_state.name[4] = "r_forearm_roll_joint";
     joint_state.name[5] = "r_wrist_flex_joint";
     joint_state.name[6] = "r_wrist_roll_joint";
+    joint_state.name[7] = "r_gripper_joint";
     std::vector<double> r_arm_joints(7, 0);
     std::vector<double> r_arm_solution(7, 0);
     for(int i = 7; i < 14; ++i)
@@ -895,7 +896,6 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 						    current_pose.orientation.z,
 						    current_pose.orientation.w);
       rot.GetRPY(roll, pitch, yaw);
-      // ROS_INFO("next RPY = (%f, %f, %f)", roll, pitch, yaw);
       ROS_INFO("Pose %d: (%f, %f, %f), (%f, %f, %f).", i+1, 
 	       end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
 	       roll, pitch, yaw);
@@ -910,35 +910,23 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 	joint_state.position[j] = r_arm_solution[j];
 	r_arm_joints[j] = r_arm_solution[j];
       }
+      joint_state.position[7] = joint_states_.position[14];
+      ROS_INFO("r_gripper_joint position %d: %f", i, joint_state.position[14]);
 
       snap_motion_.push_back(joint_state);
     }
 
+    // Also, spend 0.5 s (@todo make this a parameter/make smarter) adjusting to the proper 
+    // gripper joint position.
+    double delta = (gripper_joint - joint_states_.position[14])/static_cast<int>(0.5 * getFrameRate());
+    for(int i = 0; i < static_cast<int>(0.5 * getFrameRate()); ++i)
+    {
+      joint_state.position[7] += delta;
+      ROS_INFO("r_gripper_joint position %d: %f.", i, joint_state.position[7]);
+      snap_motion_.push_back(joint_state);
+    }
+	  
     ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", int(snap_motion_.size()));
-
-    // // Set the current end-effector pose to the last pose in the interpolation.
-    // std::vector<double> fk_joints(7, 0);
-    // for(int i = 0; i < 7; ++i)
-    // {
-    //   fk_joints[i] = snap_motion_.back().position[i];
-    // }
-
-    // std::vector<double> fk_pose;
-    // if(!kdl_robot_model_.computePlanningLinkFK(fk_joints, fk_pose))
-    // {
-    //   ROS_ERROR("[PR2Sim] Failed to compute FK in end-effector snap to!");
-    // }
-    // else
-    // {
-    //   ROS_INFO("[PR2Sim] Updating end-effector pose after snap motion to (%f, %f, %f), (%f, %f, %f).",
-    // 	       fk_pose[0], fk_pose[1], fk_pose[2], fk_pose[3], fk_pose[4], fk_pose[5]);
-    //   end_effector_pose_.pose.position.x = fk_pose[0];
-    //   end_effector_pose_.pose.position.y = fk_pose[1];
-    //   end_effector_pose_.pose.position.z = fk_pose[2];
-    //   end_effector_pose_.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(fk_pose[3], 
-    // 										    fk_pose[4],
-    // 										    fk_pose[5]);
-    // }
 
     return true;
   }

@@ -102,7 +102,8 @@ public:
    * @brief Generates and executes an interpolated trajectory for the end-
    *        effector between its current pose and the specified goal pose.
    */
-  bool snapEndEffectorTo(const geometry_msgs::Pose &pose);
+  bool snapEndEffectorTo(const geometry_msgs::Pose &pose,
+                         double gripper_joint = EndEffectorController::GRIPPER_OPEN_ANGLE);
 
   bool isSnapDone() const;
 
