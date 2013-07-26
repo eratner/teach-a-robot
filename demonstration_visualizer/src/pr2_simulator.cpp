@@ -77,12 +77,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[8] = 0.655300;
   joint_states_.position[9] = 0.000000;
   joint_states_.position[10] = -1.517650;
-  // joint_states_.position[11] = -3.138816;
-  // joint_states_.position[12] = -0.862352;
-  // joint_states_.position[13] = 3.139786;
-  joint_states_.position[11] = 0.0;
-  joint_states_.position[12] = 0.0;
-  joint_states_.position[13] = 0.0;
+  joint_states_.position[11] = -3.138816;
+  joint_states_.position[12] = -0.862352;
+  joint_states_.position[13] = 3.139786;
+  
+  // Set the gripper to be open initially.
+  joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
   for(int i = 7; i < 15; ++i)
     joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
@@ -732,6 +732,8 @@ void PR2Simulator::resetRobot()
   joint_states_.position[12] = -0.862352;
   // joint_states_.position[13] = 3.139786;
   joint_states_.position[13] = 0.0;
+
+  joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
   updateEndEffectorPose();
 

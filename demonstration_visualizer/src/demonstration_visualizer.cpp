@@ -328,12 +328,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QHBoxLayout *gripper_position_layout = new QHBoxLayout();
   QLabel *gripper_position_label = new QLabel("Grasp Position: ");
   gripper_position_layout->addWidget(gripper_position_label);
-  QSlider *gripper_position = new QSlider(Qt::Horizontal);
+  gripper_position_slider_ = new QSlider(Qt::Horizontal);
   // @todo make these constants.
-  gripper_position->setMinimum(0);
-  gripper_position->setMaximum(400);
-  gripper_position->setValue(0);
-  gripper_position_layout->addWidget(gripper_position);
+  gripper_position_slider_->setMinimum(0);
+  gripper_position_slider_->setMaximum(548);
+  gripper_position_slider_->setValue(0);
+  gripper_position_slider_->setEnabled(false);
+  gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
   QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
@@ -474,7 +475,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
   connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
-  connect(gripper_position, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
+  connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -577,7 +578,7 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::Wheel)
   {
-    if(camera_mode_ == FPS || camera_mode_ == TOP_DOWN)
+    if(camera_mode_ == FPS || camera_mode_ == TOP_DOWN || camera_mode_ == TOP_DOWN_FPS)
       return true;
     else if(camera_mode_ == ORBIT || camera_mode_ == AUTO)
     {
@@ -619,23 +620,23 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     switch(mouse_event->button())
     {
     case Qt::MiddleButton:
+    {
+      if(camera_mode_ != ORBIT)
       {
-	if(camera_mode_ != ORBIT)
-	{
-	  return true;
-	}
-
-	break;
+	return true;
       }
+
+      break;
+    }
     case Qt::RightButton:
+    {
+      if(camera_mode_ != ORBIT)
       {
-	if(camera_mode_ != ORBIT)
-	{
-	  return true;
-	}
-
-	break;
+	return true;
       }
+
+      break;
+    }
     default:
       break;
     }
@@ -644,24 +645,24 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::MouseButtonRelease)
   {
-     // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
-     // switch(mouse_event->button())
-     // {
-     // case Qt::MiddleButton:
-     //   {
-     // 	if(camera_mode_ == FPS ||
-     // 	   camera_mode_ == TOP_DOWN ||
-     // 	   camera_mode_ == AUTO ||
-     // 	   camera_mode_ == GOAL)
-     // 	{
-     // 	  return true;
-     // 	}
+    // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
+    // switch(mouse_event->button())
+    // {
+    // case Qt::MiddleButton:
+    //   {
+    // 	if(camera_mode_ == FPS ||
+    // 	   camera_mode_ == TOP_DOWN ||
+    // 	   camera_mode_ == AUTO ||
+    // 	   camera_mode_ == GOAL)
+    // 	{
+    // 	  return true;
+    // 	}
 
-     // 	break;
-     //   }
-     // default:
-     //   break;
-     // }
+    // 	break;
+    //   }
+    // default:
+    //   break;
+    // }
 
     return QObject::eventFilter(obj, event);
   }
@@ -1822,11 +1823,13 @@ void DemonstrationVisualizer::beginGraspSelection()
     change_grasp_button_->setEnabled(false);
 
   grasp_distance_slider_->setEnabled(true);
+  gripper_position_slider_->setEnabled(true);
 
   // Set the distance slider to the goal's current distance.
   int current_goal = node_.getSceneManager()->getCurrentGoal();
   PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
   grasp_distance_slider_->setValue(static_cast<int>(goal->getGraspDistance()*100.0));
+  gripper_position_slider_->setValue(static_cast<int>(goal->getGripperJointPosition()*1000.0));
 
   camera_before_grasp_ = camera_mode_;
   changeCameraMode(GOAL);
