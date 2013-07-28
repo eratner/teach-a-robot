@@ -103,7 +103,8 @@ public:
    *        effector between its current pose and the specified goal pose.
    */
   bool snapEndEffectorTo(const geometry_msgs::Pose &pose,
-                         double gripper_joint = EndEffectorController::GRIPPER_OPEN_ANGLE);
+                         double gripper_joint = EndEffectorController::GRIPPER_OPEN_ANGLE,
+                         bool snap_attached_object = false);
 
   bool isSnapDone() const;
 
@@ -135,6 +136,13 @@ public:
   void attach(int id, KDL::Frame transform);
 
   void detach();
+
+  /**
+   * @brief If an object is attached to the (right) end-effector, this will
+   *        return the object_in_gripper transform (i.e. the gripper to 
+   *        object transform.)
+   */
+  KDL::Frame getAttachedTransform() const;
 
   void showEndEffectorWorkspaceArc();
 
@@ -216,6 +224,7 @@ private:
 
   std::vector<sensor_msgs::JointState> snap_motion_;
   int snap_motion_count_;
+  bool snap_object_;
 
   bool moving_gripper_marker_;
   bool move_robot_markers_;

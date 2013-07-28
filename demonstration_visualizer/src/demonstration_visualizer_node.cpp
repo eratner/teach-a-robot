@@ -132,119 +132,167 @@ void DemonstrationVisualizerNode::updateGoals()
   switch(current_goal->getType())
   {
   case Goal::PICK_UP:
-    {
-      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
-      bool goal_reachable = true;
+  {
+    PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
+    bool goal_reachable = true;
       
-      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose(), 0.05))
-      {
-	ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
-
-	geometry_msgs::Pose object_pose = getSceneManager()->getObjectPose(pick_up_goal->getObjectID());
-	geometry_msgs::Pose gripper_pose = pick_up_goal->getGraspPose();
-	KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_pose.orientation.x,
-							   object_pose.orientation.y,
-							   object_pose.orientation.z,
-							   object_pose.orientation.w),
-				 KDL::Vector(object_pose.position.x,
-					     object_pose.position.y,
-					     object_pose.position.z)
-				 );
-	KDL::Frame marker_in_map(KDL::Rotation::Quaternion(gripper_pose.orientation.x,
-							   gripper_pose.orientation.y,
-							   gripper_pose.orientation.z,
-							   gripper_pose.orientation.w),
-				 KDL::Vector(gripper_pose.position.x,
-					     gripper_pose.position.y,
-					     gripper_pose.position.z)
-				 );
-	KDL::Frame gripper_in_marker(KDL::Rotation::Identity(),
-				     KDL::Vector(-1.0*pick_up_goal->getGraspDistance(),
-						 0.0,
-						 0.0)
-				     );
-	KDL::Frame gripper_in_map = marker_in_map * gripper_in_marker;
-
-	KDL::Frame object_in_gripper = gripper_in_map.Inverse() * object_in_map;
-	    
-	// Get the pose of the gripper in the base frame.
-	geometry_msgs::Pose base_pose = simulator_->getBasePose();
-	KDL::Frame base_in_map(KDL::Rotation::Quaternion(base_pose.orientation.x,
-							 base_pose.orientation.y,
-							 base_pose.orientation.z,
-							 base_pose.orientation.w),
-			       KDL::Vector(base_pose.position.x,
-					   base_pose.position.y,
-					   base_pose.position.z)
-			       );
-
-	KDL::Frame gripper_in_base = base_in_map.Inverse() * gripper_in_map;
-	  
-	geometry_msgs::Pose goal_gripper_pose;
-	goal_gripper_pose.position.x = gripper_in_base.p.x();
-	goal_gripper_pose.position.y = gripper_in_base.p.y();
-	goal_gripper_pose.position.z = gripper_in_base.p.z();
-	double x, y, z, w;
-	gripper_in_base.M.GetQuaternion(x, y, z, w);
-	goal_gripper_pose.orientation.x = x;
-	goal_gripper_pose.orientation.y = y;
-	goal_gripper_pose.orientation.z = z;
-	goal_gripper_pose.orientation.w = w;
-
-	double roll, pitch, yaw;
-	gripper_in_base.M.GetRPY(roll, pitch, yaw);
-	ROS_INFO("[DVizNode] Goal reached, snapping end-effector to grasp pose (%f, %f, %f), (%f, %f, %f).",
-		 goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
-		 roll, pitch, yaw);
-
-	goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
-	                                               pick_up_goal->getGripperJointPosition());
-
-	// simulator_->attach(pick_up_goal->getObjectID(),
-	// 		   object_in_gripper);
-
-	object_in_gripper.M.GetRPY(roll, pitch, yaw);
-	ROS_INFO("object in gripper = (%f, %f, %f), (%f, %f, %f)", object_in_gripper.p.x(),
-		 object_in_gripper.p.y(), object_in_gripper.p.z(), roll, pitch, yaw);
-
-	if(goal_reachable)
-	{
-	  simulator_->attach(pick_up_goal->getObjectID(), object_in_gripper);
-	  
-	  Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
-
-	  getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
-	}
-	else
-	{
-	  ROS_ERROR("Unable to reach goal %d!", getSceneManager()->getCurrentGoal());
-	}
-      }
-
-      break;
-    }
-  case Goal::PLACE:
+    if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose(), 0.05))
     {
-      PlaceGoal *place_goal = static_cast<PlaceGoal *>(current_goal);
-      geometry_msgs::Pose object_pose = object_manager_->getMarker(place_goal->getObjectID()).pose;
-      if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), object_pose, 0.08))
+      ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
+
+      geometry_msgs::Pose object_pose = getSceneManager()->getObjectPose(pick_up_goal->getObjectID());
+      geometry_msgs::Pose gripper_pose = pick_up_goal->getGraspPose();
+      KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_pose.orientation.x,
+							 object_pose.orientation.y,
+							 object_pose.orientation.z,
+							 object_pose.orientation.w),
+			       KDL::Vector(object_pose.position.x,
+					   object_pose.position.y,
+					   object_pose.position.z)
+	);
+      KDL::Frame marker_in_map(KDL::Rotation::Quaternion(gripper_pose.orientation.x,
+							 gripper_pose.orientation.y,
+							 gripper_pose.orientation.z,
+							 gripper_pose.orientation.w),
+			       KDL::Vector(gripper_pose.position.x,
+					   gripper_pose.position.y,
+					   gripper_pose.position.z)
+	);
+      KDL::Frame gripper_in_marker(KDL::Rotation::Identity(),
+				   KDL::Vector(-1.0*pick_up_goal->getGraspDistance(),
+					       0.0,
+					       0.0)
+	);
+      KDL::Frame gripper_in_map = marker_in_map * gripper_in_marker;
+
+      KDL::Frame object_in_gripper = gripper_in_map.Inverse() * object_in_map;
+	    
+      // Get the pose of the gripper in the base frame.
+      geometry_msgs::Pose base_pose = simulator_->getBasePose();
+      KDL::Frame base_in_map(KDL::Rotation::Quaternion(base_pose.orientation.x,
+						       base_pose.orientation.y,
+						       base_pose.orientation.z,
+						       base_pose.orientation.w),
+			     KDL::Vector(base_pose.position.x,
+					 base_pose.position.y,
+					 base_pose.position.z)
+	);
+
+      KDL::Frame gripper_in_base = base_in_map.Inverse() * gripper_in_map;
+	  
+      geometry_msgs::Pose goal_gripper_pose;
+      goal_gripper_pose.position.x = gripper_in_base.p.x();
+      goal_gripper_pose.position.y = gripper_in_base.p.y();
+      goal_gripper_pose.position.z = gripper_in_base.p.z();
+      double x, y, z, w;
+      gripper_in_base.M.GetQuaternion(x, y, z, w);
+      goal_gripper_pose.orientation.x = x;
+      goal_gripper_pose.orientation.y = y;
+      goal_gripper_pose.orientation.z = z;
+      goal_gripper_pose.orientation.w = w;
+
+      double roll, pitch, yaw;
+      gripper_in_base.M.GetRPY(roll, pitch, yaw);
+      ROS_INFO("[DVizNode] Goal reached, snapping end-effector to grasp pose (%f, %f, %f), (%f, %f, %f).",
+	       goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
+	       roll, pitch, yaw);
+
+      goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
+						     pick_up_goal->getGripperJointPosition());
+
+      // simulator_->attach(pick_up_goal->getObjectID(),
+      // 		   object_in_gripper);
+
+      object_in_gripper.M.GetRPY(roll, pitch, yaw);
+      ROS_INFO("object in gripper = (%f, %f, %f), (%f, %f, %f)", object_in_gripper.p.x(),
+	       object_in_gripper.p.y(), object_in_gripper.p.z(), roll, pitch, yaw);
+
+      if(goal_reachable)
       {
-	simulator_->detach();
-
-	// Snap the object to the place pose.
-	object_manager_->moveObject(place_goal->getObjectID(), place_goal->getPlacePose());
-
-	// Reset the orientation of the gripper.
-	// ROS_INFO("Resetting right gripper orientation...");
-	// simulator_->resetGripperOrientation();
-	
+	simulator_->attach(pick_up_goal->getObjectID(), object_in_gripper);
+	  
 	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
 	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
       }
-	
-      break;
+      else
+      {
+	ROS_ERROR("Unable to reach goal %d!", getSceneManager()->getCurrentGoal());
+      }
     }
+
+    break;
+  }
+  case Goal::PLACE:
+  {
+    PlaceGoal *place_goal = static_cast<PlaceGoal *>(current_goal);
+    geometry_msgs::Pose object_pose = object_manager_->getMarker(place_goal->getObjectID()).pose;
+    bool goal_reachable = true;
+
+    if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), object_pose, 0.08))
+    {
+      // Snap the gripper to the correct position so that the object that it is holding moves 
+      // smoothly to the goal pose. 
+      geometry_msgs::Pose object_goal_pose = place_goal->getPlacePose();
+      KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_goal_pose.orientation.x,
+							 object_goal_pose.orientation.y,
+							 object_goal_pose.orientation.z,
+							 object_goal_pose.orientation.w),
+			       KDL::Vector(object_goal_pose.position.x,
+					   object_goal_pose.position.y,
+					   object_goal_pose.position.z));
+
+      KDL::Frame object_in_gripper = simulator_->getAttachedTransform();
+
+      KDL::Frame gripper_in_map = object_in_map * object_in_gripper.Inverse();
+
+      geometry_msgs::Pose base_pose = simulator_->getBasePose();
+
+      KDL::Frame base_in_map(KDL::Rotation::Quaternion(base_pose.orientation.x,
+						       base_pose.orientation.y,
+						       base_pose.orientation.z,
+						       base_pose.orientation.w),
+			     KDL::Vector(base_pose.position.x,
+					 base_pose.position.y,
+					 base_pose.position.z));
+
+      KDL::Frame gripper_in_base = base_in_map.Inverse() * gripper_in_map;
+      geometry_msgs::Pose goal_gripper_pose;
+      goal_gripper_pose.position.x = gripper_in_base.p.x();
+      goal_gripper_pose.position.y = gripper_in_base.p.y();
+      goal_gripper_pose.position.z = gripper_in_base.p.z();
+      double x, y, z, w;
+      gripper_in_base.M.GetQuaternion(x, y, z, w);
+      goal_gripper_pose.orientation.x = x;
+      goal_gripper_pose.orientation.y = y;
+      goal_gripper_pose.orientation.z = z;
+      goal_gripper_pose.orientation.w = w;
+
+      ROS_INFO("current gripper position = (%f, %f, %f); goal gripper position = (%f, %f, %f)",
+	       getEndEffectorPose().position.x, getEndEffectorPose().position.y, getEndEffectorPose().position.z,
+	       goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z);
+
+      // @todo set the correct gripper joint position (2nd argument).
+      goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
+						     0.0,
+						     true);
+
+      simulator_->detach();
+
+      // Snap the object to the place pose.
+      // object_manager_->moveObject(place_goal->getObjectID(), place_goal->getPlacePose());
+
+      // Reset the orientation of the gripper.
+      // ROS_INFO("Resetting right gripper orientation...");
+      // simulator_->resetGripperOrientation();
+	
+      Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+
+      getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
+    }
+	
+    break;
+  }
   default:
     break;
   }
