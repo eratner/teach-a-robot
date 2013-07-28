@@ -984,6 +984,11 @@ std::vector<visualization_msgs::Marker> DemonstrationSceneManager::getMeshes() c
   return object_manager_->getMarkers();
 }
 
+visualization_msgs::Marker DemonstrationSceneManager::getMeshMarker(int mesh_id) const
+{
+  return object_manager_->getMarker(mesh_id);
+}
+
 std::vector<Object> DemonstrationSceneManager::getObjects() const
 {
   return object_manager_->getObjects();

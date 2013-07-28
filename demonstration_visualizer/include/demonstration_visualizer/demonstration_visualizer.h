@@ -247,6 +247,7 @@ private:
   std::map<int, std::string> mesh_names_;
   int                        next_mesh_id_;
   int                        selected_mesh_;
+  QSlider                    *scale_mesh_slider_;
 
   QLabel                     *recording_icon_;
   QLabel                     *replaying_icon_;

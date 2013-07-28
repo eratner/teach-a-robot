@@ -167,11 +167,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QHBoxLayout *scale_mesh_panel = new QHBoxLayout();
   QLabel *scale_mesh_label = new QLabel("Scale Mesh: ");
   scale_mesh_panel->addWidget(scale_mesh_label);
-  QSlider *scale_mesh = new QSlider(Qt::Horizontal);
-  scale_mesh->setMinimum(1);
-  scale_mesh->setMaximum(5000);
-  scale_mesh->setValue(100);
-  scale_mesh_panel->addWidget(scale_mesh);
+  scale_mesh_slider_ = new QSlider(Qt::Horizontal);
+  scale_mesh_slider_->setMinimum(1);
+  scale_mesh_slider_->setMaximum(5000);
+  scale_mesh_slider_->setValue(100);
+  scale_mesh_panel->addWidget(scale_mesh_slider_);
 
   rviz::ToolManager *tool_manager = visualization_manager_->getToolManager();
   ROS_INFO("There are %d tools loaded:", tool_manager->numTools());
@@ -447,7 +447,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   connect(start_button_, SIGNAL(clicked()), this, SLOT(startBasicMode()));
   connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
-  connect(scale_mesh, SIGNAL(valueChanged(int)), this, SLOT(scaleMesh(int)));
+  connect(scale_mesh_slider_, SIGNAL(valueChanged(int)), this, SLOT(scaleMesh(int)));
   connect(play, SIGNAL(clicked()), this, SLOT(playSimulator()));
   connect(pause, SIGNAL(clicked()), this, SLOT(pauseSimulator()));
 
@@ -1087,6 +1087,8 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
   {
     ROS_INFO("[DViz] Selected mesh %d.", (int)select_mesh_->itemData(mesh_index+1).value<int>());
     selected_mesh_ = select_mesh_->itemData(mesh_index+1).value<int>();
+
+    scale_mesh_slider_->setValue((int)(node_.getSceneManager()->getMeshMarker(selected_mesh_).scale.x * 1000.0));
   }
 }
 
