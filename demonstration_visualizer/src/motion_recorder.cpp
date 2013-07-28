@@ -20,7 +20,7 @@ MotionRecorder::~MotionRecorder()
 
 }
 
-void MotionRecorder::beginRecording(const std::string &path)
+bool MotionRecorder::beginRecording(const std::string &path)
 {
   if(!is_recording_)
   {
@@ -30,9 +30,25 @@ void MotionRecorder::beginRecording(const std::string &path)
     file_path << path << "/motion" << bag_count_ << ".bag";
     write_bag_path_ = file_path.str();
     bag_count_++;
-    write_bag_.open(file_path.str(), rosbag::bagmode::Write);
+    try
+    {
+      write_bag_.open(file_path.str(), rosbag::bagmode::Write);
+    }
+    catch(const rosbag::BagException &e)
+    {
+      ROS_ERROR("[MotionRec] Failed to open bagfile %s: %s", file_path.str().c_str(), e.what());
+      return false;
+    }
+
     ROS_INFO("[MotionRec] Beginning to record motion to %s.", file_path.str().c_str());
   }
+  else
+  {
+    ROS_ERROR("[MotionRec] Cannot begin recording while replaying a bagfile!");
+    return false;
+  }
+
+  return true;
 }
 
 void MotionRecorder::endRecording()
@@ -45,17 +61,32 @@ void MotionRecorder::endRecording()
     ROS_INFO("[MotionRec] Recording finished with %d messages.", write_bag_.getSize());
     write_bag_.close();
 
-    base_path_ = getBasePath(write_bag_path_);
+    if(!getBasePath(write_bag_path_, base_path_))
+    {
+      ROS_ERROR("[MotionRec] Error constructing the base path for the latest recording!");
+    }
   }
 }
 
-void MotionRecorder::beginReplay(const std::string &file)
+bool MotionRecorder::beginReplay(const std::string &file)
 {
-  base_path_ = getBasePath(file);
+  if(!getBasePath(file, base_path_))
+  {
+    ROS_ERROR("[MotionRec] Error constructing the base path from bagfile %s!", file.c_str());
+    return false;
+  }
 
   // Load appropriate bag file, and populate a vector of PoseStamped messages to 
   // send to the robot simulator.
-  read_bag_.open(file, rosbag::bagmode::Read);
+  try
+  {
+    read_bag_.open(file, rosbag::bagmode::Read);
+  }
+  catch(const rosbag::BagException &e)
+  {
+    ROS_ERROR("[MotionRec] Failed to open bagfile %s: %s", file.c_str(), e.what());
+    return false;
+  }
 
   rosbag::View poses_view(read_bag_, rosbag::TopicQuery("/base_pose"));
   poses_.clear();
@@ -90,6 +121,8 @@ void MotionRecorder::beginReplay(const std::string &file)
 
   if(!is_replaying_)
     is_replaying_ = true;
+
+  return true;
 }
 
 void MotionRecorder::endReplay()
@@ -97,9 +130,9 @@ void MotionRecorder::endReplay()
   is_replaying_ = false;
 }
 
-visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
+bool MotionRecorder::getBasePath(const std::string &file, visualization_msgs::Marker &base_path)
 {
-  visualization_msgs::Marker base_path;
+  // visualization_msgs::Marker base_path;
   base_path.header.frame_id = "/map";
   base_path.header.stamp = ros::Time::now();
   base_path.ns = "motion_rec";
@@ -112,7 +145,15 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
   base_path.color.a = 0.8;
 
   rosbag::Bag bag;
-  bag.open(file, rosbag::bagmode::Read);
+  try
+  {
+    bag.open(file, rosbag::bagmode::Read);
+  }
+  catch(const rosbag::BagException &e)
+  {
+    ROS_ERROR("[MotionRec] Failed to open %s when constructing base path: %s", file.c_str(), e.what());
+    return false;
+  }
 
   rosbag::View poses_view(bag, rosbag::TopicQuery("/base_pose"));
 
@@ -143,7 +184,8 @@ visualization_msgs::Marker MotionRecorder::getBasePath(const std::string &file)
 
   bag.close();
 
-  return base_path;
+  // return base_path;
+  return true;
 }
 
 visualization_msgs::Marker MotionRecorder::getBasePath()

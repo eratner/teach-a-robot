@@ -331,7 +331,11 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
   }
   else
   {
-    base_path = recorder_->getBasePath(filename);
+    if(!recorder_->getBasePath(filename, base_path))
+    {
+      ROS_ERROR("[DVizNode] Error getting the base path!");
+      return;
+    }
   }
   
   marker_pub_.publish(base_path);

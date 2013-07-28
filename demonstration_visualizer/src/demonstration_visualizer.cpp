@@ -169,7 +169,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   scale_mesh_panel->addWidget(scale_mesh_label);
   QSlider *scale_mesh = new QSlider(Qt::Horizontal);
   scale_mesh->setMinimum(1);
-  scale_mesh->setMaximum(200);
+  scale_mesh->setMaximum(5000);
   scale_mesh->setValue(100);
   scale_mesh_panel->addWidget(scale_mesh);
 
@@ -820,13 +820,23 @@ void DemonstrationVisualizer::loadMesh()
       break;
   }
 
-  std::string mesh_name = resource_path.str().substr(i+1);
+  int offset = 0;
+  for(int j = i; j < resource_path.str().size(); ++j)
+  {
+    if(resource_path.str()[j] == '.')
+      break;
+    else
+      offset++;
+  }
+
+  std::string mesh_name = resource_path.str().substr(i+1, offset-1);
+  ROS_INFO("[DViz] Assigning the name \"%s\".", mesh_name.c_str());
   mesh_names_.insert(std::pair<int, std::string>(next_mesh_id_, resource_path.str()));
   next_mesh_id_++;
 
   select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(next_mesh_id_-1));
 
-  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1);
+  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1, mesh_name);
 }
 
 void DemonstrationVisualizer::deleteMesh()
@@ -1088,7 +1098,7 @@ void DemonstrationVisualizer::scaleMesh(int value)
     return;
   }
 
-  double scale_factor = value/100.0;
+  double scale_factor = value/1000.0;
 
   ROS_INFO("[DViz] Scaling mesh %d by a factor of %f.", 
 	   select_mesh_->itemData(select_mesh_->currentIndex()).value<int>(),

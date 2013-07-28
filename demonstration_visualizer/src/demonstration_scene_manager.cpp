@@ -396,6 +396,8 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
     ROS_INFO("[SceneManager] Checking if %s exists...", ss.str().c_str());
     if(!boost::filesystem::exists(ss.str()))
     {
+      ROS_INFO("...it doesn't.");
+
       TiXmlDocument cm_file;
       TiXmlElement *cm_file_root = new TiXmlElement("collision_model");
       cm_file.LinkEndChild(cm_file_root);
@@ -680,7 +682,7 @@ void DemonstrationSceneManager::resetTask()
   setGoalsChanged();
 }
 
-void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int mesh_id)
+void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label)
 {
   // Spawn the mesh at the origin.
   geometry_msgs::PoseStamped pose_stamped;
@@ -709,18 +711,21 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int
 
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker, 
 					bool attach_interactive_marker,
+					const std::string &label,
 					const std::string &sphere_list_path)
 {
   if(!sphere_list_path.empty())
   {
     // Add a movable object.
     Object o = Object(marker, sphere_list_path);
+    o.label = label;
     object_manager_->addObject(o);
   }
   else
   {
     // Add a nonmovable object.
     Object o = Object(marker);
+    o.label = label;
     object_manager_->addObject(o);
   }
 
