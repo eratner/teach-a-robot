@@ -80,12 +80,17 @@ std::string DemonstrationVisualizerNode::getWorldFrame() const
 
 void DemonstrationVisualizerNode::pauseSimulator()
 {
-  return simulator_->pause();
+  simulator_->pause();
+}
+
+void DemonstrationVisualizerNode::pauseSimulatorLater()
+{
+  simulator_->pauseLater();
 }
 
 void DemonstrationVisualizerNode::playSimulator()
 {
-  return simulator_->play();
+  simulator_->play();
 }
 
 void DemonstrationVisualizerNode::run()

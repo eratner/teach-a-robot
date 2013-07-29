@@ -43,9 +43,22 @@ public:
 
   double getFrameRate() const;
 
+  /**
+   * @brief Play the simulator.
+   */
   void play();
   
+  /**
+   * @brief Pause the simulator now.
+   */
   void pause();
+
+  /**
+   * @brief Pause the simulator later, after all snap motions have been 
+   *        completed. This is a safer way to pause the simulator if we 
+   *        do not want to cut short any snap motions.
+   */
+  void pauseLater();
 
   bool isPlaying() const;
 
@@ -228,6 +241,8 @@ private:
 
   bool moving_gripper_marker_;
   bool move_robot_markers_;
+
+  bool pause_requested_;
 
 };
 

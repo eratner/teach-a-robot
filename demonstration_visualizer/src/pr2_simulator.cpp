@@ -233,6 +233,11 @@ void PR2Simulator::pause()
   end_effector_marker_vel_.linear.z = 0;
 }
 
+void PR2Simulator::pauseLater()
+{
+  pause_requested_ = true;
+}
+
 bool PR2Simulator::isPlaying() const
 {
   return playing_;
@@ -284,6 +289,13 @@ void PR2Simulator::run()
     }
     else if(!recorder_->isReplaying())
     {
+      if(pause_requested_)
+      {
+	pause();
+	pause_requested_ = false;
+	return;
+      }
+
       moveRobot();
     }
 

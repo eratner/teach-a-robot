@@ -40,8 +40,19 @@ public:
 
   std::string getWorldFrame() const;
 
+  /**
+   * @see PR2Simulator::pause().
+   */
   void pauseSimulator();
+
+  /**
+   * @see PR2Simulator::pauseLater().
+   */
+  void pauseSimulatorLater();
   
+  /**
+   * @see PR2Simulator::play().
+   */
   void playSimulator();
 
   void run();
