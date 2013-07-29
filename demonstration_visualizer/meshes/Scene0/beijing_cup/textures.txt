@@ -1,0 +1,3 @@
+<texture0.jpg> <texture0.jpg>
+<texture0.png> <texture0.png>
+<texture1.png> <texture1.png>

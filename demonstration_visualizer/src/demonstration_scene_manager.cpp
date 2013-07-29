@@ -376,6 +376,7 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
 
     mesh->SetAttribute("id", it->mesh_marker_.id);
     mesh->SetAttribute("label", it->label);
+    ROS_INFO("label = %s", it->label.c_str());
     mesh->SetDoubleAttribute("position_x", it->mesh_marker_.pose.position.x);
     mesh->SetDoubleAttribute("position_y", it->mesh_marker_.pose.position.y);
     mesh->SetDoubleAttribute("position_z", it->mesh_marker_.pose.position.z);
@@ -706,7 +707,7 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int
 						     0.0,
 						     true);
 
-  addMesh(marker, true);
+  addMesh(marker, true, label);
 }
 
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker, 

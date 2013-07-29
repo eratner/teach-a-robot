@@ -274,7 +274,7 @@ void DemonstrationVisualizerNode::updateGoals()
 
       // @todo set the correct gripper joint position (2nd argument).
       goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
-						     0.0,
+						     EndEffectorController::GRIPPER_OPEN_ANGLE,
 						     true);
 
       simulator_->detach();

@@ -107,7 +107,25 @@ void AddGoalDialog::goalTypeChanged(int type)
 
 void AddGoalDialog::objectChanged(int id)
 {
-  object_id_ = objects_[id].mesh_marker_.id;
+  int i = -1;
+  std::vector<Object>::iterator it;
+  for(it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    if(it->movable)
+      i++;
+
+    if(i == id)
+      break;
+  }
+
+  if(i < 0 || it == objects_.end())
+  {
+    ROS_ERROR("[AddGoalDialog] An error has occured in selecting the object!");
+    return;
+  }
+
+  // object_id_ = objects_[id].mesh_marker_.id;
+  object_id_ = it->mesh_marker_.id;
 }
 
 void AddGoalDialog::setDescription(const QString &description)
