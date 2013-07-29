@@ -90,6 +90,8 @@ public:
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 
+  visualization_msgs::Marker getMeshMarker(int mesh_id) const;
+
   std::vector<Object> getObjects() const;
 
   std::vector<Goal *> getGoals() const;

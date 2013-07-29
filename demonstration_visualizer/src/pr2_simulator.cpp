@@ -256,6 +256,30 @@ void PR2Simulator::run()
     {
       ROS_INFO("[PR2Sim] Executing a snap motion (%d)...", snap_motion_count_);
       setJointStates(snap_motion_[snap_motion_count_]);
+
+      // @todo we should not have to call updateEndEffectorPose() twice per iteration 
+      // (inefficient).
+      if(snap_object_)
+      {
+	updateEndEffectorPose();
+	std::vector<double> end_effector_pose(7, 0);
+	end_effector_pose[0] = end_effector_pose_.pose.position.x;
+	end_effector_pose[1] = end_effector_pose_.pose.position.y;
+	end_effector_pose[2] = end_effector_pose_.pose.position.z;
+	end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
+	end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
+	end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
+	end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
+	BodyPose body_pose;
+	body_pose.x = base_pose_.pose.position.x;
+	body_pose.y = base_pose_.pose.position.y;
+	body_pose.z = 0.0;
+	body_pose.theta = tf::getYaw(base_pose_.pose.orientation);
+	geometry_msgs::Pose object_pose;
+	computeObjectPose(end_effector_pose, body_pose, object_pose);
+	object_manager_->moveObject(attached_id_, object_pose);
+      }
+
       snap_motion_count_++;
     }
     else if(!recorder_->isReplaying())
@@ -490,8 +514,8 @@ void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_m
   KDL::Frame eef_in_base(KDL::Rotation::Quaternion(eef[3],eef[4],eef[5],eef[6]),
                          KDL::Vector(eef[0],eef[1],eef[2]));
 
-  double r, p, y;
-  eef_in_base.M.GetRPY(r, p, y);
+  // double r, p, y;
+  // eef_in_base.M.GetRPY(r, p, y);
   // ROS_INFO("computeObjectPose() end effector pose in base (%f, %f, %f), (%f, %f, %f)",
   // 	   eef[0], eef[1], eef[2], r, p, y);
 
@@ -811,10 +835,14 @@ void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
   }
 }
 
-bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose, double gripper_joint)
+bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose, 
+				     double gripper_joint, 
+				     bool snap_attached_object)
 {
   if(isValidEndEffectorPose(pose))
   {
+    snap_object_ = snap_attached_object;
+
     // @todo sometimes the key release command gets lost
     end_effector_vel_cmd_.linear.x = 0;
     end_effector_vel_cmd_.linear.y = 0;
@@ -1233,6 +1261,11 @@ void PR2Simulator::attach(int id, KDL::Frame transform){
 
 void PR2Simulator::detach(){
   attached_object_ = false;
+}
+
+KDL::Frame PR2Simulator::getAttachedTransform() const
+{
+  return attached_transform_;
 }
 
 bool PR2Simulator::validityCheck(const vector<double>& rangles, 
