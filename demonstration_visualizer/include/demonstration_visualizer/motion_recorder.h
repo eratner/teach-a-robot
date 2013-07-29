@@ -33,11 +33,11 @@ public:
    *        file path. 
    * @param[in] path
    */
-  void beginRecording(const std::string &path);
+  bool beginRecording(const std::string &path);
 
   void endRecording();
 
-  void beginReplay(const std::string &file);
+  bool beginReplay(const std::string &file);
 
   void endReplay();
 
@@ -45,8 +45,9 @@ public:
    * @brief Creates a line strip marker to visualize the path that the
    *        base of the robot took throughout the recorded motion.
    * @param[in] file Specifies the path to the recorded bag file.
+   * @param[out] base_path The constructed path of the base.
    */
-  visualization_msgs::Marker getBasePath(const std::string &file);
+  bool getBasePath(const std::string &file, visualization_msgs::Marker &base_path);
 
   visualization_msgs::Marker getBasePath();
 

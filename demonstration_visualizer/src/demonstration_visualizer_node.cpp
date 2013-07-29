@@ -197,7 +197,8 @@ void DemonstrationVisualizerNode::updateGoals()
 		 goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
 		 roll, pitch, yaw);
 
-	goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose);
+	goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
+	                                               pick_up_goal->getGripperJointPosition());
 
 	// simulator_->attach(pick_up_goal->getObjectID(),
 	// 		   object_in_gripper);
@@ -330,7 +331,11 @@ void DemonstrationVisualizerNode::showBasePath(const std::string &filename)
   }
   else
   {
-    base_path = recorder_->getBasePath(filename);
+    if(!recorder_->getBasePath(filename, base_path))
+    {
+      ROS_ERROR("[DVizNode] Error getting the base path!");
+      return;
+    }
   }
   
   marker_pub_.publish(base_path);

@@ -21,6 +21,9 @@ class EndEffectorController
 {
 public:
   static const std::string R_GRIPPER_MARKER_NAME;
+  
+  static const double GRIPPER_OPEN_ANGLE;
+  static const double GRIPPER_CLOSED_ANGLE;
 
   enum State { INITIAL = 0,
                READY,

@@ -7,14 +7,16 @@ using namespace geometry_msgs;
 
 namespace demonstration_visualizer {
 
-ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename){
+ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename)
+  : bounding_box_dimensions_(3, 0), bounding_box_origin_(3, 0)
+{
   rarm_file_ = rarm_filename;
   larm_file_ = larm_filename;
   enable_debug_visualizations_ = false;
   disable_collision_checking_ = false;
   load_objects_from_voxels_file_ = false;
   collision_checker_ = NULL;
-   
+
   ros::NodeHandle ph("~");
   ph.param("enable_debug_visualizations", enable_debug_visualizations_, false);
   ph.param("disable_collision_checking",  disable_collision_checking_, false);
@@ -26,6 +28,9 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
 
 void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
   ROS_DEBUG("[om] Initializing the collision checker.");
+
+  bounding_box_dimensions_ = dims;
+  bounding_box_origin_ = origin;
 
   if(disable_collision_checking_)
   {
@@ -361,6 +366,16 @@ bool ObjectManager::writeObjectsToOccupiedVoxelsFile(std::string filename)
     return false;
 
   return collision_checker_->writeObjectVoxelsToFile(filename);
+}
+
+std::vector<double> ObjectManager::getBoundingBoxDimensions() const
+{
+  return bounding_box_dimensions_;
+}
+
+std::vector<double> ObjectManager::getBoundingBoxOrigin() const
+{
+  return bounding_box_origin_;
 }
 
 } // namespace demonstration_visualizer

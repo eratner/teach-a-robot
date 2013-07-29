@@ -42,6 +42,10 @@ class ObjectManager{
 
     bool writeObjectsToOccupiedVoxelsFile(std::string filename);
 
+    std::vector<double> getBoundingBoxDimensions() const;
+
+    std::vector<double> getBoundingBoxOrigin() const;
+
   private:
     pr2_collision_checker::PR2CollisionSpace* collision_checker_;
     std::map<int, Object> objects_;
@@ -50,6 +54,9 @@ class ObjectManager{
     bool enable_debug_visualizations_;
     bool disable_collision_checking_;
     bool load_objects_from_voxels_file_;
+    std::vector<double> bounding_box_dimensions_;
+    std::vector<double> bounding_box_origin_;
+
 };
 
 } // namespace demonstration_visualizer

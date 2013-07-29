@@ -80,9 +80,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[11] = -3.138816;
   joint_states_.position[12] = -0.862352;
   joint_states_.position[13] = 3.139786;
+  
+  // Set the gripper to be open initially.
+  joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
-  for(int i = 7; i < 15; ++i)
-    joint_states_.position[i] = joint_states_.velocity[i] = joint_states_.effort[i] = 0;
+  for(int i = 0; i < 15; ++i)
+    joint_states_.velocity[i] = joint_states_.effort[i] = 0;
 
   // Create a mapping from joint names to index.
   for(int i = 0; i < 15; ++i)
@@ -189,7 +192,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end()-1);
   if(!kdl_robot_model_.init(robot_description, planning_joints))
     ROS_ERROR("[PR2SimpleSim] Failed to initialize the KDLRobotModel for the PR2."); 
-  kdl_robot_model_.setPlanningLink("r_wrist_roll_link");
+
+  kdl_robot_model_.setPlanningLink("r_gripper_palm_link");
 
   // Set the map to torso_lift_link transform.
   updateTransforms();
@@ -254,9 +258,10 @@ void PR2Simulator::run()
       setJointStates(snap_motion_[snap_motion_count_]);
       snap_motion_count_++;
     }
-
-    if(!recorder_->isReplaying() && isSnapDone())
+    else if(!recorder_->isReplaying())
+    {
       moveRobot();
+    }
 
     visualizeRobot();
 
@@ -379,8 +384,6 @@ void PR2Simulator::moveRobot()
       return;
     }
 
-    ROS_INFO("EE vel. lin. z = %f", end_effector_vel_cmd_.linear.z);
-
     // Try once more to find a valid IK solution by searching locally for valid
     // end-effector positions.
     ROS_INFO("IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
@@ -422,8 +425,29 @@ void PR2Simulator::moveRobot()
     }
   }
 
+  // // Compute FK to verify (DEBUGGING)
+  // std::vector<double> fk_pose;
+  // if(!kdl_robot_model_.computePlanningLinkFK(solution, fk_pose))
+  // {
+  //   ROS_ERROR("[PR2Sim] Failed to compute FK in updating the end-effector pose!");
+  // }
+  // else
+  // {
+  //   double r, p, y;
+  //   KDL::Rotation rot = KDL::Rotation::Quaternion(end_effector_pose[3],
+  // 						  end_effector_pose[4],
+  // 						  end_effector_pose[5],
+  // 						  end_effector_pose[6]);
+  //   rot.GetRPY(r, p, y);
+  //   ROS_INFO("IK: (%f, %f, %f), (%f, %f, %f)\nFK: (%f, %f, %f), (%f, %f, %f)",
+  // 	     end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
+  // 	     r, p, y, fk_pose[0], fk_pose[1], fk_pose[2], fk_pose[3], fk_pose[4],
+  // 	     fk_pose[5]);
+  // }
+
   geometry_msgs::Pose object_pose;
-  if(attached_object_){
+  if(attached_object_)
+  {
     // ROS_ERROR("compute object pose");
     computeObjectPose(end_effector_pose, body_pose, object_pose);
   }
@@ -466,6 +490,11 @@ void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_m
   KDL::Frame eef_in_base(KDL::Rotation::Quaternion(eef[3],eef[4],eef[5],eef[6]),
                          KDL::Vector(eef[0],eef[1],eef[2]));
 
+  double r, p, y;
+  eef_in_base.M.GetRPY(r, p, y);
+  // ROS_INFO("computeObjectPose() end effector pose in base (%f, %f, %f), (%f, %f, %f)",
+  // 	   eef[0], eef[1], eef[2], r, p, y);
+
   KDL::Frame obj_in_map = base_in_map * eef_in_base * attached_transform_;
   obj.position.x = obj_in_map.p.x();
   obj.position.y = obj_in_map.p.y();
@@ -489,6 +518,7 @@ void PR2Simulator::visualizeRobot()
   {
     l_joints_pos[i] = joint_states_.position.at(i);
     r_joints_pos[i] = joint_states_.position.at(i+7);
+    // ROS_INFO("right arm joint %d: %f", i+7, r_joints_pos[i]);
   }
   r_joints_pos[7] = joint_states_.position.at(14);
 
@@ -700,7 +730,10 @@ void PR2Simulator::resetRobot()
   joint_states_.position[10] = -1.517650;
   joint_states_.position[11] = -3.138816;
   joint_states_.position[12] = -0.862352;
-  joint_states_.position[13] = 3.139786;
+  // joint_states_.position[13] = 3.139786;
+  joint_states_.position[13] = 0.0;
+
+  joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
   updateEndEffectorPose();
 
@@ -716,6 +749,9 @@ void PR2Simulator::resetRobot()
   int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
   int_marker_server_->applyChanges();
 
+  if(attached_object_)
+    detach();
+
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
   base_path.header.frame_id = "/map";
@@ -724,6 +760,13 @@ void PR2Simulator::resetRobot()
   base_path.action = visualization_msgs::Marker::DELETE;
   base_path.type = visualization_msgs::Marker::LINE_STRIP;
   marker_pub_.publish(base_path);
+
+  // If the simulator is paused, we need to manually update the 
+  // visualization of the robot.
+  if(!isPlaying())
+  {
+    visualizeRobot();
+  }
 }
 
 void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
@@ -768,7 +811,7 @@ void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
   }
 }
 
-bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
+bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose, double gripper_joint)
 {
   if(isValidEndEffectorPose(pose))
   {
@@ -778,6 +821,15 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
     end_effector_vel_cmd_.linear.z = 0;
 
     geometry_msgs::Pose current_pose = end_effector_pose_.pose;
+
+    // // DEBUGGING: Find the shortest angular distance between the current and goal 
+    // // orientation quaternions.
+    // tf::Quaternion curr;
+    // tf::quaternionMsgToTF(current_pose.orientation, curr);
+    // tf::Quaternion goal;
+    // tf::quaternionMsgToTF(pose.orientation, goal);
+    // double shortest = (double)curr.angleShortestPath(goal);
+    // ROS_ERROR("shortest angular path = %f", shortest);
 
     // Generate an interpolation of end-effector poses from the current
     // pose to the specified pose.
@@ -802,8 +854,8 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
     int_marker_server_->applyChanges();
 
     sensor_msgs::JointState joint_state;
-    joint_state.name.resize(7);
-    joint_state.position.resize(7);
+    joint_state.name.resize(8);
+    joint_state.position.resize(8);
     joint_state.name[0] = "r_shoulder_pan_joint";
     joint_state.name[1] = "r_shoulder_lift_joint";
     joint_state.name[2] = "r_upper_arm_roll_joint";
@@ -811,6 +863,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
     joint_state.name[4] = "r_forearm_roll_joint";
     joint_state.name[5] = "r_wrist_flex_joint";
     joint_state.name[6] = "r_wrist_roll_joint";
+    joint_state.name[7] = "r_gripper_joint";
     std::vector<double> r_arm_joints(7, 0);
     std::vector<double> r_arm_solution(7, 0);
     for(int i = 7; i < 14; ++i)
@@ -850,7 +903,9 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 						    current_pose.orientation.z,
 						    current_pose.orientation.w);
       rot.GetRPY(roll, pitch, yaw);
-      ROS_INFO("next RPY = (%f, %f, %f)", roll, pitch, yaw);
+      ROS_INFO("Pose %d: (%f, %f, %f), (%f, %f, %f).", i+1, 
+	       end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
+	       roll, pitch, yaw);
 
       if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, r_arm_solution))
       {
@@ -862,10 +917,22 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose)
 	joint_state.position[j] = r_arm_solution[j];
 	r_arm_joints[j] = r_arm_solution[j];
       }
+      joint_state.position[7] = joint_states_.position[14];
+      ROS_INFO("r_gripper_joint position %d: %f", i, joint_state.position[14]);
 
       snap_motion_.push_back(joint_state);
     }
 
+    // Also, spend 0.5 s (@todo make this a parameter/make smarter) adjusting to the proper 
+    // gripper joint position.
+    double delta = (gripper_joint - joint_states_.position[14])/static_cast<int>(0.5 * getFrameRate());
+    for(int i = 0; i < static_cast<int>(0.5 * getFrameRate()); ++i)
+    {
+      joint_state.position[7] += delta;
+      ROS_INFO("r_gripper_joint position %d: %f.", i, joint_state.position[7]);
+      snap_motion_.push_back(joint_state);
+    }
+	  
     ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", int(snap_motion_.size()));
 
     return true;
@@ -891,48 +958,48 @@ void PR2Simulator::processKeyEvent(int key, int type)
     switch(key)
     {
     case Qt::Key_Z:
+    {
+      // Change the marker to only move in the +/- z-directions.
+      visualization_msgs::InteractiveMarker gripper_marker;
+      int_marker_server_->get("r_gripper_marker", gripper_marker);
+
+      if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+	 end_effector_controller_.getState() == EndEffectorController::DONE)
       {
-  	// Change the marker to only move in the +/- z-directions.
-  	visualization_msgs::InteractiveMarker gripper_marker;
-  	int_marker_server_->get("r_gripper_marker", gripper_marker);
-
-  	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
-  	   end_effector_controller_.getState() == EndEffectorController::DONE)
-  	{
-  	  gripper_marker.pose = end_effector_pose_.pose;
-  	}
-  	else
-  	{
-  	  gripper_marker.pose = end_effector_goal_pose_.pose;
-  	}
-
-  	gripper_marker.controls.at(0).interaction_mode = 
-  	  visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-
-  	int_marker_server_->insert(gripper_marker);
-  	int_marker_server_->applyChanges();
-
-  	break;
+	gripper_marker.pose = end_effector_pose_.pose;
       }
+      else
+      {
+	gripper_marker.pose = end_effector_goal_pose_.pose;
+      }
+
+      gripper_marker.controls.at(0).interaction_mode = 
+	visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+
+      int_marker_server_->insert(gripper_marker);
+      int_marker_server_->applyChanges();
+
+      break;
+    }
     case Qt::Key_R:
-      {
-  	// Reset the interactive marker on the gripper to the actual position
-  	// of the gripper.
-  	updateEndEffectorPose();
+    {
+      // Reset the interactive marker on the gripper to the actual position
+      // of the gripper.
+      updateEndEffectorPose();
 
-  	int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
-  	int_marker_server_->applyChanges();
+      int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+      int_marker_server_->applyChanges();
 
-  	end_effector_goal_pose_ = end_effector_pose_;
+      end_effector_goal_pose_ = end_effector_pose_;
 
-  	end_effector_controller_.setState(EndEffectorController::DONE);
+      end_effector_controller_.setState(EndEffectorController::DONE);
 
-  	updateEndEffectorMarker();
+      updateEndEffectorMarker();
 
-  	ROS_INFO("[PR2SimpleSim] Resetting the end-effector marker pose.");
+      ROS_INFO("[PR2SimpleSim] Resetting the end-effector marker pose.");
 
-  	break;
-      }
+      break;
+    }
     case Qt::Key_W:
       key_vel_cmd_.linear.x = 0.2;
       break;
@@ -946,31 +1013,31 @@ void PR2Simulator::processKeyEvent(int key, int type)
       key_vel_cmd_.linear.y = -0.2;
       break;
     case Qt::Key_Up:
-      {
-	moving_gripper_marker_ = true;
+    {
+      moving_gripper_marker_ = true;
 
-	// end_effector_marker_vel_.linear.x = 0;
-	// end_effector_marker_vel_.linear.y = 0;
-	// end_effector_marker_vel_.linear.z = 0.1;
-	end_effector_vel_cmd_.linear.x = 0;
-	end_effector_vel_cmd_.linear.y = 0;
-	end_effector_vel_cmd_.linear.z = 0.1;
+      // end_effector_marker_vel_.linear.x = 0;
+      // end_effector_marker_vel_.linear.y = 0;
+      // end_effector_marker_vel_.linear.z = 0.1;
+      end_effector_vel_cmd_.linear.x = 0;
+      end_effector_vel_cmd_.linear.y = 0;
+      end_effector_vel_cmd_.linear.z = 0.1;
 
-	break;
-      }
+      break;
+    }
     case Qt::Key_Down:
-      {
-	moving_gripper_marker_ = true;
+    {
+      moving_gripper_marker_ = true;
 
-	// end_effector_marker_vel_.linear.x = 0;
-	// end_effector_marker_vel_.linear.y = 0;
-	// end_effector_marker_vel_.linear.z = -0.1;
-	end_effector_vel_cmd_.linear.x = 0;
-	end_effector_vel_cmd_.linear.y = 0;
-	end_effector_vel_cmd_.linear.z = -0.1;
+      // end_effector_marker_vel_.linear.x = 0;
+      // end_effector_marker_vel_.linear.y = 0;
+      // end_effector_marker_vel_.linear.z = -0.1;
+      end_effector_vel_cmd_.linear.x = 0;
+      end_effector_vel_cmd_.linear.y = 0;
+      end_effector_vel_cmd_.linear.z = -0.1;
 
-	break;
-      }
+      break;
+    }
     default:
       break;
     }
@@ -980,29 +1047,29 @@ void PR2Simulator::processKeyEvent(int key, int type)
     switch(key)
     {
     case Qt::Key_Z:
+    {
+      // Change the marker back to moving in the xy-plane.
+      visualization_msgs::InteractiveMarker gripper_marker;
+      int_marker_server_->get("r_gripper_marker", gripper_marker);
+
+      if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+	 end_effector_controller_.getState() == EndEffectorController::DONE)
       {
-  	// Change the marker back to moving in the xy-plane.
-  	visualization_msgs::InteractiveMarker gripper_marker;
-  	int_marker_server_->get("r_gripper_marker", gripper_marker);
-
-  	if(end_effector_controller_.getState() == EndEffectorController::INITIAL ||
-  	   end_effector_controller_.getState() == EndEffectorController::DONE)
-  	{
-  	  gripper_marker.pose = end_effector_pose_.pose;
-  	}
-  	else
-  	{
-  	  gripper_marker.pose = end_effector_goal_pose_.pose;
-  	}
-
-  	gripper_marker.controls.at(0).interaction_mode = 
-  	  visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
-
-  	int_marker_server_->insert(gripper_marker);
-  	int_marker_server_->applyChanges();
-
-  	break;
+	gripper_marker.pose = end_effector_pose_.pose;
       }
+      else
+      {
+	gripper_marker.pose = end_effector_goal_pose_.pose;
+      }
+
+      gripper_marker.controls.at(0).interaction_mode = 
+	visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+
+      int_marker_server_->insert(gripper_marker);
+      int_marker_server_->applyChanges();
+
+      break;
+    }
     case Qt::Key_W:
       key_vel_cmd_.linear.x = 0;
       break;
@@ -1016,31 +1083,31 @@ void PR2Simulator::processKeyEvent(int key, int type)
       key_vel_cmd_.linear.y = 0;
       break;
     case Qt::Key_Up:
-      {
-	moving_gripper_marker_ = false;
+    {
+      moving_gripper_marker_ = false;
 
-	// end_effector_marker_vel_.linear.x = 0;
-	// end_effector_marker_vel_.linear.y = 0;
-	// end_effector_marker_vel_.linear.z = 0;
-	end_effector_vel_cmd_.linear.x = 0;
-	end_effector_vel_cmd_.linear.y = 0;
-	end_effector_vel_cmd_.linear.z = 0;
+      // end_effector_marker_vel_.linear.x = 0;
+      // end_effector_marker_vel_.linear.y = 0;
+      // end_effector_marker_vel_.linear.z = 0;
+      end_effector_vel_cmd_.linear.x = 0;
+      end_effector_vel_cmd_.linear.y = 0;
+      end_effector_vel_cmd_.linear.z = 0;
 
-	break;
-      }
+      break;
+    }
     case Qt::Key_Down:
-      {
-	moving_gripper_marker_ = false;
+    {
+      moving_gripper_marker_ = false;
 
-	// end_effector_marker_vel_.linear.x = 0;
-	// end_effector_marker_vel_.linear.y = 0;
-	// end_effector_marker_vel_.linear.z = 0;
-	end_effector_vel_cmd_.linear.x = 0;
-	end_effector_vel_cmd_.linear.y = 0;
-	end_effector_vel_cmd_.linear.z = 0;
+      // end_effector_marker_vel_.linear.x = 0;
+      // end_effector_marker_vel_.linear.y = 0;
+      // end_effector_marker_vel_.linear.z = 0;
+      end_effector_vel_cmd_.linear.x = 0;
+      end_effector_vel_cmd_.linear.y = 0;
+      end_effector_vel_cmd_.linear.z = 0;
 
-	break;
-      }
+      break;
+    }
     default:
       break;
     }

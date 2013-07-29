@@ -263,6 +263,7 @@ private:
   QPushButton                *accept_grasp_button_;
   QPushButton                *change_grasp_button_;
   QSlider                    *grasp_distance_slider_;
+  QSlider                    *gripper_position_slider_;
 
   std::vector<QPushButton *> camera_buttons_;
 

@@ -67,7 +67,7 @@ PickUpGoal::PickUpGoal(int goal_number,
   : Goal(goal_number, description), object_id_(object_id),
     grasp_pose_(grasp), initial_object_pose_(object_pose), 
     grasp_done_(false), grasp_distance_(0.25), 
-    gripper_joint_position_(0.0)
+    gripper_joint_position_(EndEffectorController::GRIPPER_OPEN_ANGLE)
 {
 
 }

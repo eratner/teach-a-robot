@@ -346,30 +346,94 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
   TiXmlElement *root = new TiXmlElement("scene");
   doc.LinkEndChild(root);
 
-  // Add each mesh to the demonstration scene description.
-  // std::vector<visualization_msgs::Marker>::iterator it;
-  // for(it = meshes_.begin(); it != meshes_.end(); ++it)
-  // {
-  //   TiXmlElement *mesh = new TiXmlElement("mesh");
+  // @todo for now, just set the collision models directory to the default.
+  // idea: we could create a directory with the same name as the scene file
+  //       to store collision models specific to that scene, but this might
+  //       make it harder to have shared collision model files.
+  TiXmlElement *collision_models = new TiXmlElement("collision_models");
+  collision_models->SetAttribute("path", "/collision_models");
+  root->LinkEndChild(collision_models);
 
-  //   mesh->SetAttribute("id", it->id);
-  //   mesh->SetAttribute("ns", it->ns);
-  //   mesh->SetAttribute("mesh_resource", it->mesh_resource);
-  //   mesh->SetDoubleAttribute("position_x", it->pose.position.x);
-  //   mesh->SetDoubleAttribute("position_y", it->pose.position.y);
-  //   mesh->SetDoubleAttribute("position_z", it->pose.position.z);
-  //   mesh->SetDoubleAttribute("orientation_x", it->pose.orientation.x);
-  //   mesh->SetDoubleAttribute("orientation_y", it->pose.orientation.y);
-  //   mesh->SetDoubleAttribute("orientation_z", it->pose.orientation.z);
-  //   mesh->SetDoubleAttribute("orientation_w", it->pose.orientation.w);
-  //   mesh->SetDoubleAttribute("scale_x", it->scale.x);
-  //   mesh->SetDoubleAttribute("scale_y", it->scale.y);
-  //   mesh->SetDoubleAttribute("scale_z", it->scale.z);
+  // Store the origin and dimensions of the bounding box.
+  TiXmlElement *size = new TiXmlElement("size");
+  std::vector<double> dimensions = object_manager_->getBoundingBoxDimensions();
+  std::vector<double> origin = object_manager_->getBoundingBoxOrigin();
+  size->SetDoubleAttribute("origin_x", origin[0]);
+  size->SetDoubleAttribute("origin_y", origin[1]);
+  size->SetDoubleAttribute("origin_z", origin[2]);
+  size->SetDoubleAttribute("size_x", dimensions[0]);
+  size->SetDoubleAttribute("size_y", dimensions[1]);
+  size->SetDoubleAttribute("size_z", dimensions[2]);
+  root->LinkEndChild(size);
+
+  // For each object, add the mesh to the scene file and create a new 
+  // collision model file for it.
+  std::vector<Object> objects = object_manager_->getObjects();
+  std::vector<Object>::iterator it;
+  for(it = objects.begin(); it != objects.end(); ++it)
+  {
+    TiXmlElement *mesh = new TiXmlElement("mesh");
+
+    mesh->SetAttribute("id", it->mesh_marker_.id);
+    mesh->SetAttribute("label", it->label);
+    mesh->SetDoubleAttribute("position_x", it->mesh_marker_.pose.position.x);
+    mesh->SetDoubleAttribute("position_y", it->mesh_marker_.pose.position.y);
+    mesh->SetDoubleAttribute("position_z", it->mesh_marker_.pose.position.z);
+    mesh->SetDoubleAttribute("orientation_x", it->mesh_marker_.pose.orientation.x);
+    mesh->SetDoubleAttribute("orientation_y", it->mesh_marker_.pose.orientation.y);
+    mesh->SetDoubleAttribute("orientation_z", it->mesh_marker_.pose.orientation.z);
+    mesh->SetDoubleAttribute("orientation_w", it->mesh_marker_.pose.orientation.w);
+    mesh->SetDoubleAttribute("scale_x", it->mesh_marker_.scale.x);
+    mesh->SetDoubleAttribute("scale_y", it->mesh_marker_.scale.y);
+    mesh->SetDoubleAttribute("scale_z", it->mesh_marker_.scale.z);
+    mesh->SetAttribute("movable", static_cast<int>(it->movable));
   
-  //   root->LinkEndChild(mesh);
-  // }
+    root->LinkEndChild(mesh);
+    
+    // Add the collision model file, if it does not already exist.
+    std::stringstream ss;
+    ss << ros::package::getPath("demonstration_visualizer") << "/collision_models/" << it->label << ".xml";
+    ROS_INFO("[SceneManager] Checking if %s exists...", ss.str().c_str());
+    if(!boost::filesystem::exists(ss.str()))
+    {
+      ROS_INFO("...it doesn't.");
 
-  // doc.SaveFile(filename.c_str());
+      TiXmlDocument cm_file;
+      TiXmlElement *cm_file_root = new TiXmlElement("collision_model");
+      cm_file.LinkEndChild(cm_file_root);
+
+      TiXmlElement *object = new TiXmlElement("object");
+      object->SetAttribute("label", it->label);
+      object->SetAttribute("mesh_resource", it->mesh_marker_.mesh_resource);
+      cm_file_root->LinkEndChild(object);
+
+      // Add collision spheres if the object is movable.
+      if(it->movable)
+      {
+	std::vector<pr2_collision_checker::Sphere> spheres = it->group_.spheres;
+
+	std::vector<pr2_collision_checker::Sphere>::iterator it;
+	for(it = spheres.begin(); it != spheres.end(); ++it)
+	{
+	  TiXmlElement *sphere = new TiXmlElement("sphere");
+	  sphere->SetAttribute("id", it->name);
+	  sphere->SetDoubleAttribute("x", it->v.x());
+	  sphere->SetDoubleAttribute("y", it->v.y());
+	  sphere->SetDoubleAttribute("z", it->v.z());
+	  sphere->SetDoubleAttribute("radius", it->radius);
+	  cm_file_root->LinkEndChild(sphere);
+	}
+      }
+
+      cm_file.SaveFile(ss.str().c_str());
+    }
+    else
+    {
+      ROS_WARN("[SceneManager] Collision model file \"%s\" already exists!", ss.str().c_str());
+    }
+  }
+
+  doc.SaveFile(filename.c_str());
 }
 
 bool DemonstrationSceneManager::loadTask(const std::string &filename)
@@ -618,7 +682,7 @@ void DemonstrationSceneManager::resetTask()
   setGoalsChanged();
 }
 
-void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int mesh_id)
+void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label)
 {
   // Spawn the mesh at the origin.
   geometry_msgs::PoseStamped pose_stamped;
@@ -647,18 +711,21 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int
 
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker, 
 					bool attach_interactive_marker,
+					const std::string &label,
 					const std::string &sphere_list_path)
 {
   if(!sphere_list_path.empty())
   {
     // Add a movable object.
     Object o = Object(marker, sphere_list_path);
+    o.label = label;
     object_manager_->addObject(o);
   }
   else
   {
     // Add a nonmovable object.
     Object o = Object(marker);
+    o.label = label;
     object_manager_->addObject(o);
   }
 

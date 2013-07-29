@@ -169,7 +169,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   scale_mesh_panel->addWidget(scale_mesh_label);
   QSlider *scale_mesh = new QSlider(Qt::Horizontal);
   scale_mesh->setMinimum(1);
-  scale_mesh->setMaximum(200);
+  scale_mesh->setMaximum(5000);
   scale_mesh->setValue(100);
   scale_mesh_panel->addWidget(scale_mesh);
 
@@ -328,12 +328,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QHBoxLayout *gripper_position_layout = new QHBoxLayout();
   QLabel *gripper_position_label = new QLabel("Grasp Position: ");
   gripper_position_layout->addWidget(gripper_position_label);
-  QSlider *gripper_position = new QSlider(Qt::Horizontal);
+  gripper_position_slider_ = new QSlider(Qt::Horizontal);
   // @todo make these constants.
-  gripper_position->setMinimum(0);
-  gripper_position->setMaximum(400);
-  gripper_position->setValue(0);
-  gripper_position_layout->addWidget(gripper_position);
+  gripper_position_slider_->setMinimum(0);
+  gripper_position_slider_->setMaximum(548);
+  gripper_position_slider_->setValue(0);
+  gripper_position_slider_->setEnabled(false);
+  gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
   QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
@@ -474,7 +475,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
   connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
-  connect(gripper_position, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
+  connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
   connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -577,7 +578,7 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::Wheel)
   {
-    if(camera_mode_ == FPS || camera_mode_ == TOP_DOWN)
+    if(camera_mode_ == FPS || camera_mode_ == TOP_DOWN || camera_mode_ == TOP_DOWN_FPS)
       return true;
     else if(camera_mode_ == ORBIT || camera_mode_ == AUTO)
     {
@@ -619,23 +620,23 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
     switch(mouse_event->button())
     {
     case Qt::MiddleButton:
+    {
+      if(camera_mode_ != ORBIT)
       {
-	if(camera_mode_ != ORBIT)
-	{
-	  return true;
-	}
-
-	break;
+	return true;
       }
+
+      break;
+    }
     case Qt::RightButton:
+    {
+      if(camera_mode_ != ORBIT)
       {
-	if(camera_mode_ != ORBIT)
-	{
-	  return true;
-	}
-
-	break;
+	return true;
       }
+
+      break;
+    }
     default:
       break;
     }
@@ -644,24 +645,24 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
   else if(event->type() == QEvent::MouseButtonRelease)
   {
-     // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
-     // switch(mouse_event->button())
-     // {
-     // case Qt::MiddleButton:
-     //   {
-     // 	if(camera_mode_ == FPS ||
-     // 	   camera_mode_ == TOP_DOWN ||
-     // 	   camera_mode_ == AUTO ||
-     // 	   camera_mode_ == GOAL)
-     // 	{
-     // 	  return true;
-     // 	}
+    // QMouseEvent *mouse_event = static_cast<QMouseEvent *>(event);
+    // switch(mouse_event->button())
+    // {
+    // case Qt::MiddleButton:
+    //   {
+    // 	if(camera_mode_ == FPS ||
+    // 	   camera_mode_ == TOP_DOWN ||
+    // 	   camera_mode_ == AUTO ||
+    // 	   camera_mode_ == GOAL)
+    // 	{
+    // 	  return true;
+    // 	}
 
-     // 	break;
-     //   }
-     // default:
-     //   break;
-     // }
+    // 	break;
+    //   }
+    // default:
+    //   break;
+    // }
 
     return QObject::eventFilter(obj, event);
   }
@@ -819,13 +820,23 @@ void DemonstrationVisualizer::loadMesh()
       break;
   }
 
-  std::string mesh_name = resource_path.str().substr(i+1);
+  int offset = 0;
+  for(int j = i; j < resource_path.str().size(); ++j)
+  {
+    if(resource_path.str()[j] == '.')
+      break;
+    else
+      offset++;
+  }
+
+  std::string mesh_name = resource_path.str().substr(i+1, offset-1);
+  ROS_INFO("[DViz] Assigning the name \"%s\".", mesh_name.c_str());
   mesh_names_.insert(std::pair<int, std::string>(next_mesh_id_, resource_path.str()));
   next_mesh_id_++;
 
   select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(next_mesh_id_-1));
 
-  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1);
+  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1, mesh_name);
 }
 
 void DemonstrationVisualizer::deleteMesh()
@@ -1087,7 +1098,7 @@ void DemonstrationVisualizer::scaleMesh(int value)
     return;
   }
 
-  double scale_factor = value/100.0;
+  double scale_factor = value/1000.0;
 
   ROS_INFO("[DViz] Scaling mesh %d by a factor of %f.", 
 	   select_mesh_->itemData(select_mesh_->currentIndex()).value<int>(),
@@ -1799,14 +1810,14 @@ void DemonstrationVisualizer::setGripperPosition(int position)
     goal->setGripperJointPosition(p);
     node_.showInteractiveGripper(node_.getSceneManager()->getCurrentGoal());
   }
-  else
-  {
-    sensor_msgs::JointState joints;
-    joints.name.push_back("r_gripper_joint");
-    joints.position.push_back(p);
+  // else
+  // {
+  //   sensor_msgs::JointState joints;
+  //   joints.name.push_back("r_gripper_joint");
+  //   joints.position.push_back(p);
 
-    node_.setJointStates(joints);
-  }
+  //   node_.setJointStates(joints);
+  // }
 }
 
 void DemonstrationVisualizer::beginGraspSelection()
@@ -1822,11 +1833,13 @@ void DemonstrationVisualizer::beginGraspSelection()
     change_grasp_button_->setEnabled(false);
 
   grasp_distance_slider_->setEnabled(true);
+  gripper_position_slider_->setEnabled(true);
 
   // Set the distance slider to the goal's current distance.
   int current_goal = node_.getSceneManager()->getCurrentGoal();
   PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
   grasp_distance_slider_->setValue(static_cast<int>(goal->getGraspDistance()*100.0));
+  gripper_position_slider_->setValue(static_cast<int>(goal->getGripperJointPosition()*1000.0));
 
   camera_before_grasp_ = camera_mode_;
   changeCameraMode(GOAL);
@@ -1858,6 +1871,7 @@ void DemonstrationVisualizer::endGraspSelection()
     accept_grasp_button_->setEnabled(false);
     change_grasp_button_->setEnabled(true);
     grasp_distance_slider_->setEnabled(false);
+    gripper_position_slider_->setEnabled(false);
 
     node_.playSimulator();
     node_.enableRobotMarkerControl();

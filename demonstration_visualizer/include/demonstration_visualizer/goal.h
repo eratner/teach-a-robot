@@ -7,6 +7,8 @@
 #include <geometry_msgs/Pose.h>
 #include <tf/tf.h>
 
+#include "demonstration_visualizer/end_effector_controller.h"
+
 namespace demonstration_visualizer {
 
 /**

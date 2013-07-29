@@ -4,6 +4,9 @@ namespace demonstration_visualizer {
 
 const std::string EndEffectorController::R_GRIPPER_MARKER_NAME = "r_gripper_marker";
 
+const double EndEffectorController::GRIPPER_OPEN_ANGLE = 0.548;
+const double EndEffectorController::GRIPPER_CLOSED_ANGLE = 0.00;
+
 EndEffectorController::EndEffectorController(interactive_markers::InteractiveMarkerServer *int_marker_server)
  : int_marker_server_(int_marker_server), last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(0.05),
    print_transitions_(false)

@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <boost/filesystem.hpp>
 
 namespace demonstration_visualizer {
 
@@ -57,10 +58,11 @@ public:
 
   void resetTask();
 
-  void addMeshFromFile(const std::string &filename, int mesh_id);
+  void addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label = "");
 
   void addMesh(const visualization_msgs::Marker &marker,
   	       bool attach_interactive_marker = false,
+	       const std::string &label = "",
   	       const std::string &sphere_list_path = "");
 
   void visualizeMesh(const visualization_msgs::Marker &marker, bool attach_interactive_marker);
