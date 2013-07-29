@@ -136,31 +136,34 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
 
     if(!element)
     {
-      // If no spheres found in file, generate them
-      double enclosing_sphere_radius = 0.04;
-      ROS_INFO("[om] No spheres were found for '%s', so generating them instead with radius, %0.3fm", label.c_str() , enclosing_sphere_radius); 
-      std::vector<int> triangles;
-      std::vector<geometry_msgs::Point> vertices; 
-      if(!leatherman::getMeshComponentsFromResource(mesh_marker.mesh_resource, mesh_marker.scale, triangles, vertices))
+      if(!disable_collision_checking_)
       {
-        ROS_ERROR("[om] Failed to get triangles & indeces from the mesh resource.");
-        return false;
-      }
-      std::vector<std::vector<double> > sph;
-      sbpl::SphereEncloser::encloseMesh(vertices, triangles, enclosing_sphere_radius, sph);
+        // If no spheres found in file, generate them if cc is enabled. Takes too long otherwise.
+        double enclosing_sphere_radius = 0.04;
+        ROS_INFO("[om] No spheres were found for '%s', so generating them instead with radius, %0.3fm", label.c_str() , enclosing_sphere_radius); 
+        std::vector<int> triangles;
+        std::vector<geometry_msgs::Point> vertices; 
+        if(!leatherman::getMeshComponentsFromResource(mesh_marker.mesh_resource, mesh_marker.scale, triangles, vertices))
+        {
+          ROS_ERROR("[om] Failed to get triangles & indeces from the mesh resource.");
+          return false;
+        }
+        std::vector<std::vector<double> > sph;
+        sbpl::SphereEncloser::encloseMesh(vertices, triangles, enclosing_sphere_radius, sph);
 
-      pr2_collision_checker::Sphere s;
-      s.radius = enclosing_sphere_radius;
-      s.priority = 1;
-      for(size_t k = 0; k < sph.size(); ++k)
-      {
-        s.name = boost::lexical_cast<string>(int(k));
-        s.v.x(sph[k][0]);
-        s.v.y(sph[k][1]);
-        s.v.z(sph[k][2]);
-        o.group_.spheres.push_back(s);
+        pr2_collision_checker::Sphere s;
+        s.radius = enclosing_sphere_radius;
+        s.priority = 1;
+        for(size_t k = 0; k < sph.size(); ++k)
+        {
+          s.name = boost::lexical_cast<string>(int(k));
+          s.v.x(sph[k][0]);
+          s.v.y(sph[k][1]);
+          s.v.z(sph[k][2]);
+          o.group_.spheres.push_back(s);
+        }
+        ROS_INFO("[om] Generated %d spheres for object group '%s'.", int(o.group_.spheres.size()), label.c_str());
       }
-      ROS_INFO("[om] Generated %d spheres for object group '%s'.", int(o.group_.spheres.size()), label.c_str());
     }
     else
     {
