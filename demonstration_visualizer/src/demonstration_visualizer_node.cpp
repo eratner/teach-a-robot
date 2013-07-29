@@ -277,7 +277,20 @@ void DemonstrationVisualizerNode::updateGoals()
 						     EndEffectorController::GRIPPER_OPEN_ANGLE,
 						     true);
 
-      simulator_->detach();
+      if(goal_reachable)
+      {
+	simulator_->detach();
+	  
+	Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+
+	getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
+      }
+      else
+      {
+	ROS_ERROR("[DVizNode] Unable to reach goal %d!", getSceneManager()->getCurrentGoal());
+      }
+
+      // simulator_->detach();
 
       // Snap the object to the place pose.
       // object_manager_->moveObject(place_goal->getObjectID(), place_goal->getPlacePose());
@@ -286,9 +299,9 @@ void DemonstrationVisualizerNode::updateGoals()
       // ROS_INFO("Resetting right gripper orientation...");
       // simulator_->resetGripperOrientation();
 	
-      Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+      // Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
-      getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
+      // getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
     }
 	
     break;
