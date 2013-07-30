@@ -1191,7 +1191,7 @@ void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
 void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
   // pauseSimulator();
-  pauseSimulatorLater();
+  node_.pauseSimulatorLater();
 
   bool done = false;
 
@@ -1347,7 +1347,7 @@ void DemonstrationVisualizer::startBasicMode()
    start_button_->setEnabled(true);
 
    // pauseSimulator();
-   pauseSimulatorLater();
+   node_.pauseSimulatorLater();
 
    changeTool(1);
 

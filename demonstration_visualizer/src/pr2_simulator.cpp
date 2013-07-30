@@ -890,7 +890,21 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
     snap_motion_.clear();
 
     end_effector_goal_pose_.pose = pose;
-    int_marker_server_->setPose("r_gripper_marker", pose);
+    visualization_msgs::InteractiveMarker gripper_marker;
+    int_marker_server_->get("r_gripper_marker", gripper_marker);
+    gripper_marker.pose = pose;
+    tf::Quaternion rot(pose.orientation.x, 
+		       pose.orientation.y,
+		       pose.orientation.z,
+		       pose.orientation.w);
+    tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+    tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+
+    ROS_INFO("setting control orientation to (%f, %f, %f, %f)", gripper_marker.controls.at(0).orientation.x,
+	     gripper_marker.controls.at(0).orientation.y, gripper_marker.controls.at(0).orientation.z,
+	     gripper_marker.controls.at(0).orientation.w);
+
+    int_marker_server_->insert(gripper_marker);
     int_marker_server_->applyChanges();
 
     sensor_msgs::JointState joint_state;
