@@ -26,7 +26,7 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
   ROS_DEBUG("[om]  left_arm_file: %s",larm_file_.c_str());
 }
 
-void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
+bool ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
   ROS_DEBUG("[om] Initializing the collision checker.");
 
   bounding_box_dimensions_ = dims;
@@ -35,13 +35,20 @@ void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<doubl
   if(disable_collision_checking_)
   {
     ROS_INFO("[om] Collision checking is disabled. Not initializing the collision checker.");
-    return;
+    return true;
   }
 
   if(collision_checker_ != NULL)
   {
     ROS_ERROR("[om] Deleting the previous collision checker. Initializing new one.");
     delete collision_checker_;
+    collision_checker_ = NULL;
+  }
+
+  if(dims[0] == 0 || dims[1] == 0 || dims[2] == 0)
+  {
+    ROS_ERROR("[om] Zero found in grid dimensions. {origin: %0.3f %0.3f %0.3f  dims: %0.3f %0.3f %0.3f}", origin[0], origin[1], origin[2], dims[0], dims[1], dims[2]);
+    return false;
   }
 
   ROS_DEBUG("[om] right_arm: %s",rarm_file_.c_str());
@@ -53,10 +60,11 @@ void ObjectManager::initializeCollisionChecker(vector<double> dims, vector<doubl
   if(!collision_checker_->init())
   {
     ROS_ERROR("[om] Failed to initialize the collision checker.");
-    return;
+    return false;
   }
   collision_checker_->visualizeResult(enable_debug_visualizations_);
   ROS_INFO("[om] Initialized the collision checker.");
+  return true;
 }
 
 
@@ -68,7 +76,7 @@ void ObjectManager::addObject(Object o){
     return;
 
   if(!o.movable && !load_objects_from_voxels_file_){
-    if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource, o.mesh_marker_.pose, o.label))
+    if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource, o.mesh_marker_.scale, o.mesh_marker_.pose, o.label))
       ROS_ERROR("[om] Failed to add static object.");
   }
 }

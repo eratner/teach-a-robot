@@ -227,14 +227,9 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   size.push_back(size_x);
   size.push_back(size_y);
   size.push_back(size_z);
-  ROS_INFO("origin: %f %f %f  size: %f %f %f",
-            origin[0],
-            origin[1],
-            origin[2],
-            size[0],
-            size[1],
-            size[2]);
-  object_manager_->initializeCollisionChecker(size, origin);
+
+  if(!object_manager_->initializeCollisionChecker(size, origin))
+    return false;
 
   // Read the filename containing the occupied voxels in the scene
   TiXmlElement *voxel_element = element->NextSiblingElement("object_voxels");
