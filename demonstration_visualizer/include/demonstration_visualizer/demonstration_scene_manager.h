@@ -58,12 +58,12 @@ public:
 
   void resetTask();
 
-  void addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label = "");
+  void addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label = "", bool movable = false);
 
   void addMesh(const visualization_msgs::Marker &marker,
   	       bool attach_interactive_marker = false,
 	       const std::string &label = "",
-  	       const std::string &sphere_list_path = "");
+  	       bool movable = false);
 
   void visualizeMesh(const visualization_msgs::Marker &marker, bool attach_interactive_marker);
 

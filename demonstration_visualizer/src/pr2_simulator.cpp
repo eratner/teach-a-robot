@@ -217,6 +217,7 @@ double PR2Simulator::getFrameRate() const
 void PR2Simulator::play()
 {
   playing_ = true;
+  pause_requested_ = false;
 }
 
 void PR2Simulator::pause()

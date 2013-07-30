@@ -678,7 +678,10 @@ void DemonstrationSceneManager::resetTask()
   setGoalsChanged();
 }
 
-void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label)
+void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, 
+						int mesh_id, 
+						const std::string &label,
+                                                bool movable)
 {
   // Spawn the mesh at the origin.
   geometry_msgs::PoseStamped pose_stamped;
@@ -702,19 +705,20 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, int
 						     0.0,
 						     true);
 
-  addMesh(marker, true, label);
+  addMesh(marker, true, label, movable);
 }
 
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker, 
 					bool attach_interactive_marker,
 					const std::string &label,
-					const std::string &sphere_list_path)
+					bool movable)
 {
-  if(!sphere_list_path.empty())
+  if(movable)
   {
     // Add a movable object.
-    Object o = Object(marker, sphere_list_path);
+    Object o = Object(marker);
     o.label = label;
+    o.movable = true;
     object_manager_->addObject(o);
   }
   else
@@ -722,6 +726,7 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
     // Add a nonmovable object.
     Object o = Object(marker);
     o.label = label;
+    o.movable = false;
     object_manager_->addObject(o);
   }
 

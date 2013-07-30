@@ -1,8 +1,8 @@
 <task>
-    <goal number="0" type="0" desc="Pick up the soda can next to the sink." object_id="8" />
-    <goal number="1" type="1" desc="Place the soda can on the table." object_id="8" position_x="1.24643" position_y="-3.18341" position_z="0.781975" orientation_x="1.97245e-07" orientation_y="3.25242e-08" orientation_z="-0.999412" orientation_w="0.0342758" />
+    <goal number="0" type="0" desc="Pick up the can next to the sink." object_id="13" />
+    <goal number="1" type="1" desc="Place the can on the table." object_id="13" position_x="1.24643" position_y="-3.18342" position_z="0.840075" orientation_x="-1.49084e-06" orientation_y="4.96883e-05" orientation_z="-0.999412" orientation_w="0.0342758" />
     <goal number="2" type="0" desc="Pick up the banana on the table." object_id="9" />
-    <goal number="3" type="1" desc="Place the banana next to the sink." object_id="9" position_x="-2.86654" position_y="1.59243" position_z="0.922595" orientation_x="-0.607331" orientation_y="0.380632" orientation_z="-0.374921" orientation_w="0.587964" />
+    <goal number="3" type="1" desc="Place the banana next to the sink." object_id="9" position_x="-1.60391" position_y="1.79098" position_z="0.891748" orientation_x="-0.607331" orientation_y="0.380632" orientation_z="-0.374921" orientation_w="0.587964" />
     <goal number="4" type="0" desc="Pick up the cup on the shelf next to the lamp." object_id="10" />
     <goal number="5" type="1" desc="Place the cup on the table." object_id="10" position_x="2.23981" position_y="-2.17278" position_z="0.7733" orientation_x="-5.29597e-07" orientation_y="1.65158e-07" orientation_z="0.999841" orientation_w="0.0178109" />
 </task>

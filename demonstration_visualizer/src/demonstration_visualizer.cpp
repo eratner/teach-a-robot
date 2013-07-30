@@ -827,6 +827,16 @@ void DemonstrationVisualizer::loadMesh()
     return;
   }
 
+  bool movable = false;
+  if(QMessageBox::Yes == QMessageBox::question(this, "Movable?", 
+					       "Is this object movable?", 
+					       QMessageBox::Yes | QMessageBox::No))
+  {
+    movable = true;
+  }
+
+  ROS_INFO_STREAM("[DViz] Movable? " << (movable ? "Yes." : "No."));
+
   std::stringstream resource_path;
   resource_path << "package://" << filename.toStdString().substr(found);
   ROS_INFO("Loading mesh from file %s.", resource_path.str().c_str());
@@ -854,7 +864,7 @@ void DemonstrationVisualizer::loadMesh()
 
   select_mesh_->addItem(QString(mesh_name.c_str()), QVariant(next_mesh_id_-1));
 
-  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1, mesh_name);
+  node_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1, mesh_name, movable);
 }
 
 void DemonstrationVisualizer::deleteMesh()
