@@ -440,7 +440,7 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
 bool DemonstrationSceneManager::loadTask(const std::string &filename)
 {
   // Clear the existing task.
-  for(int i = 0; i < goals_.size(); ++i)
+  for(int i = 0; i < int(goals_.size()); ++i)
   {
     delete goals_[i];
     goals_[i] = 0;
@@ -593,7 +593,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 
   ROS_INFO("[SceneManager] Read %d goals.", (int)goals_.size());
 
-  for(int i = 0; i < goals_.size(); ++i)
+  for(int i = 0; i < int(goals_.size()); ++i)
   {
     ROS_INFO_STREAM(goals_[i]->toString());
   }
@@ -853,7 +853,7 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
 
 bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::Pose &pose)
 {
-  if(goal_number < 0 || goal_number >= goals_.size())
+  if(goal_number < 0 || goal_number >= int(goals_.size()))
   {
     ROS_ERROR("Invalid goal number!");
     return false;
@@ -886,7 +886,7 @@ bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::P
 
 Goal *DemonstrationSceneManager::getGoal(int goal_number)
 {
-  if(goal_number < 0 || goal_number >= goals_.size())
+  if(goal_number < 0 || goal_number >= int(goals_.size()))
   {
     ROS_ERROR("[SceneManager] Invalid goal number!");
     return 0;
@@ -1291,7 +1291,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 				       5*pick_up_goal->getGoalNumber(), 
 				       pick_up_goal->getGripperJointPosition(), gripper_markers);
 
-      for(int i = 0; i < gripper_markers.size(); ++i)
+      for(int i = 0; i < int(gripper_markers.size()); ++i)
       {
 	gripper_markers[i].header.frame_id = "/map";
 	gripper_markers[i].color.a = 0.3;
@@ -1379,7 +1379,7 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
 				     GOAL_MARKER_NAMESPACE, 5*pick_up_goal->getGoalNumber(), 
 				     pick_up_goal->getGripperJointPosition(), gripper_markers);
 
-    for(int i = 0; i < gripper_markers.size(); ++i)
+    for(int i = 0; i < int(gripper_markers.size()); ++i)
     {
       gripper_markers[i].action = visualization_msgs::Marker::DELETE;
       marker_pub_.publish(gripper_markers[i]);

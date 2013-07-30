@@ -839,7 +839,7 @@ void DemonstrationVisualizer::loadMesh()
   }
 
   int offset = 0;
-  for(int j = i; j < resource_path.str().size(); ++j)
+  for(int j = i; j < int(resource_path.str().size()); ++j)
   {
     if(resource_path.str()[j] == '.')
       break;
@@ -1190,8 +1190,8 @@ void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
 
 void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
-  // pauseSimulator();
-  pauseSimulatorLater();
+  pauseSimulator();
+  //pauseSimulatorLater();
 
   bool done = false;
 
@@ -1346,8 +1346,8 @@ void DemonstrationVisualizer::startBasicMode()
    end_button_->setEnabled(false);
    start_button_->setEnabled(true);
 
-   // pauseSimulator();
-   pauseSimulatorLater();
+   pauseSimulator();
+   //pauseSimulatorLater();
 
    changeTool(1);
 
