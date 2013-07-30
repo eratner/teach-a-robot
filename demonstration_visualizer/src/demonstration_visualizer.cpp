@@ -839,7 +839,7 @@ void DemonstrationVisualizer::loadMesh()
   }
 
   int offset = 0;
-  for(int j = i; j < resource_path.str().size(); ++j)
+  for(int j = i; j < int(resource_path.str().size()); ++j)
   {
     if(resource_path.str()[j] == '.')
       break;

@@ -15,7 +15,7 @@ namespace demonstration_visualizer {
 class ObjectManager{
   public:
     ObjectManager(std::string rarm_file, std::string larm_file);
-    void initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
+    bool initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
     void addObject(Object o);
     
     bool addObjectFromFile(visualization_msgs::Marker &mesh_marker,
