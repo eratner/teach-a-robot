@@ -199,6 +199,7 @@ private slots:
   // For editing tasks/goals.
   void addTaskGoal();
   void editGoalDescription(QListWidgetItem *goal);
+  void showGoalsMenu(const QPoint &);
 
   void notifyGoalComplete(int);
 
