@@ -4,7 +4,7 @@
     <goal number="2" type="0" desc="Pick up the banana on the table." object_id="9" />
     <goal number="3" type="1" desc="Place the banana next to the sink." object_id="9" position_x="-1.60391" position_y="1.79098" position_z="0.891748" orientation_x="-0.607331" orientation_y="0.380632" orientation_z="-0.374921" orientation_w="0.587964" />
     <goal number="4" type="0" desc="Pick up the cup on the shelf next to the lamp." object_id="10" />
-    <goal number="5" type="1" desc="Place the cup on the table." object_id="10" position_x="2.23981" position_y="-2.17278" position_z="0.7733" orientation_x="-5.29597e-07" orientation_y="1.65158e-07" orientation_z="0.999841" orientation_w="0.0178109" />
+    <goal number="5" type="1" desc="Place the cup on the table." object_id="10" position_x="2.23981" position_y="-2.17278" position_z="0.827828" orientation_x="-5.29597e-07" orientation_y="1.65158e-07" orientation_z="0.999841" orientation_w="0.0178109" />
     <goal number="6" type="0" desc="Pick up the tin of crackers on the shelf." object_id="14" />
-    <goal number="7" type="1" desc="Place the tin of crackers at the edge of the table." object_id="14" position_x="1.10795" position_y="-1.05571" position_z="0.777029" orientation_x="5.79357e-08" orientation_y="-1.47566e-08" orientation_z="-0.894037" orientation_w="0.447992" />
+    <goal number="7" type="1" desc="Place the tin of crackers at the edge of the table." object_id="14" position_x="1.10795" position_y="-1.05571" position_z="0.805414" orientation_x="5.79357e-08" orientation_y="-1.47566e-08" orientation_z="-0.894037" orientation_w="0.447992" />
 </task>
