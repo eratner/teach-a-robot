@@ -117,7 +117,9 @@ public:
    */
   bool snapEndEffectorTo(const geometry_msgs::Pose &pose,
                          double gripper_joint = EndEffectorController::GRIPPER_OPEN_ANGLE,
-                         bool snap_attached_object = false);
+                         bool snap_attached_object = false,
+                         bool interpolate_position = true,
+                         bool interpolate_orientation = true);
 
   bool isSnapDone() const;
 

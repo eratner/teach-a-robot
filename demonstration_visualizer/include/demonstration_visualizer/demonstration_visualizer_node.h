@@ -71,6 +71,8 @@ public:
   
   void processKeyEvent(int key, int type);
   
+  void prepGripperForGoal(int goal_number);
+
   /**
    * Note that all poses are given in the world frame, if not 
    * otherwise specified.

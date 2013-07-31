@@ -1905,6 +1905,8 @@ void DemonstrationVisualizer::endGraspSelection()
     grasp_distance_slider_->setEnabled(false);
     gripper_position_slider_->setEnabled(false);
 
+    node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
+
     node_.playSimulator();
     node_.enableRobotMarkerControl();
 

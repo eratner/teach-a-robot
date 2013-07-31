@@ -347,6 +347,39 @@ void DemonstrationVisualizerNode::processKeyEvent(int key, int type)
   simulator_->processKeyEvent(key, type);
 }
 
+void DemonstrationVisualizerNode::prepGripperForGoal(int goal_number)
+{
+  ROS_INFO("[DVizNode] Prepping gripper for goal %d.", goal_number);
+
+  Goal *goal = getSceneManager()->getGoal(goal_number);
+  if(goal->getType() == Goal::PICK_UP)
+  {
+    PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(goal);
+
+    geometry_msgs::Pose grasp_pose = pick_up_goal->getGraspPose();
+    geometry_msgs::Pose current_pose = getEndEffectorPoseInBase();
+    geometry_msgs::Pose goal_pose = current_pose;
+
+    KDL::Rotation grasp_orientation = KDL::Rotation::Quaternion(grasp_pose.orientation.x,
+								grasp_pose.orientation.y,
+								grasp_pose.orientation.z,
+								grasp_pose.orientation.w);
+    double r, p, y;
+    grasp_orientation.GetRPY(r, p, y);
+    tf::Quaternion goal_orientation;
+    goal_orientation.setRPY(r, p, 0.0);
+
+    tf::quaternionTFToMsg(goal_orientation, goal_pose.orientation);
+
+    simulator_->snapEndEffectorTo(goal_pose, EndEffectorController::GRIPPER_OPEN_ANGLE,
+                                  false, false, true);
+  }
+  else
+  {
+    ROS_ERROR("[DVizNode] Goal %d is not a pick up goal!", goal_number);
+  }
+}
+
 geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose()
 {
   return simulator_->getBasePose();

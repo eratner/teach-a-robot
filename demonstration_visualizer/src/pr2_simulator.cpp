@@ -850,7 +850,9 @@ void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
 
 bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose, 
 				     double gripper_joint, 
-				     bool snap_attached_object)
+				     bool snap_attached_object,
+                                     bool interpolate_position,
+                                     bool interpolate_orientation)
 {
   if(isValidEndEffectorPose(pose))
   {
@@ -935,12 +937,18 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
     for(int i = 0; i < static_cast<int>(2.0 * getFrameRate()); ++i)
     {
       // First, find the next pose of the end-effector.
-      current_pose.position.x += R.x();
-      current_pose.position.y += R.y();
-      current_pose.position.z += R.z();
+      if(interpolate_position)
+      {
+	current_pose.position.x += R.x();
+	current_pose.position.y += R.y();
+	current_pose.position.z += R.z();
+      }
 
-      tf::Quaternion next_orientation = current_orientation.slerp(goal_orientation, dt * (i + 1));
-      tf::quaternionTFToMsg(next_orientation, current_pose.orientation);
+      if(interpolate_orientation)
+      {
+	tf::Quaternion next_orientation = current_orientation.slerp(goal_orientation, dt * (i + 1));
+	tf::quaternionTFToMsg(next_orientation, current_pose.orientation);
+      }
 
       // Next, use IK to find the corresponding joint angles.  
       std::vector<double> end_effector_pose(7, 0);
