@@ -18,8 +18,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     end_effector_controller_(int_marker_server),
     recorder_(recorder),
     snap_motion_count_(0),
+    snap_object_(false),
+    stop_while_snapping_(true),
     moving_gripper_marker_(false),
-    move_robot_markers_(true)
+    move_robot_markers_(true),
+    pause_requested_(false),
+    goal_orientation_changed_(false)
 {
   ros::NodeHandle nh;
 
@@ -173,6 +177,31 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // control.orientation_mode = visualization_msgs::InteractiveMarkerControl::FIXED;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
+
+  // Allow the user to control the orientation of the gripper.
+  control.markers.clear();
+
+  control.name = "YAW";
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  int_marker.controls.push_back(control);
+
+  control.name = "ROLL";
+  control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  int_marker.controls.push_back(control);
+
+  control.name = "PITCH";
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  int_marker.controls.push_back(control);
   
   int_marker_server_->insert(int_marker,
 			     boost::bind(&PR2Simulator::gripperMarkerFeedback,
@@ -257,48 +286,23 @@ void PR2Simulator::run()
 
   if(isPlaying())
   {
+    // ROS_INFO_STREAM("Base moving? " << (isBaseMoving() ? "Yes." : "No."));
+    // ROS_INFO_STREAM("End-effector moving? " << (isEndEffectorMoving() ? "Yes." : "No."));
+
     // Perform any snap motion that has been generated.
     if(!isSnapDone())
     {
-      ROS_INFO("[PR2Sim] Executing a snap motion (%d)...", snap_motion_count_);
-      setJointStates(snap_motion_[snap_motion_count_]);
-
-      // @todo we should not have to call updateEndEffectorPose() twice per iteration 
-      // (inefficient).
-      if(snap_object_)
-      {
-	updateEndEffectorPose();
-	std::vector<double> end_effector_pose(7, 0);
-	end_effector_pose[0] = end_effector_pose_.pose.position.x;
-	end_effector_pose[1] = end_effector_pose_.pose.position.y;
-	end_effector_pose[2] = end_effector_pose_.pose.position.z;
-	end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
-	end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
-	end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
-	end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
-	BodyPose body_pose;
-	body_pose.x = base_pose_.pose.position.x;
-	body_pose.y = base_pose_.pose.position.y;
-	body_pose.z = 0.0;
-	body_pose.theta = tf::getYaw(base_pose_.pose.orientation);
-	geometry_msgs::Pose object_pose;
-	computeObjectPose(end_effector_pose, body_pose, object_pose);
-	object_manager_->moveObject(attached_id_, object_pose);
-      }
-
+      // ROS_INFO("[PR2Sim] Executing a snap motion (%d)...", snap_motion_count_);
       snap_motion_count_++;
     }
-    else if(!recorder_->isReplaying())
+    else if(pause_requested_)
     {
-      if(pause_requested_)
-      {
-	pause();
-	pause_requested_ = false;
-	return;
-      }
-
-      moveRobot();
+      pause();
+      pause_requested_ = false;
+      return;
     }
+
+    moveRobot();
 
     visualizeRobot();
 
@@ -383,107 +387,124 @@ void PR2Simulator::moveRobot()
   body_pose.z = 0.0;
   body_pose.theta = new_theta;
 
-  // Second, get the next proposed end-effector pose and resulting joint angles.
-  geometry_msgs::Twist end_effector_vel = 
-    end_effector_controller_.moveTo(end_effector_pose_.pose,
-				    end_effector_goal_pose_.pose);
-
-  dx = (1.0/getFrameRate())*end_effector_vel.linear.x + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.x;
-  dy = (1.0/getFrameRate())*end_effector_vel.linear.y + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.y;
-  double dz = (1.0/getFrameRate())*end_effector_vel.linear.z + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.z;
-
-  // Attempt to find joint angles for the arm using the arm IK solver.
-  std::vector<double> r_arm_joints(7, 0);
+  double dz = 0;
+  std::vector<double> end_effector_pose(7, 0);
+  std::vector<double> solution(7, 0);
   std::vector<double> l_arm_joints(7, 0);
-  for(int i = 7; i < 14; ++i)
+  for(int i = 0; i < 7; ++i)
   {
-    r_arm_joints[i-7] = joint_states_.position[i];
-    l_arm_joints[i-7] = joint_states_.position[i-7];
+    l_arm_joints[i] = joint_states_.position[i];
   }
 
-  std::vector<double> end_effector_pose(7, 0);
-  end_effector_pose[0] = end_effector_pose_.pose.position.x + dx;
-  end_effector_pose[1] = end_effector_pose_.pose.position.y + dy;
-  end_effector_pose[2] = end_effector_pose_.pose.position.z + dz;
-  end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
-  end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
-  end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
-  end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
-  
-  // Use IK to find the required joint angles for the arm.
-  std::vector<double> solution(7, 0);
-  if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
+  if(isSnapDone())
   {
-    // Do not attempt an IK search if the simulator is executing a snap motion.
-    if(!isSnapDone())
+    // Second, get the next proposed end-effector pose and resulting joint angles.
+    geometry_msgs::Twist end_effector_vel = 
+      end_effector_controller_.moveTo(end_effector_pose_.pose,
+				      end_effector_goal_pose_.pose);
+    
+    dx = (1.0/getFrameRate())*end_effector_vel.linear.x + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.x;
+    dy = (1.0/getFrameRate())*end_effector_vel.linear.y + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.y;
+    dz = (1.0/getFrameRate())*end_effector_vel.linear.z + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.z;
+
+    // Attempt to find joint angles for the arm using the arm IK solver.
+    std::vector<double> r_arm_joints(7, 0);
+    for(int i = 7; i < 14; ++i)
     {
-      ROS_ERROR("[PR2Sim] IK failed in move robot!");
-      return;
+      r_arm_joints[i-7] = joint_states_.position[i];
     }
 
-    // Try once more to find a valid IK solution by searching locally for valid
-    // end-effector positions.
-    ROS_INFO("IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
-	     end_effector_pose[1], end_effector_pose[2]);
-    std::vector<std::pair<double, double> > intervals;
-    intervals.push_back(std::make_pair(-0.03 + end_effector_pose[0], 
-				       0.03 + end_effector_pose[0]));
-    intervals.push_back(std::make_pair(-0.03 + end_effector_pose[1], 
-				       0.03 + end_effector_pose[1]));
-    intervals.push_back(std::make_pair(end_effector_pose[2], 
-				       end_effector_pose[2]));
-    std::vector<double> d;
-    d.push_back(0.002);
-    d.push_back(0.002);
-    d.push_back(0);
-    geometry_msgs::Pose pose;
-    pose.position.x = end_effector_pose[0];
-    pose.position.y = end_effector_pose[1];
-    pose.position.z = end_effector_pose[2];
-    pose.orientation = end_effector_pose_.pose.orientation;
-    double x, y, z;
-
-    if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
+    // std::vector<double> end_effector_pose(7, 0);
+    end_effector_pose[0] = end_effector_pose_.pose.position.x + dx;
+    end_effector_pose[1] = end_effector_pose_.pose.position.y + dy;
+    end_effector_pose[2] = end_effector_pose_.pose.position.z + dz;
+    end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
+    end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
+    end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
+    end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
+  
+    // Use IK to find the required joint angles for the arm.
+    if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
     {
-      ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
-      end_effector_pose[0] = x;
-      end_effector_pose[1] = y;
-      end_effector_pose[2] = z;
-      if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
+      // Do not attempt an IK search if the simulator is executing a snap motion.
+      if(!isSnapDone())
       {
-	ROS_ERROR("This should never happen!");
+	ROS_ERROR("[PR2Sim] IK failed in move robot while snapping!");
+	return;
+      }
+
+      // Try once more to find a valid IK solution by searching locally for valid
+      // end-effector positions.
+      ROS_INFO("IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
+	       end_effector_pose[1], end_effector_pose[2]);
+      std::vector<std::pair<double, double> > intervals;
+      intervals.push_back(std::make_pair(-0.03 + end_effector_pose[0], 
+					 0.03 + end_effector_pose[0]));
+      intervals.push_back(std::make_pair(-0.03 + end_effector_pose[1], 
+					 0.03 + end_effector_pose[1]));
+      intervals.push_back(std::make_pair(end_effector_pose[2], 
+					 end_effector_pose[2]));
+      std::vector<double> d;
+      d.push_back(0.002);
+      d.push_back(0.002);
+      d.push_back(0);
+      geometry_msgs::Pose pose;
+      pose.position.x = end_effector_pose[0];
+      pose.position.y = end_effector_pose[1];
+      pose.position.z = end_effector_pose[2];
+      pose.orientation = end_effector_pose_.pose.orientation;
+      double x, y, z;
+
+      if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
+      {
+	ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
+	end_effector_pose[0] = x;
+	end_effector_pose[1] = y;
+	end_effector_pose[2] = z;
+	if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
+	{
+	  ROS_ERROR("This should never happen!");
+	  return;
+	}
+      }
+      else
+      {
+	ROS_INFO("...nevermind :(");
 	return;
       }
     }
+  }
+  else
+  {
+    for(int i = 0; i < 7; ++i)
+    {
+      solution[i] = snap_motion_[snap_motion_count_].position[i];
+    }
+    joint_states_.position[14] = snap_motion_[snap_motion_count_].position[7];
+
+    // Compute FK to find the end-effector pose.
+    std::vector<double> fk_pose;
+    if(!kdl_robot_model_.computePlanningLinkFK(solution, fk_pose))
+    {
+      ROS_ERROR("[PR2Sim] Failed to compute FK in while executing a snap motion!");
+    }
     else
     {
-      ROS_INFO("...nevermind :(");
-      return;
+      end_effector_pose[0] = fk_pose[0];
+      end_effector_pose[1] = fk_pose[1];
+      end_effector_pose[2] = fk_pose[2];
+      geometry_msgs::Quaternion orientation = tf::createQuaternionMsgFromRollPitchYaw(fk_pose[3], 
+										      fk_pose[4],
+										      fk_pose[5]);
+      end_effector_pose[3] = orientation.x;
+      end_effector_pose[4] = orientation.y;
+      end_effector_pose[5] = orientation.z;
+      end_effector_pose[6] = orientation.w;
     }
   }
 
-  // // Compute FK to verify (DEBUGGING)
-  // std::vector<double> fk_pose;
-  // if(!kdl_robot_model_.computePlanningLinkFK(solution, fk_pose))
-  // {
-  //   ROS_ERROR("[PR2Sim] Failed to compute FK in updating the end-effector pose!");
-  // }
-  // else
-  // {
-  //   double r, p, y;
-  //   KDL::Rotation rot = KDL::Rotation::Quaternion(end_effector_pose[3],
-  // 						  end_effector_pose[4],
-  // 						  end_effector_pose[5],
-  // 						  end_effector_pose[6]);
-  //   rot.GetRPY(r, p, y);
-  //   ROS_INFO("IK: (%f, %f, %f), (%f, %f, %f)\nFK: (%f, %f, %f), (%f, %f, %f)",
-  // 	     end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
-  // 	     r, p, y, fk_pose[0], fk_pose[1], fk_pose[2], fk_pose[3], fk_pose[4],
-  // 	     fk_pose[5]);
-  // }
-
   geometry_msgs::Pose object_pose;
-  if(attached_object_)
+  if(attached_object_ || (!isSnapDone() && snap_object_))
   {
     // ROS_ERROR("compute object pose");
     computeObjectPose(end_effector_pose, body_pose, object_pose);
@@ -512,7 +533,7 @@ void PR2Simulator::moveRobot()
     end_effector_pose_.pose.orientation.z = end_effector_pose[5];
     end_effector_pose_.pose.orientation.w = end_effector_pose[6];
 
-    if(attached_object_)
+    if(attached_object_ || (!isSnapDone() && snap_object_))
       object_manager_->moveObject(attached_id_, object_pose);
   }
   else
@@ -712,6 +733,16 @@ void PR2Simulator::gripperMarkerFeedback(
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
   {
+    // ROS_INFO("control name: %s", feedback->control_name.c_str());
+    if(feedback->control_name.compare("ROLL") == 0 ||
+       feedback->control_name.compare("PITCH") == 0 ||
+       feedback->control_name.compare("YAW") == 0)
+    {
+      // snapEndEffectorTo(feedback->pose, EndEffectorController::GRIPPER_OPEN_ANGLE,
+      // 		  false, false, true);
+      goal_orientation_changed_ = true;
+    }
+
     if(!move_end_effector_while_dragging_ && canMoveRobotMarkers())
     {
       ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
@@ -852,11 +883,13 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
 				     double gripper_joint, 
 				     bool snap_attached_object,
                                      bool interpolate_position,
-                                     bool interpolate_orientation)
+                                     bool interpolate_orientation,
+                                     bool stop_while_snapping)
 {
   if(isValidEndEffectorPose(pose))
   {
     snap_object_ = snap_attached_object;
+    stop_while_snapping_ = stop_while_snapping;
 
     // @todo sometimes the key release command gets lost
     end_effector_vel_cmd_.linear.x = 0;
@@ -903,9 +936,9 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
     tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
     tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
 
-    ROS_INFO("setting control orientation to (%f, %f, %f, %f)", gripper_marker.controls.at(0).orientation.x,
-	     gripper_marker.controls.at(0).orientation.y, gripper_marker.controls.at(0).orientation.z,
-	     gripper_marker.controls.at(0).orientation.w);
+    // ROS_INFO("setting control orientation to (%f, %f, %f, %f)", gripper_marker.controls.at(0).orientation.x,
+    // 	     gripper_marker.controls.at(0).orientation.y, gripper_marker.controls.at(0).orientation.z,
+    // 	     gripper_marker.controls.at(0).orientation.w);
 
     int_marker_server_->insert(gripper_marker);
     int_marker_server_->applyChanges();
@@ -966,9 +999,9 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
 						    current_pose.orientation.z,
 						    current_pose.orientation.w);
       rot.GetRPY(roll, pitch, yaw);
-      ROS_INFO("Pose %d: (%f, %f, %f), (%f, %f, %f).", i+1, 
-	       end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
-	       roll, pitch, yaw);
+      // ROS_INFO("Pose %d: (%f, %f, %f), (%f, %f, %f).", i+1, 
+      // 	       end_effector_pose[0], end_effector_pose[1], end_effector_pose[2],
+      // 	       roll, pitch, yaw);
 
       if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, r_arm_solution))
       {
@@ -981,7 +1014,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
 	r_arm_joints[j] = r_arm_solution[j];
       }
       joint_state.position[7] = joint_states_.position[14];
-      ROS_INFO("r_gripper_joint position %d: %f", i, joint_state.position[14]);
+      // ROS_INFO("r_gripper_joint position %d: %f", i, joint_state.position[14]);
 
       snap_motion_.push_back(joint_state);
     }
@@ -992,7 +1025,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
     for(int i = 0; i < static_cast<int>(0.5 * getFrameRate()); ++i)
     {
       joint_state.position[7] += delta;
-      ROS_INFO("r_gripper_joint position %d: %f.", i, joint_state.position[7]);
+      // ROS_INFO("r_gripper_joint position %d: %f.", i, joint_state.position[7]);
       snap_motion_.push_back(joint_state);
     }
 	  
@@ -1183,8 +1216,7 @@ void PR2Simulator::updateEndEffectorMarker()
 {
   if((end_effector_controller_.getState() == EndEffectorController::DONE ||
      end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
-     recorder_->isReplaying()) /*&&*/
-     /*!moving_gripper_marker_*/)
+     recorder_->isReplaying()))
   {
     int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
     int_marker_server_->applyChanges();
@@ -1192,6 +1224,13 @@ void PR2Simulator::updateEndEffectorMarker()
 
   if(end_effector_controller_.getState() == EndEffectorController::DONE)
   {
+    if(goal_orientation_changed_)
+    {
+      snapEndEffectorTo(end_effector_goal_pose_.pose, joint_states_.position[14],
+			false, false, true);
+      goal_orientation_changed_ = false;
+    }
+
     end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 
@@ -1241,7 +1280,7 @@ void PR2Simulator::updateTransforms()
   KDL::Frame base_in_torso_lift_link;
   base_in_torso_lift_link.p.x(0.050);
   base_in_torso_lift_link.p.y(0.0);
-  base_in_torso_lift_link.p.z(-0.802);
+  base_in_torso_lift_link.p.z(-0.802/* + 0.3*/);
   base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
   // Note that all computed poses of the end-effector are in the base footprint frame.
@@ -1254,6 +1293,19 @@ bool PR2Simulator::isBaseMoving() const
      base_movement_controller_.getState() == BaseMovementController::INITIAL) &&
      vel_cmd_.linear.x == 0 && vel_cmd_.linear.y == 0 && vel_cmd_.angular.z == 0 &&
      key_vel_cmd_.linear.x == 0 && key_vel_cmd_.linear.y == 0 && key_vel_cmd_.angular.z == 0)
+    return false;
+
+  return true;
+}
+
+bool PR2Simulator::isEndEffectorMoving() const
+{
+  // @todo THIS DOESN'T WORK.
+  if((end_effector_controller_.getState() == EndEffectorController::DONE ||
+      end_effector_controller_.getState() == EndEffectorController::INITIAL ||
+       end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL) &&
+     end_effector_vel_cmd_.linear.x == 0 && end_effector_vel_cmd_.linear.y == 0 
+     && end_effector_vel_cmd_.linear.z == 0 && isSnapDone())
     return false;
 
   return true;
@@ -1574,16 +1626,6 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
   }
 
   return false;
-}
-
-void PR2Simulator::resetGripperOrientation()
-{
-  geometry_msgs::Pose reset_pose = end_effector_pose_.pose;
-  reset_pose.orientation.x = 0;
-  reset_pose.orientation.y = 0;
-  reset_pose.orientation.z = 0;
-  reset_pose.orientation.w = 1;
-  snapEndEffectorTo(reset_pose);
 }
 
 bool PR2Simulator::canMoveRobotMarkers() const

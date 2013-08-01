@@ -141,7 +141,8 @@ void DemonstrationVisualizerNode::updateGoals()
     PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
     bool goal_reachable = true;
       
-    if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose(), 0.05))
+    if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), getEndEffectorPose(), 0.05) &&
+      !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/)
     {
       ROS_INFO("[DVizNode] Reached goal %d!", getSceneManager()->getCurrentGoal());
 
@@ -234,7 +235,8 @@ void DemonstrationVisualizerNode::updateGoals()
     geometry_msgs::Pose object_pose = object_manager_->getMarker(place_goal->getObjectID()).pose;
     bool goal_reachable = true;
 
-    if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), object_pose, 0.08))
+    if(getSceneManager()->hasReachedGoal(getSceneManager()->getCurrentGoal(), object_pose, 0.08) &&
+      !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/)
     {
       // Snap the gripper to the correct position so that the object that it is holding moves 
       // smoothly to the goal pose. 

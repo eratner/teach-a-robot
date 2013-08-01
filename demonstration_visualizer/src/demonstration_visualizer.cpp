@@ -14,6 +14,7 @@
 #include <QSlider>
 #include <QGroupBox>
 #include <QSignalMapper>
+#include <QMenu>
 
 #include <ros/package.h>
 
@@ -224,7 +225,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QDoubleSpinBox *linear_speed_control = new QDoubleSpinBox();
   linear_speed_panel->addWidget(linear_speed_control);
   linear_speed_control->setSingleStep(0.1);
-  linear_speed_control->setValue(0.2);
+  linear_speed_control->setValue(0.4);
 
   QHBoxLayout *angular_speed_panel = new QHBoxLayout();
   QLabel *angular_speed_label = new QLabel("Angular Speed (rad/s): ");
@@ -232,7 +233,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QDoubleSpinBox *angular_speed_control = new QDoubleSpinBox();
   angular_speed_panel->addWidget(angular_speed_control);
   angular_speed_control->setSingleStep(0.1);
-  angular_speed_control->setValue(0.2);
+  angular_speed_control->setValue(0.4);
 
   // Controls for managing the current task.
   QPushButton *add_goal = new QPushButton("Add Goal to Task");
@@ -250,6 +251,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   edit_mode_panel->addWidget(edit_scene);
   QLabel *goals_label = new QLabel("Goals:");
   goals_list_ = new QListWidget();
+  goals_list_->setContextMenuPolicy(Qt::CustomContextMenu);
   goals_list_->setSelectionRectVisible(false);
   goals_list_->setWrapping(true);
   goals_list_->addItem("No task loaded.");
@@ -355,25 +357,25 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
-  QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
-  QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
-  fps_x_offset_layout->addWidget(fps_x_offset_label);
-  QSlider *fps_x_offset = new QSlider(Qt::Horizontal);
-  fps_x_offset->setMinimum(0);
-  fps_x_offset->setMaximum(500);
-  fps_x_offset->setValue(0);
-  fps_x_offset_layout->addWidget(fps_x_offset);
-  user_controls_layout->addLayout(fps_x_offset_layout);
+  // QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
+  // QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
+  // fps_x_offset_layout->addWidget(fps_x_offset_label);
+  // QSlider *fps_x_offset = new QSlider(Qt::Horizontal);
+  // fps_x_offset->setMinimum(0);
+  // fps_x_offset->setMaximum(500);
+  // fps_x_offset->setValue(0);
+  // fps_x_offset_layout->addWidget(fps_x_offset);
+  // user_controls_layout->addLayout(fps_x_offset_layout);
 
-  QHBoxLayout *fps_z_offset_layout = new QHBoxLayout();
-  QLabel *fps_z_offset_label = new QLabel("FPS z-offset: ");
-  fps_z_offset_layout->addWidget(fps_z_offset_label);
-  QSlider *fps_z_offset = new QSlider(Qt::Horizontal);
-  fps_z_offset->setMinimum(0);
-  fps_z_offset->setMaximum(500);
-  fps_z_offset->setValue(0);
-  fps_z_offset_layout->addWidget(fps_z_offset);
-  user_controls_layout->addLayout(fps_z_offset_layout);
+  // QHBoxLayout *fps_z_offset_layout = new QHBoxLayout();
+  // QLabel *fps_z_offset_label = new QLabel("FPS z-offset: ");
+  // fps_z_offset_layout->addWidget(fps_z_offset_label);
+  // QSlider *fps_z_offset = new QSlider(Qt::Horizontal);
+  // fps_z_offset->setMinimum(0);
+  // fps_z_offset->setMaximum(500);
+  // fps_z_offset->setValue(0);
+  // fps_z_offset_layout->addWidget(fps_z_offset);
+  // user_controls_layout->addLayout(fps_z_offset_layout);
 
   controls_group->setLayout(user_controls_layout);
 
@@ -462,6 +464,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SIGNAL(itemDoubleClicked(QListWidgetItem *)), this, 
 	  SLOT(editGoalDescription(QListWidgetItem *))
 	  );
+  connect(goals_list_,
+	  SIGNAL(customContextMenuRequested(const QPoint &)), this,
+	  SLOT(showGoalsMenu(const QPoint &)));
   connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
   connect(start_button_, SIGNAL(clicked()), this, SLOT(startBasicMode()));
   connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
@@ -494,8 +499,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
-  connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
-  connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
+  // connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
+  // connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
@@ -1195,6 +1200,28 @@ void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
     std::stringstream goal_desc;
     goal_desc << "Goal " << goal_number+1 << ": " << new_desc.toStdString();
     goal->setData(Qt::DisplayRole, QString(goal_desc.str().c_str()));
+  }
+}
+
+void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
+{
+  QPoint global_pos = goals_list_->mapToGlobal(p);
+  QModelIndex i = goals_list_->indexAt(p);
+  goals_list_->item(i.row())->setSelected(true);
+
+  QMenu menu;
+  menu.addAction("Make current goal");
+
+  QAction *selected = menu.exec(global_pos);
+  if(selected)
+  {
+    // @todo in the future if there are more than one menu items, we need to
+    // check here which action was selected.
+    ROS_INFO("[DViz] Changing goal number %d to the current goal.", (int)i.row());
+  }
+  else
+  {
+
   }
 }
 
@@ -1905,7 +1932,7 @@ void DemonstrationVisualizer::endGraspSelection()
     grasp_distance_slider_->setEnabled(false);
     gripper_position_slider_->setEnabled(false);
 
-    node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
+    // node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
 
     node_.playSimulator();
     node_.enableRobotMarkerControl();
