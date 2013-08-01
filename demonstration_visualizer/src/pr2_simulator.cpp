@@ -180,29 +180,29 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   int_marker.controls.push_back(control);
 
   // Allow the user to control the orientation of the gripper.
-  control.markers.clear();
+  // control.markers.clear();
 
-  control.name = "YAW";
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 1;
-  control.orientation.z = 0;
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
+  // control.name = "YAW";
+  // control.orientation.w = 1;
+  // control.orientation.x = 0;
+  // control.orientation.y = 1;
+  // control.orientation.z = 0;
+  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  // int_marker.controls.push_back(control);
 
-  control.name = "ROLL";
-  control.orientation.w = 1;
-  control.orientation.x = 1;
-  control.orientation.y = 0;
-  control.orientation.z = 0;
-  int_marker.controls.push_back(control);
+  // control.name = "ROLL";
+  // control.orientation.w = 1;
+  // control.orientation.x = 1;
+  // control.orientation.y = 0;
+  // control.orientation.z = 0;
+  // int_marker.controls.push_back(control);
 
-  control.name = "PITCH";
-  control.orientation.w = 1;
-  control.orientation.x = 0;
-  control.orientation.y = 0;
-  control.orientation.z = 1;
-  int_marker.controls.push_back(control);
+  // control.name = "PITCH";
+  // control.orientation.w = 1;
+  // control.orientation.x = 0;
+  // control.orientation.y = 0;
+  // control.orientation.z = 1;
+  // int_marker.controls.push_back(control);
   
   int_marker_server_->insert(int_marker,
 			     boost::bind(&PR2Simulator::gripperMarkerFeedback,
@@ -1008,6 +1008,7 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
       if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, r_arm_solution))
       {
 	ROS_ERROR("[PR2Sim] IK failed at snap motion interpolation point %d!", i);
+	return false;
       }
 
       for(int j = 0; j < 7; ++j)
@@ -1638,6 +1639,56 @@ bool PR2Simulator::canMoveRobotMarkers() const
 void PR2Simulator::setMoveRobotMarkers(bool move)
 {
   move_robot_markers_ = move;
+}
+
+void PR2Simulator::enableOrientationControl()
+{
+  visualization_msgs::InteractiveMarker int_marker;
+  int_marker_server_->get("r_gripper_marker", int_marker);
+
+  if(int_marker.controls.size() <= 1)
+  {
+    visualization_msgs::InteractiveMarkerControl control;
+
+    control.name = "YAW";
+    control.orientation.w = 1;
+    control.orientation.x = 0;
+    control.orientation.y = 1;
+    control.orientation.z = 0;
+    control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+    int_marker.controls.push_back(control);
+
+    control.name = "ROLL";
+    control.orientation.w = 1;
+    control.orientation.x = 1;
+    control.orientation.y = 0;
+    control.orientation.z = 0;
+    int_marker.controls.push_back(control);
+
+    control.name = "PITCH";
+    control.orientation.w = 1;
+    control.orientation.x = 0;
+    control.orientation.y = 0;
+    control.orientation.z = 1;
+    int_marker.controls.push_back(control);
+  }
+
+  int_marker_server_->insert(int_marker);
+  int_marker_server_->applyChanges();
+}
+
+void PR2Simulator::disableOrientationControl()
+{
+  visualization_msgs::InteractiveMarker int_marker;
+  int_marker_server_->get("r_gripper_marker", int_marker);
+
+  while(int_marker.controls.size() > 1)
+  {
+    int_marker.controls.pop_back();
+  }
+
+  int_marker_server_->insert(int_marker);
+  int_marker_server_->applyChanges();
 }
 
 } // namespace demonstration_visualizer

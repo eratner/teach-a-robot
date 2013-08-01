@@ -334,6 +334,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   change_grasp_button_ = new QPushButton("Change Grasp");
   user_controls_layout->addWidget(change_grasp_button_);
   change_grasp_button_->setEnabled(false);
+  gripper_orientation_button_ = new QPushButton("Enable Gripper Orientation Control");
+  user_controls_layout->addWidget(gripper_orientation_button_);
   QHBoxLayout *grasp_distance_layout = new QHBoxLayout();
   QLabel *grasp_distance_label = new QLabel("Grasp Distance: ");
   grasp_distance_slider_ = new QSlider(Qt::Horizontal);
@@ -497,6 +499,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   // connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
   connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
   connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
+  connect(gripper_orientation_button_, SIGNAL(clicked()), this, SLOT(toggleGripperOrientationMode()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
   // connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
@@ -512,6 +515,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   top_down_fps_camera_mode_ = 0;
   last_top_down_fps_camera_mode_ = 1;
   grasp_selected_ = false;
+  gripper_orientation_mode_ = false;
 
   setLayout(window_layout);
 
@@ -1877,6 +1881,22 @@ void DemonstrationVisualizer::setGripperPosition(int position)
 
   //   node_.setJointStates(joints);
   // }
+}
+
+void DemonstrationVisualizer::toggleGripperOrientationMode()
+{
+  if(gripper_orientation_mode_)
+  {
+    gripper_orientation_mode_ = false;
+    node_.setGripperOrientationControl(false);
+    gripper_orientation_button_->setText("Enable Gripper Orientation Control");
+  }
+  else
+  {
+    gripper_orientation_mode_ = true;
+    node_.setGripperOrientationControl(true);
+    gripper_orientation_button_->setText("Disable Gripper Orientation Control");
+  }
 }
 
 void DemonstrationVisualizer::beginGraspSelection()

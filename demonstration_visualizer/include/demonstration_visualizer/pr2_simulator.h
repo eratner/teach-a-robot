@@ -191,6 +191,10 @@ public:
 
   void setMoveRobotMarkers(bool);
 
+  void enableOrientationControl();
+  
+  void disableOrientationControl();
+
 private:
   bool playing_;
 

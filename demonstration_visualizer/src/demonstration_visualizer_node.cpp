@@ -383,6 +383,18 @@ void DemonstrationVisualizerNode::prepGripperForGoal(int goal_number)
   }
 }
 
+void DemonstrationVisualizerNode::setGripperOrientationControl(bool enabled)
+{
+  if(enabled)
+  {
+    simulator_->enableOrientationControl();
+  }
+  else
+  {
+    simulator_->disableOrientationControl();
+  }
+}
+
 geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose()
 {
   return simulator_->getBasePose();

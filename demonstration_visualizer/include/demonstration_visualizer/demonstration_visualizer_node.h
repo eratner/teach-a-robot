@@ -73,6 +73,8 @@ public:
   
   void prepGripperForGoal(int goal_number);
 
+  void setGripperOrientationControl(bool enabled);
+
   /**
    * Note that all poses are given in the world frame, if not 
    * otherwise specified.
