@@ -158,6 +158,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   int_marker.pose = robot_markers_.markers.at(11).pose;
   int_marker.name = "r_gripper_marker";
   int_marker.description = "";
+  int_marker.scale = 0.3;
 
   r_gripper_marker.scale.x = 1.2;
   r_gripper_marker.scale.y = 1.2;
@@ -1228,7 +1229,7 @@ void PR2Simulator::updateEndEffectorMarker()
     if(goal_orientation_changed_)
     {
       snapEndEffectorTo(end_effector_goal_pose_.pose, joint_states_.position[14],
-			true, false, true);
+			attached_object_, false, true);
       goal_orientation_changed_ = false;
     }
 
