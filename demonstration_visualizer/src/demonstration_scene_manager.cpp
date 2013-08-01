@@ -24,6 +24,14 @@ DemonstrationSceneManager::DemonstrationSceneManager(
   ros::NodeHandle nh;
 
   marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
+
+  initial_robot_pose_.position.x = 0;
+  initial_robot_pose_.position.y = 0;
+  initial_robot_pose_.position.z = 0;
+  initial_robot_pose_.orientation.w = 1;
+
+  initial_torso_position_ = 0.3;
+
   ROS_INFO("[dsm] Constructor complete.");
 }
 
@@ -246,6 +254,50 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     } 
   }
 
+  // Read the initial configuration of the robot.
+  TiXmlElement *initial_element = element->NextSiblingElement("initial_configuration");
+  if(initial_element == NULL)
+  {
+    ROS_WARN("[SceneManager] Found no initial robot configuration in the scene file (default = origin)!");
+    // If this element does not exist, assume the initial pose of the robot is 
+    // at the origin.
+    initial_robot_pose_.position.x = 0;
+    initial_robot_pose_.position.y = 0;
+    initial_robot_pose_.position.z = 0;
+    initial_robot_pose_.orientation.x = 0;
+    initial_robot_pose_.orientation.y = 0;
+    initial_robot_pose_.orientation.z = 0;
+    initial_robot_pose_.orientation.w = 1;
+  }
+  else
+  {
+    if(initial_element->QueryDoubleAttribute("x", &initial_robot_pose_.position.x) != TIXML_SUCCESS)
+    {
+      ROS_ERROR("[SceneManager] Could not read the initial x position of the robot!");
+      return -1;
+    }
+
+    if(initial_element->QueryDoubleAttribute("y", &initial_robot_pose_.position.y) != TIXML_SUCCESS)
+    {
+      ROS_ERROR("[SceneManager] Could not read the initial y position of the robot!");
+      return -1;
+    }
+    
+    double yaw = 0;
+    if(initial_element->QueryDoubleAttribute("yaw", &yaw) != TIXML_SUCCESS)
+    {
+      ROS_ERROR("[SceneManager] Could not read the initial yaw of the robot!");
+      return -1;
+    }
+    initial_robot_pose_.orientation = tf::createQuaternionMsgFromYaw(yaw);
+
+    if(initial_element->QueryDoubleAttribute("torso_position", &initial_torso_position_) != TIXML_SUCCESS)
+    {
+      ROS_ERROR("[SceneManager] Could not read the initial torso position of the robot!");
+      return -1;
+    }
+  }
+
   // Read each mesh.
   element = element->NextSiblingElement("mesh");
   visualization_msgs::Marker mesh_marker;
@@ -360,6 +412,14 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
   size->SetDoubleAttribute("size_y", dimensions[1]);
   size->SetDoubleAttribute("size_z", dimensions[2]);
   root->LinkEndChild(size);
+
+  TiXmlElement *initial_configuration = new TiXmlElement("initial_configuration");
+  // @todo allow the user to edit the initial configuration. For now, set it to be
+  // the origin.
+  initial_configuration->SetDoubleAttribute("x", 0);
+  initial_configuration->SetDoubleAttribute("y", 0);
+  initial_configuration->SetDoubleAttribute("yaw", 0);
+  initial_configuration->SetDoubleAttribute("torso_position", 0);
 
   // For each object, add the mesh to the scene file and create a new 
   // collision model file for it.
@@ -1242,6 +1302,16 @@ bool DemonstrationSceneManager::taskDone() const
   return (current_goal_ >= (int)goals_.size());
 }
 
+geometry_msgs::Pose DemonstrationSceneManager::getInitialRobotPose() const
+{
+  return initial_robot_pose_;
+}
+
+double DemonstrationSceneManager::getInitialTorsoPosition() const
+{
+  return initial_torso_position_;
+}
+
 void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_marker)
 {
   switch(goal->getType())
@@ -1416,3 +1486,6 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
 }
 
 } // namespace demonstration_visualizer
+
+
+

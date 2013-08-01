@@ -105,7 +105,7 @@ public:
 
   void resetRobot();
 
-  void resetRobotTo(const geometry_msgs::Pose &pose);
+  void resetRobotTo(const geometry_msgs::Pose &pose, double torso_position = 0.3);
 
   void setRobotPose(const geometry_msgs::Pose &pose);
 

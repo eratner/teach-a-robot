@@ -326,7 +326,9 @@ void DemonstrationVisualizerNode::setRobotSpeed(double linear, double angular)
 
 void DemonstrationVisualizerNode::resetRobot()
 {
-  simulator_->resetRobot();
+  // simulator_->resetRobot();
+  simulator_->resetRobotTo(getSceneManager()->getInitialRobotPose(),
+                           getSceneManager()->getInitialTorsoPosition());
 }
 
 DemonstrationSceneManager *DemonstrationVisualizerNode::getSceneManager()

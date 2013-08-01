@@ -128,11 +128,18 @@ public:
 
   bool taskDone() const;
 
+  geometry_msgs::Pose getInitialRobotPose() const;
+
+  double getInitialTorsoPosition() const;
+
 private:
   bool goals_changed_;
   bool edit_goals_mode_;
   bool edit_meshes_mode_;
   int current_goal_;
+
+  geometry_msgs::Pose initial_robot_pose_;
+  double initial_torso_position_;
 
   ObjectManager* object_manager_;
 

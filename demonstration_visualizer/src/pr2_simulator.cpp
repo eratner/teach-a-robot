@@ -792,12 +792,14 @@ void PR2Simulator::resetRobot()
   resetRobotTo(origin);
 }
 
-void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose)
+void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_position)
 {
   ROS_INFO("[PR2Sim] Resetting robot to (%f, %f, %f), (%f, %f, %f, %f)...",
 	   pose.position.x, pose.position.y, pose.position.y,
 	   pose.orientation.x, pose.orientation.y, pose.orientation.z, 
 	   pose.orientation.w);
+
+  torso_position_ = torso_position;
 
   // Reset the base pose.
   base_pose_.pose = pose;
