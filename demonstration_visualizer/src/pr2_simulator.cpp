@@ -533,7 +533,8 @@ void PR2Simulator::moveRobot()
     end_effector_pose_.pose.orientation.z = end_effector_pose[5];
     end_effector_pose_.pose.orientation.w = end_effector_pose[6];
 
-    if(attached_object_ || (!isSnapDone() && snap_object_))
+    if((attached_object_ && (isSnapDone() || snap_object_)) || 
+       (!isSnapDone() && snap_object_))
       object_manager_->moveObject(attached_id_, object_pose);
   }
   else
@@ -1227,7 +1228,7 @@ void PR2Simulator::updateEndEffectorMarker()
     if(goal_orientation_changed_)
     {
       snapEndEffectorTo(end_effector_goal_pose_.pose, joint_states_.position[14],
-			false, false, true);
+			true, false, true);
       goal_orientation_changed_ = false;
     }
 
