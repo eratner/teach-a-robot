@@ -4,7 +4,7 @@ namespace demonstration_visualizer {
 
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0), frame_rate_(10.0),
-    linear_speed_(0.2), angular_speed_(0.2),
+    linear_speed_(0.4), angular_speed_(0.4),
     print_transitions_(false)
 {
 
@@ -33,45 +33,45 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
   switch(last_state_)
   {
   case READY:
-    {
-      if(distance < 1.0)
-	return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);
-    }
+  {
+    if(distance < 1.0)
+      return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);
+  }
   case ROTATE_TO_POSITION:
-    {
-      if(!anglesEqual(current_angle, angle_to_goal, 0.1) && distance >= 0.1)
-	return rotateToGoalPosition(current_angle, angle_to_goal);
-      else
-	return translateToGoalPosition(distance);
-    }
+  {
+    if(!anglesEqual(current_angle, angle_to_goal, 0.1) && distance >= 0.1)
+      return rotateToGoalPosition(current_angle, angle_to_goal);
+    else
+      return translateToGoalPosition(distance);
+  }
   case TRANSLATE_TO_POSITION:
+  {
+    if(distance < 0.1)
+      return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
+    else
     {
-      if(distance < 0.1)
-	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
-      else
-      {
-	if(anglesEqual(current_angle, angle_to_goal, 0.2))
-	  return translateToGoalPosition(distance);
-	else
-	  return rotateToGoalPosition(current_angle, angle_to_goal);
-      }
-    }
-  case TRANSLATE_TO_CLOSE_POSITION:
-    {
-      if(distance < 0.1)
-	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
-      else if(distance < 1.0)
-	return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);
+      if(anglesEqual(current_angle, angle_to_goal, 0.2))
+	return translateToGoalPosition(distance);
       else
 	return rotateToGoalPosition(current_angle, angle_to_goal);
     }
+  }
+  case TRANSLATE_TO_CLOSE_POSITION:
+  {
+    if(distance < 0.1)
+      return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
+    else if(distance < 1.0)
+      return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);
+    else
+      return rotateToGoalPosition(current_angle, angle_to_goal);
+  }
   case ROTATE_TO_ORIENTATION:
-    {
-      if(anglesEqual(current_angle, goal_angle, 0.1))
-	return done();
-      else
-	return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
-    }
+  {
+    if(anglesEqual(current_angle, goal_angle, 0.1))
+      return done();
+    else
+      return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
+  }
   case DONE:
     return done();
   case INITIAL:

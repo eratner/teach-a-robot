@@ -225,7 +225,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QDoubleSpinBox *linear_speed_control = new QDoubleSpinBox();
   linear_speed_panel->addWidget(linear_speed_control);
   linear_speed_control->setSingleStep(0.1);
-  linear_speed_control->setValue(0.2);
+  linear_speed_control->setValue(0.4);
 
   QHBoxLayout *angular_speed_panel = new QHBoxLayout();
   QLabel *angular_speed_label = new QLabel("Angular Speed (rad/s): ");
@@ -233,7 +233,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QDoubleSpinBox *angular_speed_control = new QDoubleSpinBox();
   angular_speed_panel->addWidget(angular_speed_control);
   angular_speed_control->setSingleStep(0.1);
-  angular_speed_control->setValue(0.2);
+  angular_speed_control->setValue(0.4);
 
   // Controls for managing the current task.
   QPushButton *add_goal = new QPushButton("Add Goal to Task");
@@ -1932,7 +1932,7 @@ void DemonstrationVisualizer::endGraspSelection()
     grasp_distance_slider_->setEnabled(false);
     gripper_position_slider_->setEnabled(false);
 
-    node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
+    // node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
 
     node_.playSimulator();
     node_.enableRobotMarkerControl();

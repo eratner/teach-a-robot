@@ -119,7 +119,8 @@ public:
                          double gripper_joint = EndEffectorController::GRIPPER_OPEN_ANGLE,
                          bool snap_attached_object = false,
                          bool interpolate_position = true,
-                         bool interpolate_orientation = true);
+                         bool interpolate_orientation = true,
+                         bool stop_while_snapping = true);
 
   bool isSnapDone() const;
 
@@ -134,6 +135,8 @@ public:
   void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &);
 
   bool isBaseMoving() const;
+
+  bool isEndEffectorMoving() const;
 
   /**
    * @brief Checks to see if the given pose is a valid pose for the end effector
@@ -183,8 +186,6 @@ public:
 				       const std::vector<double> &d,
 				       double &x, double &y, double &z,
 				       bool verbose = false);
-
-  void resetGripperOrientation();
 
   bool canMoveRobotMarkers() const;
 
@@ -240,11 +241,14 @@ private:
   std::vector<sensor_msgs::JointState> snap_motion_;
   int snap_motion_count_;
   bool snap_object_;
+  bool stop_while_snapping_;
 
   bool moving_gripper_marker_;
   bool move_robot_markers_;
 
   bool pause_requested_;
+
+  bool goal_orientation_changed_;
 
 };
 
