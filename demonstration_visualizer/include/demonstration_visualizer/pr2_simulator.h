@@ -105,6 +105,8 @@ public:
 
   void resetRobot();
 
+  void resetRobotTo(const geometry_msgs::Pose &pose);
+
   void setRobotPose(const geometry_msgs::Pose &pose);
 
   void setJointStates(const sensor_msgs::JointState &joints);
@@ -195,6 +197,10 @@ public:
   
   void disableOrientationControl();
 
+  double getTorsoPosition() const;
+
+  void setTorsoPosition(double position);
+
 private:
   bool playing_;
 
@@ -231,6 +237,7 @@ private:
   geometry_msgs::PoseStamped end_effector_pose_;
   geometry_msgs::PoseStamped end_effector_goal_pose_;
   sensor_msgs::JointState joint_states_;
+  double torso_position_;
 
   visualization_msgs::MarkerArray robot_markers_;
 

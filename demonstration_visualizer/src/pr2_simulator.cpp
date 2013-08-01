@@ -95,6 +95,9 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   for(int i = 0; i < 15; ++i)
     joints_map_[joint_states_.name[i]] = i;
 
+  // Set the initial position of the torso to be fully raised. @todo make this a constant
+  torso_position_ = 0.3;
+
   vel_cmd_sub_ = nh.subscribe("vel_cmd",
 			      100,
 			      &PR2Simulator::updateBaseVelocity,
@@ -587,7 +590,7 @@ void PR2Simulator::visualizeRobot()
   body_pos[1] = base_pose_.pose.position.y;
   body_pos[2] = tf::getYaw(base_pose_.pose.orientation);
 
-  pviz_->visualizeRobot(r_joints_pos, l_joints_pos, body_pos, 0, 0.3, "simple_sim", 0, true);
+  pviz_->visualizeRobot(r_joints_pos, l_joints_pos, body_pos, getTorsoPosition(), 0.3, "simple_sim", 0, true);
 
   BodyPose body;
   body.x = body_pos[0];
@@ -777,14 +780,27 @@ void PR2Simulator::resetRobot()
 {
   ROS_INFO("[PR2Sim] Resetting robot...");
 
+  geometry_msgs::Pose origin;
+  origin.position.x = 0;
+  origin.position.y = 0;
+  origin.position.z = 0;
+  origin.orientation.x = 0;
+  origin.orientation.y = 0;
+  origin.orientation.z = 0;
+  origin.orientation.w = 1;
+
+  resetRobotTo(origin);
+}
+
+void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose)
+{
+  ROS_INFO("[PR2Sim] Resetting robot to (%f, %f, %f), (%f, %f, %f, %f)...",
+	   pose.position.x, pose.position.y, pose.position.y,
+	   pose.orientation.x, pose.orientation.y, pose.orientation.z, 
+	   pose.orientation.w);
+
   // Reset the base pose.
-  base_pose_.pose.position.x = 0;
-  base_pose_.pose.position.y = 0;
-  base_pose_.pose.position.z = 0;
-  base_pose_.pose.orientation.x = 0;
-  base_pose_.pose.orientation.y = 0;
-  base_pose_.pose.orientation.z = 0;
-  base_pose_.pose.orientation.w = 1;
+  base_pose_.pose = pose;
 
   // Reset the goal pose.
   goal_pose_ = base_pose_;
@@ -836,7 +852,7 @@ void PR2Simulator::resetRobot()
   if(!isPlaying())
   {
     visualizeRobot();
-  }
+  }  
 }
 
 void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
@@ -1283,7 +1299,7 @@ void PR2Simulator::updateTransforms()
   KDL::Frame base_in_torso_lift_link;
   base_in_torso_lift_link.p.x(0.050);
   base_in_torso_lift_link.p.y(0.0);
-  base_in_torso_lift_link.p.z(-0.802/* + 0.3*/);
+  base_in_torso_lift_link.p.z(-0.802 - getTorsoPosition());
   base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
   // Note that all computed poses of the end-effector are in the base footprint frame.
@@ -1689,6 +1705,17 @@ void PR2Simulator::disableOrientationControl()
 
   int_marker_server_->insert(int_marker);
   int_marker_server_->applyChanges();
+}
+
+double PR2Simulator::getTorsoPosition() const
+{
+  return torso_position_;
+}
+
+void PR2Simulator::setTorsoPosition(double position)
+{
+  // @todo check if it is valid (i.e. within limits).
+  torso_position_ = position;
 }
 
 } // namespace demonstration_visualizer
