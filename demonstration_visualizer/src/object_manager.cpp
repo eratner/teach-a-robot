@@ -15,11 +15,13 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
   enable_debug_visualizations_ = false;
   disable_collision_checking_ = false;
   load_objects_from_voxels_file_ = false;
+  visualize_collision_models_ = false;
   collision_checker_ = NULL;
 
   ros::NodeHandle ph("~");
   ph.param("enable_debug_visualizations", enable_debug_visualizations_, false);
   ph.param("disable_collision_checking",  disable_collision_checking_, false);
+  ph.param("visualize_collision_models",  visualize_collision_models_, false);
 
   ROS_DEBUG("[om] Initializing object manager.");
   ROS_DEBUG("[om] right_arm_file: %s",rarm_file_.c_str());
@@ -269,6 +271,12 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
   if(collision_checker_ == NULL || disable_collision_checking_)
     return true;
 
+  if(visualize_collision_models_)
+  {
+    ROS_INFO("[om] torso: %0.3fm", bp.z);
+    collision_checker_->visualizeRobotCollisionModel(rangles, langles, bp, "robot_model", 0);
+  }
+
   //check robot against world
   ROS_DEBUG("[om] Collision checking time! robot-world first");
   if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp, false, dist))
@@ -299,6 +307,10 @@ bool ObjectManager::checkObjectMove(int id, Pose p,
   Object temp = objects_[id];
   temp.setPose(p);
   double dist;
+
+  if(visualize_collision_models_)
+    collision_checker_->visualizeGroup(temp.group_, temp.group_.name, 0);
+
   //check the object against the environment
   if(!collision_checker_->checkGroupAgainstWorld(&(temp.group_), dist))
     return false;

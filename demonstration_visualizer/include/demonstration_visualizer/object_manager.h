@@ -54,6 +54,7 @@ class ObjectManager{
     bool enable_debug_visualizations_;
     bool disable_collision_checking_;
     bool load_objects_from_voxels_file_;
+    bool visualize_collision_models_;
     std::vector<double> bounding_box_dimensions_;
     std::vector<double> bounding_box_origin_;
 
