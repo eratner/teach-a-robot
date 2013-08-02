@@ -1,0 +1,4 @@
+<task>
+    <goal number="0" type="0" desc="Pick up can off island" object_id="5" />
+    <goal number="1" type="1" desc="Place can in fridge" object_id="5" position_x="0.578789" position_y="4.209" position_z="1.4" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+</task>
