@@ -2,5 +2,8 @@
 <qresource>
   <file>images/recording.png</file>
   <file>images/replaying.png</file>
+  <file>icons/accept_grasp.png</file>
+  <file>icons/change_grasp.png</file>
+  <file>icons/full_control.png</file>
 </qresource>
 </RCC>

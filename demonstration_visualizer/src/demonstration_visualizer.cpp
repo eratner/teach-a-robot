@@ -326,16 +326,36 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   QGroupBox *controls_group = new QGroupBox("Controls");
   QVBoxLayout *user_controls_layout = new QVBoxLayout();
+
   // z_mode_button_ = new QPushButton("Enable Z-Mode");
   // user_controls_layout->addWidget(z_mode_button_);
-  accept_grasp_button_ = new QPushButton("Accept Grasp");
-  user_controls_layout->addWidget(accept_grasp_button_);
+
+  QHBoxLayout *gripper_controls_layout = new QHBoxLayout();
+  accept_grasp_button_ = new QPushButton(/*"Accept Grasp"*/);
+  QPixmap accept_grasp_pixmap(":/icons/accept_grasp.png");
+  QIcon accept_grasp_icon(accept_grasp_pixmap);
+  accept_grasp_button_->setIcon(accept_grasp_icon);
+  accept_grasp_button_->setIconSize(QSize(80, 80));
   accept_grasp_button_->setEnabled(false);
-  change_grasp_button_ = new QPushButton("Change Grasp");
-  user_controls_layout->addWidget(change_grasp_button_);
+  gripper_controls_layout->addWidget(accept_grasp_button_);
+
+  change_grasp_button_ = new QPushButton(/*"Change Grasp"*/);
+  QPixmap change_grasp_pixmap(":/icons/change_grasp.png");
+  QIcon change_grasp_icon(change_grasp_pixmap);
+  change_grasp_button_->setIcon(change_grasp_icon);
+  change_grasp_button_->setIconSize(QSize(80, 80));
   change_grasp_button_->setEnabled(false);
-  gripper_orientation_button_ = new QPushButton("Enable Gripper Orientation Control");
-  user_controls_layout->addWidget(gripper_orientation_button_);
+  gripper_controls_layout->addWidget(change_grasp_button_);
+
+  gripper_orientation_button_ = new QPushButton(/*"Enable Gripper Orientation Control"*/);
+  QPixmap gripper_orientation_pixmap(":/icons/full_control.png");
+  QIcon gripper_orientation_icon(gripper_orientation_pixmap);
+  gripper_orientation_button_->setIcon(gripper_orientation_icon);
+  gripper_orientation_button_->setIconSize(QSize(80, 80));
+  gripper_controls_layout->addWidget(gripper_orientation_button_);
+
+  user_controls_layout->addLayout(gripper_controls_layout);
+
   QHBoxLayout *grasp_distance_layout = new QHBoxLayout();
   QLabel *grasp_distance_label = new QLabel("Grasp Distance: ");
   grasp_distance_slider_ = new QSlider(Qt::Horizontal);
@@ -1889,13 +1909,13 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
   {
     gripper_orientation_mode_ = false;
     node_.setGripperOrientationControl(false);
-    gripper_orientation_button_->setText("Enable Gripper Orientation Control");
+    // gripper_orientation_button_->setText("Enable Gripper Orientation Control");
   }
   else
   {
     gripper_orientation_mode_ = true;
     node_.setGripperOrientationControl(true);
-    gripper_orientation_button_->setText("Disable Gripper Orientation Control");
+    // gripper_orientation_button_->setText("Disable Gripper Orientation Control");
   }
 }
 
