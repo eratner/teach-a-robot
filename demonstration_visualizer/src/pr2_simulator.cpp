@@ -388,7 +388,8 @@ void PR2Simulator::moveRobot()
   BodyPose body_pose;
   body_pose.x = new_x;
   body_pose.y = new_y;
-  body_pose.z = 0.0;
+  // body_pose.z = 0.0;
+  body_pose.z = getTorsoPosition();
   body_pose.theta = new_theta;
 
   double dz = 0;
@@ -595,6 +596,7 @@ void PR2Simulator::visualizeRobot()
   BodyPose body;
   body.x = body_pos[0];
   body.y = body_pos[1];
+  body.z = getTorsoPosition();
   body.theta = body_pos[2];
   robot_markers_ = pviz_->getRobotMarkerMsg(r_joints_pos, l_joints_pos, body, 0.3, "simple_sim", 0);
 }
