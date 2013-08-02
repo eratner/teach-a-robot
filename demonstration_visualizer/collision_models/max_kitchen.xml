@@ -1,0 +1,3 @@
+<collision_model>
+    <object label="max_kitchen" mesh_resource="package://demonstration_visualizer/meshes/max_kitchen/max_kitchen.dae" />
+</collision_model>
