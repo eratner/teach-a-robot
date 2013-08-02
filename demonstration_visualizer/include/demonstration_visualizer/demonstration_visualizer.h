@@ -100,16 +100,20 @@ public:
 
   void setObjects(const std::vector<Object> &objects);
 
+  bool ignoreYaw() const;
+
 private slots:
   void goalTypeChanged(int);
   void objectChanged(int);
   void setDescription(const QString &); 
-
+  void setIgnoreYaw(int);
+  
 private:
   std::string description_;
   Goal::GoalType goal_type_;
   int object_id_;
   std::vector<Object> objects_;
+  bool ignore_yaw_;
 
   QComboBox *select_goal_type_;
   QComboBox *select_object_;

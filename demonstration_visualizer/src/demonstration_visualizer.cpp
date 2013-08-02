@@ -21,7 +21,7 @@
 namespace demonstration_visualizer {
 
 AddGoalDialog::AddGoalDialog()
-  : goal_type_(Goal::PICK_UP), object_id_(0)
+  : goal_type_(Goal::PICK_UP), object_id_(0), ignore_yaw_(false)
 {
   QVBoxLayout *layout = new QVBoxLayout();
 
@@ -43,10 +43,16 @@ AddGoalDialog::AddGoalDialog()
   QLabel *select_object_label = new QLabel("Object: ");
   select_object_ = new QComboBox();
   select_object_->setInsertPolicy(QComboBox::InsertAtBottom);
-  // @todo add objects somehow.
   select_object_layout->addWidget(select_object_label);
   select_object_layout->addWidget(select_object_);
   layout->addLayout(select_object_layout);
+
+  QHBoxLayout *ignore_yaw_layout = new QHBoxLayout();
+  QLabel *ignore_yaw_label = new QLabel("Ignore yaw? ");
+  ignore_yaw_layout->addWidget(ignore_yaw_label);
+  QCheckBox *ignore_yaw_checkbox = new QCheckBox();
+  ignore_yaw_layout->addWidget(ignore_yaw_checkbox);
+  layout->addLayout(ignore_yaw_layout);
 
   QHBoxLayout *description_layout = new QHBoxLayout();
   QLabel *description_label = new QLabel("Description: ");
@@ -69,6 +75,7 @@ AddGoalDialog::AddGoalDialog()
   connect(select_object_, SIGNAL(currentIndexChanged(int)), this, SLOT(objectChanged(int)));
   connect(description_edit, SIGNAL(textChanged(const QString &)), 
 	  this, SLOT(setDescription(const QString &)));
+  connect(ignore_yaw_checkbox, SIGNAL(stateChanged(int)), this, SLOT(setIgnoreYaw(int)));
 
   setLayout(layout);
   setWindowTitle("Add Goal to Task");
@@ -99,6 +106,11 @@ void AddGoalDialog::setObjects(const std::vector<Object> &objects)
     if(it->movable)
       select_object_->addItem(QString(it->label.c_str()));
   }
+}
+
+bool AddGoalDialog::ignoreYaw() const
+{
+  return ignore_yaw_;
 }
 
 void AddGoalDialog::goalTypeChanged(int type)
@@ -134,10 +146,26 @@ void AddGoalDialog::setDescription(const QString &description)
   description_ = description.toStdString();
 }
 
+void AddGoalDialog::setIgnoreYaw(int ignore)
+{
+  if(ignore == Qt::Checked)
+  {
+    ignore_yaw_ = true;
+  }
+  else if(ignore == Qt::Unchecked)
+  {
+    ignore_yaw_ = false;
+  }
+  else
+  {
+    ROS_ERROR("[AddGoalDialog] An error has occured in ignore yaw!");
+  }
+}
+
 DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
  : QWidget(parent), node_(argc, argv)
 {
-  setWindowTitle("Demonstration Visualizer");
+  setWindowTitle("Teach-A-Robot");
 
   resize(1000, 800);
 
