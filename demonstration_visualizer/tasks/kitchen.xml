@@ -1,4 +1,14 @@
 <task>
-    <goal number="0" type="0" desc="Pick up can off island" object_id="5" />
-    <goal number="1" type="1" desc="Place can in fridge" object_id="5" position_x="0.578789" position_y="4.209" position_z="1.4" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" />
+    <goal number="0" type="0" desc="Get the cake mix from the shelf" object_id="10" />
+    <goal number="1" type="1" desc="Bring the cake mix to the island" object_id="10" position_x="0.520047" position_y="1.17771" position_z="0.991199" orientation_x="4.021e-07" orientation_y="1.85829e-06" orientation_z="-0.95951" orientation_w="0.281673" />
+    <goal number="2" type="0" desc="Get the eggs from the fridge" object_id="7" />
+    <goal number="3" type="1" desc="Bring the eggs to the island" object_id="7" position_x="1.28496" position_y="0.733864" position_z="0.893362" orientation_x="2.75015e-08" orientation_y="-1.09299e-08" orientation_z="-0.756879" orientation_w="0.653555" />
+    <goal number="4" type="0" desc="Grab the oil from the counter" object_id="8" />
+    <goal number="5" type="1" desc="Bring the oil to the island" object_id="8" position_x="0.515593" position_y="0.850125" position_z="1.01283" orientation_x="-2.33272e-08" orientation_y="-5.28618e-08" orientation_z="0.500147" orientation_w="0.86594" />
+    <goal number="6" type="0" desc="Get the water from below the oven" object_id="9" />
+    <goal number="7" type="1" desc="Bring the water to the island" object_id="9" position_x="1.32377" position_y="1.10262" position_z="0.977923" orientation_x="1.13519e-08" orientation_y="1.13702e-08" orientation_z="0.0081265" orientation_w="0.999967" />
+    <goal number="8" type="0" desc="Grab the pan from the sink" object_id="6" />
+    <goal number="9" type="1" desc="Put the pan on the counter" object_id="6" position_x="0.901986" position_y="0.799256" position_z="0.885358" orientation_x="2.81518e-07" orientation_y="-4.96768e-08" orientation_z="0.93971" orientation_w="-0.341973" />
+    <goal number="10" type="0" desc='Retrieve the &quot;mixing utensil&quot;' object_id="11" />
+    <goal number="11" type="1" desc='Bring the &quot;mixing utensil&quot; to the island' object_id="11" position_x="1.22673" position_y="1.67001" position_z="0.867999" orientation_x="0.0736653" orientation_y="0.703358" orientation_z="-0.70323" orientation_w="-0.0730008" />
 </task>
