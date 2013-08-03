@@ -174,6 +174,8 @@ public:
 
   geometry_msgs::Pose getEndEffectorMarkerPose();
 
+  bool getObjectPose(geometry_msgs::Pose &object_pose);
+
   void setMoveEndEffectorWhileDragging(bool);
 
   void setMoveBaseWhileDragging(bool);

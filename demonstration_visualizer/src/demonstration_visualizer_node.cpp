@@ -242,6 +242,28 @@ void DemonstrationVisualizerNode::updateGoals()
       // Snap the gripper to the correct position so that the object that it is holding moves 
       // smoothly to the goal pose. 
       geometry_msgs::Pose object_goal_pose = place_goal->getPlacePose();
+      if(place_goal->ignoreYaw())
+      {
+	ROS_INFO("Ignoring yaw...");
+	geometry_msgs::Pose object_pose;
+	if(!simulator_->getObjectPose(object_pose))
+	{
+	  ROS_ERROR("[DVizNode] No attached object!");
+	  return;
+	}
+
+	double goal_yaw = tf::getYaw(object_pose.orientation);
+	KDL::Rotation rot = KDL::Rotation::Quaternion(object_goal_pose.orientation.x,
+						      object_goal_pose.orientation.y,
+						      object_goal_pose.orientation.z,
+						      object_goal_pose.orientation.w);
+	double roll, pitch, yaw;
+	rot.GetRPY(roll, pitch, yaw);
+	tf::Quaternion goal_orientation;
+	goal_orientation.setRPY(roll, pitch, goal_yaw);
+	tf::quaternionTFToMsg(goal_orientation, object_goal_pose.orientation);
+      }
+
       KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_goal_pose.orientation.x,
 							 object_goal_pose.orientation.y,
 							 object_goal_pose.orientation.z,

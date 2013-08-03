@@ -143,14 +143,14 @@ void PickUpGoal::setGripperJointPosition(double position)
 }
 
 PlaceGoal::PlaceGoal()
-  : Goal(0, ""), object_id_(0)
+  : Goal(0, ""), object_id_(0), ignore_yaw_(false)
 {
 
 }
 
 PlaceGoal::PlaceGoal(int goal_number, const std::string &description, 
 		     int object_id, const geometry_msgs::Pose &pose)
-  : Goal(goal_number, description), object_id_(object_id), place_pose_(pose)
+  : Goal(goal_number, description), object_id_(object_id), place_pose_(pose), ignore_yaw_(false)
 {
 
 }
@@ -183,6 +183,16 @@ void PlaceGoal::setPlacePose(const geometry_msgs::Pose &pose)
 geometry_msgs::Pose PlaceGoal::getPlacePose() const
 {
   return place_pose_;
+}
+
+bool PlaceGoal::ignoreYaw() const
+{
+  return ignore_yaw_;
+}
+
+void PlaceGoal::setIgnoreYaw(bool ignore)
+{
+  ignore_yaw_ = ignore;
 }
 
 }
