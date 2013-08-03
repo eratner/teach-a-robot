@@ -138,6 +138,8 @@ void DemonstrationSceneManager::updateScene()
 
 int DemonstrationSceneManager::loadScene(const std::string &filename)
 {
+  ROS_INFO("scene = %s", filename.c_str());
+
   ros::Time t_start_load = ros::Time::now();
 
   // Clear existing meshes.
@@ -526,13 +528,34 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 
   ROS_INFO("Reading %s...", element->Value());
 
-  // Read each goal.
-  element = root_handle.FirstChild().Element();
-
   // @todo for now, we assume the user has loaded the appropriate scene file, but 
   // in the future there should be a tag at the top of the file:
   // <scene_file path="..." />
   // where path is relative to the package://demonstration_visualizer path.
+  TiXmlElement *scene_file = root_handle.FirstChild("scene_file").Element();
+  if(scene_file == NULL)
+  {
+    ROS_WARN("[SceneManager] No scene file specified for the given task.");
+  }
+  else
+  {
+    ROS_INFO("val = %s", scene_file->Value());
+    std::string scene_filename = "";
+    if(scene_file->QueryStringAttribute("path", &scene_filename) != TIXML_SUCCESS)
+    {
+      ROS_ERROR("[SceneManager] Failed to read scene file path for this task!");
+      return false;
+    }
+
+    if(loadScene(scene_filename) < 0)
+    {
+      ROS_ERROR("[SceneManager] Failed to load scene associated with this task!");
+      return false;
+    }
+  }
+
+  // Read each goal.
+  element = root_handle.FirstChild("goal").Element();
 
   int goal_type = 0;
   int goal_number = 0;
@@ -683,35 +706,35 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
     switch(goal_type)
     {
     case Goal::PICK_UP:
-      {
-	PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(*it);
+    {
+      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(*it);
 
-	goal->SetAttribute("number", pick_up_goal->getGoalNumber());
-	goal->SetAttribute("type", (int)Goal::PICK_UP);
-	goal->SetAttribute("desc", pick_up_goal->getDescription());
-	goal->SetAttribute("object_id", pick_up_goal->getObjectID());
+      goal->SetAttribute("number", pick_up_goal->getGoalNumber());
+      goal->SetAttribute("type", (int)Goal::PICK_UP);
+      goal->SetAttribute("desc", pick_up_goal->getDescription());
+      goal->SetAttribute("object_id", pick_up_goal->getObjectID());
   
-	break;
-      }
+      break;
+    }
     case Goal::PLACE:
-      {
-	PlaceGoal *place_goal = static_cast<PlaceGoal *>(*it);
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(*it);
 
-	goal->SetAttribute("number", place_goal->getGoalNumber());
-	goal->SetAttribute("type", (int)Goal::PLACE);
-	goal->SetAttribute("desc", place_goal->getDescription());
-	goal->SetAttribute("object_id", place_goal->getObjectID());
-	goal->SetAttribute("ignore_yaw", (int)place_goal->ignoreYaw());
-	goal->SetDoubleAttribute("position_x", place_goal->getPlacePose().position.x);
-	goal->SetDoubleAttribute("position_y", place_goal->getPlacePose().position.y);
-	goal->SetDoubleAttribute("position_z", place_goal->getPlacePose().position.z);
-	goal->SetDoubleAttribute("orientation_x", place_goal->getPlacePose().orientation.x);
-	goal->SetDoubleAttribute("orientation_y", place_goal->getPlacePose().orientation.y);
-	goal->SetDoubleAttribute("orientation_z", place_goal->getPlacePose().orientation.z);
-	goal->SetDoubleAttribute("orientation_w", place_goal->getPlacePose().orientation.w);
+      goal->SetAttribute("number", place_goal->getGoalNumber());
+      goal->SetAttribute("type", (int)Goal::PLACE);
+      goal->SetAttribute("desc", place_goal->getDescription());
+      goal->SetAttribute("object_id", place_goal->getObjectID());
+      goal->SetAttribute("ignore_yaw", (int)place_goal->ignoreYaw());
+      goal->SetDoubleAttribute("position_x", place_goal->getPlacePose().position.x);
+      goal->SetDoubleAttribute("position_y", place_goal->getPlacePose().position.y);
+      goal->SetDoubleAttribute("position_z", place_goal->getPlacePose().position.z);
+      goal->SetDoubleAttribute("orientation_x", place_goal->getPlacePose().orientation.x);
+      goal->SetDoubleAttribute("orientation_y", place_goal->getPlacePose().orientation.y);
+      goal->SetDoubleAttribute("orientation_z", place_goal->getPlacePose().orientation.z);
+      goal->SetDoubleAttribute("orientation_w", place_goal->getPlacePose().orientation.w);
 
-	break;
-      }
+      break;
+    }
     default:
       break;
     }
