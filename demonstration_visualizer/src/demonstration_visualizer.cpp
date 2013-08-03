@@ -1275,6 +1275,43 @@ void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
     // @todo in the future if there are more than one menu items, we need to
     // check here which action was selected.
     ROS_INFO("[DViz] Changing goal number %d to the current goal.", (int)i.row());
+    int current_goal = node_.getSceneManager()->getCurrentGoal();
+    int next_goal = static_cast<int>(i.row());
+
+    // Update the task list.
+    QFont font = goals_list_->item(current_goal)->font();
+    font.setBold(false);
+    goals_list_->item(current_goal)->setFont(font);
+    font = goals_list_->item(next_goal)->font();
+    font.setBold(true);
+    font.setStrikeOut(false);
+    goals_list_->item(next_goal)->setFont(font);
+    
+    // Set the current goal appropriately.
+    node_.getSceneManager()->setCurrentGoal(next_goal);
+    switch(node_.getSceneManager()->getGoal(next_goal)->getType())
+    {
+    case Goal::PICK_UP:
+    {
+      ROS_INFO("[DViz] Switching to pick up goal.");
+
+      grasp_selected_ = false;
+
+      beginGraspSelection();
+	
+      break;
+    }
+    case Goal::PLACE:
+    {
+      ROS_INFO("[DViz] Switching to place goal.");
+
+      change_grasp_button_->setEnabled(false);
+
+      break;
+    }
+    default:
+      break;
+    }
   }
   else
   {
