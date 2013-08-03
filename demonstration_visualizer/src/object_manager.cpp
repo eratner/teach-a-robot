@@ -272,10 +272,7 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
     return true;
 
   if(visualize_collision_models_)
-  {
-    ROS_INFO("[om] torso: %0.3fm", bp.z);
     collision_checker_->visualizeRobotCollisionModel(rangles, langles, bp, "robot_model", 0);
-  }
 
   //check robot against world
   ROS_DEBUG("[om] Collision checking time! robot-world first");
