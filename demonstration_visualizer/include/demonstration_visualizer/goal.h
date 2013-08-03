@@ -121,9 +121,14 @@ public:
 
   geometry_msgs::Pose getPlacePose() const;
 
+  bool ignoreYaw() const;
+
+  void setIgnoreYaw(bool);
+
 private:
   int object_id_;
   geometry_msgs::Pose place_pose_;
+  bool ignore_yaw_;
 
 };
 

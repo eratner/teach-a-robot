@@ -1219,15 +1219,20 @@ void DemonstrationVisualizer::addTaskGoal()
   std::string description = add_goal_dialog_.getDescription();
   Goal::GoalType type = add_goal_dialog_.getGoalType();
   int object_id = add_goal_dialog_.getObject();
+  bool ignore_yaw = add_goal_dialog_.ignoreYaw();
 
   ROS_INFO("[DViz] Adding goal of type %s with description \"%s\" and object id %d.",
 	   Goal::GoalTypeNames[type], description.c_str(), object_id);
+  if(type == Goal::PLACE)
+  {
+    ROS_INFO_STREAM("[DViz] Ignore yaw? " << (ignore_yaw ? "Yes. " : "No. "));
+  }
 
 
   if(node_.getSceneManager()->getNumGoals() == 0)
     goals_list_->clear();
 
-  node_.getSceneManager()->addGoal(description, type, object_id);
+  node_.getSceneManager()->addGoal(description, type, object_id, ignore_yaw);
 
   std::stringstream goal_desc;
   goal_desc << "Goal " << node_.getSceneManager()->getNumGoals() << ": " << description;

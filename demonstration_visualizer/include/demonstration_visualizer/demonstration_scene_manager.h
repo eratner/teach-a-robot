@@ -76,7 +76,8 @@ public:
   // Adds an additional goal to the current task, at the end. 
   void addGoal(const std::string &desc = "",
 	       Goal::GoalType type = Goal::PICK_UP,
-	       int object_id = 0);
+	       int object_id = 0,
+               bool ignore_yaw = false);
 
   bool moveGoal(int goal_number, const geometry_msgs::Pose &pose);
 

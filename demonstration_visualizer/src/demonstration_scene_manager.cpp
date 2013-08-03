@@ -592,6 +592,14 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 	}
 	goal->setObjectID(object_id);
 
+	int ignore_yaw = 0;
+	if(element->QueryIntAttribute("ignore_yaw", &ignore_yaw) != TIXML_SUCCESS)
+	{
+	  ROS_ERROR("[SceneManager] Failed to read ignore yaw!");
+	  // return false;
+	}
+	goal->setIgnoreYaw((bool)ignore_yaw);
+
 	geometry_msgs::Pose place_pose;
 	if(element->QueryDoubleAttribute("position_x", &place_pose.position.x) != TIXML_SUCCESS)
 	{
@@ -693,6 +701,7 @@ void DemonstrationSceneManager::saveTask(const std::string &filename)
 	goal->SetAttribute("type", (int)Goal::PLACE);
 	goal->SetAttribute("desc", place_goal->getDescription());
 	goal->SetAttribute("object_id", place_goal->getObjectID());
+	goal->SetAttribute("ignore_yaw", (int)place_goal->ignoreYaw());
 	goal->SetDoubleAttribute("position_x", place_goal->getPlacePose().position.x);
 	goal->SetDoubleAttribute("position_y", place_goal->getPlacePose().position.y);
 	goal->SetDoubleAttribute("position_z", place_goal->getPlacePose().position.z);
@@ -874,7 +883,8 @@ void DemonstrationSceneManager::removeMesh(int mesh_id)
 
 void DemonstrationSceneManager::addGoal(const std::string &desc,
 					Goal::GoalType type,
-					int object_id)
+					int object_id,
+                                        bool ignore_yaw)
 {
   setGoalsChanged(true);
 
@@ -898,6 +908,8 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
   case Goal::PLACE:
     {
       PlaceGoal *goal = new PlaceGoal(goals_.size(), desc, object_id);
+
+      goal->setIgnoreYaw(ignore_yaw);
 
       goals_.push_back(goal);
 
@@ -1022,6 +1034,8 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
       double distance = std::sqrt(std::pow(place_pose.position.x - pose.position.x, 2) + 
 				  std::pow(place_pose.position.y - pose.position.y, 2) +
 				  std::pow(place_pose.position.z - pose.position.z, 2));
+
+      // @todo measure the angular distance as well.
 
       if(distance < 0.15)
       {

@@ -1515,6 +1515,31 @@ geometry_msgs::Pose PR2Simulator::getEndEffectorMarkerPose()
   return end_effector_marker_pose;
 }
 
+bool PR2Simulator::getObjectPose(geometry_msgs::Pose &object_pose)
+{
+  if(!attached_object_)
+    return false;
+
+  std::vector<double> end_effector_pose(7, 0);
+  end_effector_pose[0] = end_effector_pose_.pose.position.x;
+  end_effector_pose[1] = end_effector_pose_.pose.position.y;
+  end_effector_pose[2] = end_effector_pose_.pose.position.z;
+  end_effector_pose[3] = end_effector_pose_.pose.orientation.x;
+  end_effector_pose[4] = end_effector_pose_.pose.orientation.y;
+  end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
+  end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
+
+  BodyPose body_pose;
+  body_pose.x = base_pose_.pose.position.x;
+  body_pose.y = base_pose_.pose.position.y;
+  body_pose.z = getTorsoPosition();
+  body_pose.theta = tf::getYaw(base_pose_.pose.orientation);
+
+  computeObjectPose(end_effector_pose, body_pose, object_pose);
+
+  return true;
+}
+
 geometry_msgs::Pose PR2Simulator::getEndEffectorPoseInBase() const
 {
   return end_effector_pose_.pose;
