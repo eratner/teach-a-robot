@@ -1,0 +1,3 @@
+<collision_model>
+    <object label="cake_pan" mesh_resource="package://demonstration_visualizer/meshes/cake_pan/cake_pan.dae" />
+</collision_model>

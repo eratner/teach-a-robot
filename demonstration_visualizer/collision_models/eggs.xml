@@ -1,0 +1,3 @@
+<collision_model>
+    <object label="eggs" mesh_resource="package://demonstration_visualizer/meshes/eggs/eggs.dae" />
+</collision_model>

@@ -1,0 +1,3 @@
+<collision_model>
+    <object label="oil" mesh_resource="package://demonstration_visualizer/meshes/oil/oil.dae" />
+</collision_model>
