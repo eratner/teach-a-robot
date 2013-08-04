@@ -2017,44 +2017,28 @@ void DemonstrationVisualizer::beginGraspSelection()
 
 void DemonstrationVisualizer::endGraspSelection()
 {
-  switch(QMessageBox::warning(this,
-			      "Accept this grasp?",
-			      "Are you sure this is the grasp you want? If not, press no to continue!",
-			      QMessageBox::Yes, QMessageBox::No))
-  {
-  case QMessageBox::Yes:
-  {
-    changeState(NORMAL);
+  changeState(NORMAL);
 
-    grasp_selected_ = true;
+  grasp_selected_ = true;
 
-    int current_goal = node_.getSceneManager()->getCurrentGoal();
-    std::stringstream s; 
-    s << "grasp_marker_goal_" << current_goal;
-    node_.getInteractiveMarkerServer()->erase(s.str());
-    node_.getInteractiveMarkerServer()->applyChanges();
-    PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
-    goal->setGraspDone(true);
-    node_.getSceneManager()->setGoalsChanged();
-    changeCameraMode(camera_before_grasp_);
-    accept_grasp_button_->setEnabled(false);
-    change_grasp_button_->setEnabled(true);
-    grasp_distance_slider_->setEnabled(false);
-    gripper_position_slider_->setEnabled(false);
+  int current_goal = node_.getSceneManager()->getCurrentGoal();
+  std::stringstream s; 
+  s << "grasp_marker_goal_" << current_goal;
+  node_.getInteractiveMarkerServer()->erase(s.str());
+  node_.getInteractiveMarkerServer()->applyChanges();
+  PickUpGoal *goal = static_cast<PickUpGoal *>(node_.getSceneManager()->getGoal(current_goal));
+  goal->setGraspDone(true);
+  node_.getSceneManager()->setGoalsChanged();
+  changeCameraMode(camera_before_grasp_);
+  accept_grasp_button_->setEnabled(false);
+  change_grasp_button_->setEnabled(true);
+  grasp_distance_slider_->setEnabled(false);
+  gripper_position_slider_->setEnabled(false);
 
-    // node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
+  // node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
 
-    node_.playSimulator();
-    node_.enableRobotMarkerControl();
-
-    break;
-  }
-  case QMessageBox::No:
-    break;
-  default:
-    ROS_ERROR("[DViz] An error has occured in the grasp selection!");
-    break;
-  }
+  node_.playSimulator();
+  node_.enableRobotMarkerControl();
 }
 
 void DemonstrationVisualizer::setGraspDistance(int value)

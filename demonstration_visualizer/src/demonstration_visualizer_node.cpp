@@ -197,11 +197,39 @@ void DemonstrationVisualizerNode::updateGoals()
       goal_gripper_pose.orientation.z = z;
       goal_gripper_pose.orientation.w = w;
 
+      geometry_msgs::Pose end_effector_pose = simulator_->getEndEffectorPoseInBase();
+      KDL::Frame current_gripper_in_base(KDL::Rotation::Quaternion(end_effector_pose.orientation.x,
+								   end_effector_pose.orientation.y,
+								   end_effector_pose.orientation.z,
+								   end_effector_pose.orientation.w),
+					 KDL::Vector(end_effector_pose.position.x,
+						     end_effector_pose.position.y,
+						     end_effector_pose.position.z)
+	);
+
+      double current_roll, current_pitch, current_yaw;
+      current_gripper_in_base.M.GetRPY(current_roll, current_pitch, current_yaw);
+      ROS_INFO("[DVizNode] Current end-effector RPY: (%f, %f, %f).", current_roll, current_pitch, current_yaw);
+								
       double roll, pitch, yaw;
       gripper_in_base.M.GetRPY(roll, pitch, yaw);
       ROS_INFO("[DVizNode] Goal reached, snapping end-effector to grasp pose (%f, %f, %f), (%f, %f, %f).",
 	       goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
 	       roll, pitch, yaw);
+
+      double dist_A = angles::normalize_angle_positive(roll) - angles::normalize_angle_positive(current_roll);
+      double dist_B = angles::normalize_angle_positive(roll + M_PI) - angles::normalize_angle_positive(current_roll);
+      ROS_INFO("dist_A = %f, dist_B = %f", dist_A, dist_B);
+      if(std::abs(dist_A) > std::abs(dist_B))
+      {
+	ROS_INFO("Choosing the other symmetric gripper roll.");
+	KDL::Rotation rot = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+	rot.GetQuaternion(x, y, z, w);
+	goal_gripper_pose.orientation.x = x;
+	goal_gripper_pose.orientation.y = y;
+	goal_gripper_pose.orientation.z = z;
+	goal_gripper_pose.orientation.w = w;
+      }
 
       goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
 						     pick_up_goal->getGripperJointPosition(),
