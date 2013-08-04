@@ -101,6 +101,8 @@ public:
 
   void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
+  void upperArmMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+
   void setSpeed(double, double);
 
   void resetRobot();
@@ -133,6 +135,8 @@ public:
   void processKeyEvent(int key, int type);
 
   void updateEndEffectorMarker();
+
+  void updateUpperArmMarker();
 
   void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &);
 
@@ -238,6 +242,7 @@ private:
   geometry_msgs::PoseStamped base_pose_;
   geometry_msgs::PoseStamped end_effector_pose_;
   geometry_msgs::PoseStamped end_effector_goal_pose_;
+  geometry_msgs::Pose r_upper_arm_roll_pose_;
   sensor_msgs::JointState joint_states_;
   double torso_position_;
 
@@ -262,6 +267,8 @@ private:
   bool pause_requested_;
 
   bool goal_orientation_changed_;
+
+  double delta_arm_roll_;
 
 };
 

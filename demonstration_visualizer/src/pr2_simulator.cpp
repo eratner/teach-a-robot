@@ -23,7 +23,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     moving_gripper_marker_(false),
     move_robot_markers_(true),
     pause_requested_(false),
-    goal_orientation_changed_(false)
+    goal_orientation_changed_(false),
+    delta_arm_roll_(0)
 {
   ros::NodeHandle nh;
 
@@ -214,7 +215,50 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 			     );
   int_marker_server_->applyChanges();
 
-  ROS_DEBUG("[PR2SimpleSim] About to initialize the kinematic model.");
+  // Place an interactive marker control on the right upper arm.
+  int_marker.header.frame_id = "/base_footprint";
+  int_marker.pose = robot_markers_.markers.at(/*5*/4).pose;
+  int_marker.name = "r_upper_arm_marker";
+  int_marker.description = "";
+  int_marker.scale = 0.4;
+
+  r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
+
+  // visualization_msgs::Marker r_upper_arm_marker = robot_markers_.markers.at(5);
+  // r_upper_arm_marker.scale.x = 1.1;
+  // r_upper_arm_marker.scale.y = 1.1;
+  // r_upper_arm_marker.scale.z = 1.1;
+  // r_upper_arm_marker.color.r = 0;
+  // r_upper_arm_marker.color.g = 0.5;
+  // r_upper_arm_marker.color.b = 0.5;
+
+  control.always_visible = true;
+  // control.markers.clear();
+  // control.markers.push_back(r_upper_arm_marker);
+
+  // control.markers[0].pose = geometry_msgs::Pose();
+  // control.markers[0].header = std_msgs::Header();
+
+  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::NONE;
+  int_marker.controls.clear();
+  // int_marker.controls.push_back(control);
+
+  control.markers.clear();
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  control.orientation.w = 1;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  int_marker.controls.push_back(control);
+
+  int_marker_server_->insert(int_marker,
+                             boost::bind(&PR2Simulator::upperArmMarkerFeedback,
+			                 this,
+			                 _1)
+                             );
+  int_marker_server_->applyChanges();
+
+  ROS_DEBUG("[PR2Sim] About to initialize the kinematic model.");
   std::string robot_description;
   std::string robot_param = "";
   if(!nh.searchParam("robot_description", robot_param))
@@ -315,6 +359,8 @@ void PR2Simulator::run()
     updateEndEffectorPose();
 
     updateEndEffectorMarker();
+
+    updateUpperArmMarker();
 
     // Record motion.
     if(recorder_->isRecording())
@@ -506,6 +552,24 @@ void PR2Simulator::moveRobot()
       end_effector_pose[5] = orientation.z;
       end_effector_pose[6] = orientation.w;
     }
+  }
+  
+  // upper arm roll
+  if(delta_arm_roll_ != 0)
+  {
+    double step_size = 0.02;
+    if(std::abs(delta_arm_roll_) < step_size)
+    {
+      step_size = std::abs(delta_arm_roll_);
+    }
+
+    if(delta_arm_roll_ < 0)
+      step_size *= -1.0;
+
+    // ROS_INFO("step_size = %f, delta_arm_roll = %f", step_size, delta_arm_roll_);
+
+    solution[2] += step_size;
+    delta_arm_roll_ -= step_size;
   }
 
   geometry_msgs::Pose object_pose;
@@ -756,6 +820,46 @@ void PR2Simulator::gripperMarkerFeedback(
 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
       setEndEffectorGoalPose(feedback->pose);
     }
+    break;
+  }
+  default:
+    break;
+  }
+}
+
+void PR2Simulator::upperArmMarkerFeedback(
+  const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+)
+{
+  switch(feedback->event_type)
+  {
+  case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
+  {
+    double current_roll = 0;
+    double next_roll = 0;
+
+    double r, p, y;
+    KDL::Rotation next_rot = KDL::Rotation::Quaternion(feedback->pose.orientation.x,
+						       feedback->pose.orientation.y,
+						       feedback->pose.orientation.z,
+						       feedback->pose.orientation.w);
+    next_rot.GetRPY(r, p, y);
+    next_roll = r;
+    ROS_INFO("Next RPY: (%f, %f, %f)", r, p, y);
+    KDL::Rotation current_rot = KDL::Rotation::Quaternion(r_upper_arm_roll_pose_.orientation.x,
+							  r_upper_arm_roll_pose_.orientation.y,
+							  r_upper_arm_roll_pose_.orientation.z,
+							  r_upper_arm_roll_pose_.orientation.w);
+    current_rot.GetRPY(r, p, y);
+    current_roll = r;
+    // ROS_INFO("Current RPY: (%f, %f, %f)", r, p, y);
+
+    // ROS_INFO("Current r_upper_arm_roll_joint value = %f", joint_states_.position[9]);
+
+    double angle = next_roll - current_roll;
+
+    delta_arm_roll_ = angles::normalize_angle(angle);
+
     break;
   }
   default:
@@ -1274,6 +1378,36 @@ void PR2Simulator::updateEndEffectorMarker()
   setEndEffectorGoalPose(pose);
 }
 
+void PR2Simulator::updateUpperArmMarker()
+{
+  std::vector<double> r_arm_joints(7, 0);
+  for(int i = 7; i < 14; ++i)
+  {
+    r_arm_joints[i-7] = joint_states_.position[i];
+  }
+
+  std::vector<double> upper_arm_pose(7, 0);
+  if(!kdl_robot_model_.computeFK(r_arm_joints, "r_upper_arm_roll_link", upper_arm_pose))
+  {
+    ROS_ERROR("[PR2Sim] Compute FK failed for the upper arm roll link!");
+  }
+
+  r_upper_arm_roll_pose_.position.x = upper_arm_pose[0];
+  r_upper_arm_roll_pose_.position.y = upper_arm_pose[1];
+  r_upper_arm_roll_pose_.position.z = upper_arm_pose[2];
+  r_upper_arm_roll_pose_.orientation.x = upper_arm_pose[3];
+  r_upper_arm_roll_pose_.orientation.y = upper_arm_pose[4];
+  r_upper_arm_roll_pose_.orientation.z = upper_arm_pose[5];
+  r_upper_arm_roll_pose_.orientation.w = upper_arm_pose[6];
+
+  // ROS_INFO("Updating r_upper_arm_roll_link to pose (%f, %f, %f), (%f, %f, %f, %f).",
+  // 	   r_upper_arm_roll_pose_.position.x, r_upper_arm_roll_pose_.position.y, r_upper_arm_roll_pose_.position.z,
+  // 	   r_upper_arm_roll_pose_.orientation.x, r_upper_arm_roll_pose_.orientation.y, r_upper_arm_roll_pose_.orientation.z,
+  // 	   r_upper_arm_roll_pose_.orientation.w);
+
+  int_marker_server_->setPose("r_upper_arm_marker", r_upper_arm_roll_pose_);
+  int_marker_server_->applyChanges();
+}
 
 void PR2Simulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
 {
