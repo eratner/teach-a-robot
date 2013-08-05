@@ -1,3 +1,74 @@
 <collision_model>
     <object label="hockey stick" mesh_resource="package://demonstration_visualizer/meshes/hockey_stick/hockey stick.dae" />
+
+    <sphere id="1" x="0" y="0" z="0" radius="0.015" />
+    <sphere id="2" x="0" y="0" z="0.015" radius="0.015" />
+    <sphere id="3" x="0" y="0" z="0.030" radius="0.015" />
+    <sphere id="4" x="0" y="0" z="0.045" radius="0.015" />
+    <sphere id="5" x="0" y="0" z="0.060" radius="0.015" />
+    <sphere id="6" x="0" y="0" z="0.075" radius="0.015" />
+    <sphere id="7" x="0" y="0" z="0.090" radius="0.015" />
+    <sphere id="8" x="0" y="0" z="0.105" radius="0.015" />
+    <sphere id="9" x="0" y="0" z="0.120" radius="0.015" />
+    <sphere id="10" x="0" y="0" z="0.135" radius="0.015" />
+    <sphere id="11" x="0" y="0" z="0.150" radius="0.015" />
+    <sphere id="12" x="0" y="0" z="0.165" radius="0.015" />
+    <sphere id="13" x="0" y="0" z="0.180" radius="0.015" />
+    <sphere id="14" x="0" y="0" z="0.195" radius="0.015" />
+    <sphere id="15" x="0" y="0" z="0.210" radius="0.015" />
+    <sphere id="16" x="0" y="0" z="0.225" radius="0.015" />
+    <sphere id="17" x="0" y="0" z="0.240" radius="0.015" />
+    <sphere id="18" x="0" y="0" z="0.255" radius="0.015" />
+    <sphere id="19" x="0" y="0" z="0.270" radius="0.015" />
+    <sphere id="20" x="0" y="0" z="0.285" radius="0.015" />
+    <sphere id="21" x="0" y="0" z="0.300" radius="0.015" />
+    <sphere id="22" x="0" y="0" z="0.315" radius="0.015" />
+    <sphere id="23" x="0" y="0" z="0.330" radius="0.015" />
+    <sphere id="24" x="0" y="0" z="0.345" radius="0.015" />
+    <sphere id="25" x="0" y="0" z="0.360" radius="0.015" />
+    <sphere id="26" x="0" y="0" z="0.375" radius="0.015" />
+    <sphere id="27" x="0" y="0" z="0.390" radius="0.015" />
+    <sphere id="28" x="0" y="0" z="0.405" radius="0.015" />
+    <sphere id="29" x="0" y="0" z="0.420" radius="0.015" />
+    <sphere id="30" x="0" y="0" z="0.435" radius="0.015" />
+    <sphere id="31" x="0" y="0" z="0.450" radius="0.015" />
+    <sphere id="32" x="0" y="0" z="0.465" radius="0.015" />
+    <sphere id="33" x="0" y="0" z="-0.015" radius="0.015" />
+    <sphere id="34" x="0" y="0" z="-0.030" radius="0.015" />
+    <sphere id="35" x="0" y="0" z="-0.045" radius="0.015" />
+    <sphere id="36" x="0" y="0" z="-0.060" radius="0.015" />
+    <sphere id="37" x="0" y="0" z="-0.075" radius="0.015" />
+    <sphere id="38" x="0" y="0" z="-0.090" radius="0.015" />
+    <sphere id="39" x="0" y="0" z="-0.105" radius="0.015" />
+    <sphere id="40" x="0" y="0" z="-0.120" radius="0.015" />
+    <sphere id="41" x="0" y="0" z="-0.135" radius="0.015" />
+    <sphere id="42" x="0" y="0" z="-0.150" radius="0.015" />
+    <sphere id="43" x="0" y="0" z="-0.165" radius="0.015" />
+    <sphere id="44" x="0" y="0" z="-0.180" radius="0.015" />
+    <sphere id="45" x="0" y="0" z="-0.195" radius="0.015" />
+    <sphere id="46" x="0" y="0" z="-0.210" radius="0.015" />
+    <sphere id="47" x="0" y="0" z="-0.225" radius="0.015" />
+    <sphere id="48" x="0" y="0" z="-0.240" radius="0.015" />
+    <sphere id="49" x="0" y="0" z="-0.255" radius="0.015" />
+    <sphere id="50" x="0" y="0" z="-0.270" radius="0.015" />
+    <sphere id="51" x="0" y="0" z="-0.285" radius="0.015" />
+    <sphere id="52" x="0" y="0" z="-0.300" radius="0.015" />
+    <sphere id="53" x="0" y="0" z="-0.315" radius="0.015" />
+    <sphere id="54" x="0" y="0" z="-0.330" radius="0.015" />
+    <sphere id="55" x="0" y="0" z="-0.345" radius="0.015" />
+    <sphere id="56" x="0" y="0" z="-0.360" radius="0.015" />
+    <sphere id="57" x="0" y="0" z="-0.375" radius="0.015" />
+    <sphere id="58" x="0" y="0" z="-0.390" radius="0.015" />
+    <sphere id="59" x="0" y="0" z="-0.405" radius="0.015" />
+
+    <sphere id="60" x="0.015" y="0" z="-0.420" radius="0.015" />
+    <sphere id="61" x="0.030" y="0" z="-0.435" radius="0.015" />
+    <sphere id="62" x="0.045" y="0" z="-0.450" radius="0.015" />
+    <sphere id="63" x="0.060" y="0" z="-0.465" radius="0.015" />
+    <sphere id="64" x="0.075" y="0" z="-0.480" radius="0.015" />
+    <sphere id="65" x="0.090" y="0" z="-0.495" radius="0.015" />
+    <sphere id="66" x="0.105" y="0" z="-0.510" radius="0.015" />
+    <sphere id="67" x="0.120" y="0" z="-0.525" radius="0.015" />
+
+    
 </collision_model>

@@ -385,6 +385,17 @@ bool ObjectManager::writeObjectsToOccupiedVoxelsFile(std::string filename)
   return collision_checker_->writeObjectVoxelsToFile(filename);
 }
 
+void ObjectManager::visualizeObjectCollisionModels()
+{
+  map<int, Object>::const_iterator it;
+  for(it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    Object temp = it->second;
+
+    collision_checker_->visualizeGroup(temp.group_, temp.group_.name, 0);
+  }
+}
+
 std::vector<double> ObjectManager::getBoundingBoxDimensions() const
 {
   return bounding_box_dimensions_;

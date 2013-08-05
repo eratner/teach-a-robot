@@ -386,6 +386,9 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   ROS_WARN("[dsm] Loading the scene took %0.3fsec", ros::Duration(t_end_load-t_start_load).toSec());
 
   object_manager_->writeObjectsToOccupiedVoxelsFile("/tmp/object_voxel2.csv");
+
+  // object_manager_->visualizeObjectCollisionModels();
+
   return max_mesh_id;
 }
 
