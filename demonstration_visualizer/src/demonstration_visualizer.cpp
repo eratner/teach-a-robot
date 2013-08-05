@@ -1555,7 +1555,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
       view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
       view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
       view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
-      view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+      view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.5);
 
       view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(node_.getBasePose().orientation));
       view_manager->getCurrent()->subProp("Pitch")->setValue(0.0);
@@ -1613,7 +1613,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	subProp("X")->setValue(-1.0 * x_fps_offset_);
     }
     if(z_fps_offset_ > 0)
-      view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2 + z_fps_offset_);
+      view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.5 + z_fps_offset_);
 
     if(x_fps_offset_ > 0 && z_fps_offset_ > 0)
       view_manager->getCurrent()->subProp("Pitch")->setValue(std::atan2(z_fps_offset_, x_fps_offset_));
@@ -1806,7 +1806,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 	view_manager->getCurrent()->subProp("Target Frame")->setValue("base_footprint");
 	view_manager->getCurrent()->subProp("Position")->subProp("X")->setValue(0.0);
 	view_manager->getCurrent()->subProp("Position")->subProp("Y")->setValue(0.0);
-	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.2);
+	view_manager->getCurrent()->subProp("Position")->subProp("Z")->setValue(1.5);
 
 	last_top_down_fps_camera_mode_ = 1;
 
@@ -1818,7 +1818,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
 
       double theta = std::atan2(end_effector_pose.position.y, end_effector_pose.position.x);
       double r = std::sqrt(std::pow(end_effector_pose.position.x, 2) + std::pow(end_effector_pose.position.y, 2));
-      double pitch = M_PI/2.0 - std::atan2(r * std::cos(theta), 1.2 - end_effector_pose.position.z);
+      double pitch = M_PI/2.0 - std::atan2(r * std::cos(theta), 1.5 - end_effector_pose.position.z);
       view_manager->getCurrent()->subProp("Yaw")->setValue(tf::getYaw(base_pose.orientation) + theta);
       view_manager->getCurrent()->subProp("Pitch")->setValue(pitch);
     }

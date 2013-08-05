@@ -216,47 +216,47 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   int_marker_server_->applyChanges();
 
   // Place an interactive marker control on the right upper arm.
-  int_marker.header.frame_id = "/base_footprint";
-  int_marker.pose = robot_markers_.markers.at(/*5*/4).pose;
-  int_marker.name = "r_upper_arm_marker";
-  int_marker.description = "";
-  int_marker.scale = 0.4;
+  // int_marker.header.frame_id = "/base_footprint";
+  // int_marker.pose = robot_markers_.markers.at(/*5*/4).pose;
+  // int_marker.name = "r_upper_arm_marker";
+  // int_marker.description = "";
+  // int_marker.scale = 0.4;
 
-  r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
+  // r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
 
-  // visualization_msgs::Marker r_upper_arm_marker = robot_markers_.markers.at(5);
-  // r_upper_arm_marker.scale.x = 1.1;
-  // r_upper_arm_marker.scale.y = 1.1;
-  // r_upper_arm_marker.scale.z = 1.1;
-  // r_upper_arm_marker.color.r = 0;
-  // r_upper_arm_marker.color.g = 0.5;
-  // r_upper_arm_marker.color.b = 0.5;
+  // // visualization_msgs::Marker r_upper_arm_marker = robot_markers_.markers.at(5);
+  // // r_upper_arm_marker.scale.x = 1.1;
+  // // r_upper_arm_marker.scale.y = 1.1;
+  // // r_upper_arm_marker.scale.z = 1.1;
+  // // r_upper_arm_marker.color.r = 0;
+  // // r_upper_arm_marker.color.g = 0.5;
+  // // r_upper_arm_marker.color.b = 0.5;
 
-  control.always_visible = true;
+  // control.always_visible = true;
+  // // control.markers.clear();
+  // // control.markers.push_back(r_upper_arm_marker);
+
+  // // control.markers[0].pose = geometry_msgs::Pose();
+  // // control.markers[0].header = std_msgs::Header();
+
+  // // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::NONE;
+  // int_marker.controls.clear();
+  // // int_marker.controls.push_back(control);
+
   // control.markers.clear();
-  // control.markers.push_back(r_upper_arm_marker);
-
-  // control.markers[0].pose = geometry_msgs::Pose();
-  // control.markers[0].header = std_msgs::Header();
-
-  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::NONE;
-  int_marker.controls.clear();
+  // control.orientation.x = 0;
+  // control.orientation.y = 0;
+  // control.orientation.z = 0;
+  // control.orientation.w = 1;
+  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
   // int_marker.controls.push_back(control);
 
-  control.markers.clear();
-  control.orientation.x = 0;
-  control.orientation.y = 0;
-  control.orientation.z = 0;
-  control.orientation.w = 1;
-  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  int_marker.controls.push_back(control);
-
-  int_marker_server_->insert(int_marker,
-                             boost::bind(&PR2Simulator::upperArmMarkerFeedback,
-			                 this,
-			                 _1)
-                             );
-  int_marker_server_->applyChanges();
+  // int_marker_server_->insert(int_marker,
+  //                            boost::bind(&PR2Simulator::upperArmMarkerFeedback,
+  // 			                 this,
+  // 			                 _1)
+  //                            );
+  // int_marker_server_->applyChanges();
 
   ROS_DEBUG("[PR2Sim] About to initialize the kinematic model.");
   std::string robot_description;
@@ -583,10 +583,14 @@ void PR2Simulator::moveRobot()
   }
 
   geometry_msgs::Pose object_pose;
-  if(attached_object_ || (!isSnapDone() && snap_object_))
+  if((attached_object_ && (isSnapDone() || snap_object_)) || 
+     (!isSnapDone() && snap_object_))
   {
-    // ROS_ERROR("compute object pose");
     computeObjectPose(end_effector_pose, body_pose, object_pose);
+  }
+  else if(attached_object_)
+  {
+    object_pose = object_manager_->getMarker(attached_id_).pose;
   }
 
   if(validityCheck(solution, l_arm_joints, body_pose, object_pose))
@@ -614,7 +618,9 @@ void PR2Simulator::moveRobot()
 
     if((attached_object_ && (isSnapDone() || snap_object_)) || 
        (!isSnapDone() && snap_object_))
+    {
       object_manager_->moveObject(attached_id_, object_pose);
+    }
 
     if(upper_arm_roll_changed)
     {
@@ -1894,6 +1900,42 @@ void PR2Simulator::disableOrientationControl()
   }
 
   int_marker_server_->insert(int_marker);
+  int_marker_server_->applyChanges();
+}
+
+void PR2Simulator::enableUpperArmRollControl()
+{
+  // Place an interactive marker control on the right upper arm.
+  visualization_msgs::InteractiveMarker int_marker;
+  int_marker.header.frame_id = "/base_footprint";
+  int_marker.pose = robot_markers_.markers.at(4).pose;
+  int_marker.name = "r_upper_arm_marker";
+  int_marker.description = "";
+  int_marker.scale = 0.4;
+
+  r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
+
+  visualization_msgs::InteractiveMarkerControl control;
+  control.always_visible = true;
+  control.markers.clear();
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  control.orientation.w = 1;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  int_marker.controls.push_back(control);
+
+  int_marker_server_->insert(int_marker,
+                             boost::bind(&PR2Simulator::upperArmMarkerFeedback,
+			                 this,
+			                 _1)
+                             );
+  int_marker_server_->applyChanges();
+}
+
+void PR2Simulator::disableUpperArmRollControl()
+{
+  int_marker_server_->erase("r_upper_arm_marker");
   int_marker_server_->applyChanges();
 }
 

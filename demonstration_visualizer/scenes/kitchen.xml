@@ -1,9 +1,14 @@
 <scene>
     <collision_models path="/collision_models" />
     <size origin_x="-2.2" origin_y="-1.2" origin_z="0" size_x="7.5" size_y="6.25" size_z="2" />
+    <mesh id="0" label="" position_x="0" position_y="0" position_z="0" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="0" scale_x="0" scale_y="0" scale_z="0" movable="0" />
+    <mesh id="0" label="" position_x="0" position_y="0" position_z="0" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="0" scale_x="0" scale_y="0" scale_z="0" movable="0" />
+    <mesh id="0" label="" position_x="0" position_y="0" position_z="0" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="0" scale_x="0" scale_y="0" scale_z="0" movable="0" />
+    <mesh id="0" label="" position_x="0" position_y="0" position_z="0" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="0" scale_x="0" scale_y="0" scale_z="0" movable="0" />
     <mesh id="4" label="max_kitchen" position_x="-1.78203" position_y="-0.804551" position_z="-0.0642912" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" scale_x="1" scale_y="1" scale_z="1" movable="0" />
+    <mesh id="0" label="" position_x="0" position_y="0" position_z="0" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="0" scale_x="0" scale_y="0" scale_z="0" movable="0" />
     <mesh id="6" label="cake_pan" position_x="0.442693" position_y="1.58549" position_z="0.682211" orientation_x="0.243225" orientation_y="0.247575" orientation_z="0.663849" orientation_w="0.66246" scale_x="1" scale_y="1" scale_z="1" movable="1" />
-    <mesh id="7" label="eggs" position_x="0.635273" position_y="4.43182" position_z="0.922716" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" scale_x="1" scale_y="1" scale_z="1" movable="1" />
+    <mesh id="7" label="eggs" position_x="0.635273" position_y="4.32712" position_z="0.922716" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" scale_x="1" scale_y="1" scale_z="1" movable="1" />
     <mesh id="8" label="oil" position_x="-1.51014" position_y="1.18188" position_z="1.01662" orientation_x="1.77761e-08" orientation_y="-2.04429e-08" orientation_z="-0.133027" orientation_w="0.991112" scale_x="0.59" scale_y="0.59" scale_z="0.59" movable="1" />
     <mesh id="9" label="water_bottle" position_x="1.51495" position_y="4.23621" position_z="0.895531" orientation_x="0.705218" orientation_y="0" orientation_z="0" orientation_w="0.70899" scale_x="1" scale_y="1" scale_z="1" movable="1" />
     <mesh id="10" label="cake_mix" position_x="-1.53422" position_y="0.0206066" position_z="1.47446" orientation_x="-5.35637e-08" orientation_y="3.04472e-08" orientation_z="0.182282" orientation_w="0.983246" scale_x="0.91" scale_y="0.91" scale_z="0.91" movable="1" />

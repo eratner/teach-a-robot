@@ -203,6 +203,10 @@ public:
   
   void disableOrientationControl();
 
+  void enableUpperArmRollControl();
+
+  void disableUpperArmRollControl();
+
   double getTorsoPosition() const;
 
   void setTorsoPosition(double position);

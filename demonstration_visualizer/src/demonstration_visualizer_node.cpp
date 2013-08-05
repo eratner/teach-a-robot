@@ -438,10 +438,12 @@ void DemonstrationVisualizerNode::setGripperOrientationControl(bool enabled)
   if(enabled)
   {
     simulator_->enableOrientationControl();
+    simulator_->enableUpperArmRollControl();
   }
   else
   {
     simulator_->disableOrientationControl();
+    simulator_->disableUpperArmRollControl();
   }
 }
 

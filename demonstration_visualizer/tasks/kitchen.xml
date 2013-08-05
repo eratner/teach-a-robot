@@ -2,7 +2,7 @@
     <goal number="0" type="0" desc="Get the eggs from the fridge" object_id="7" />
     <goal number="1" type="1" desc="Bring the eggs to the island" object_id="7" ignore_yaw="0" position_x="0.492781" position_y="2.69086" position_z="0.893362" orientation_x="6.93834e-08" orientation_y="-7.61662e-09" orientation_z="-0.983537" orientation_w="0.180706" />
     <goal number="2" type="0" desc="Grab the oil from the counter" object_id="8" />
-    <goal number="3" type="1" desc="Bring the oil to the island" object_id="8" ignore_yaw="0" position_x="0.515593" position_y="0.850125" position_z="1.01283" orientation_x="-2.33272e-08" orientation_y="-5.28618e-08" orientation_z="0.500147" orientation_w="0.86594" />
+    <goal number="3" type="1" desc="Bring the oil to the island" object_id="8" ignore_yaw="1" position_x="0.515593" position_y="0.850125" position_z="1.01283" orientation_x="-2.33272e-08" orientation_y="-5.28618e-08" orientation_z="0.500147" orientation_w="0.86594" />
     <goal number="4" type="0" desc="Get the cake mix from the shelf" object_id="10" />
     <goal number="5" type="1" desc="Bring the cake mix to the island" object_id="10" ignore_yaw="0" position_x="0.520047" position_y="1.17771" position_z="0.991199" orientation_x="4.021e-07" orientation_y="1.85829e-06" orientation_z="-0.95951" orientation_w="0.281673" />
     <goal number="6" type="0" desc="Get the water from below the oven" object_id="9" />
