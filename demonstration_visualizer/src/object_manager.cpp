@@ -271,8 +271,8 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
   if(collision_checker_ == NULL || disable_collision_checking_)
     return true;
 
-  if(visualize_collision_models_)
-    collision_checker_->visualizeRobotCollisionModel(rangles, langles, bp, "robot_model", 0);
+  // if(visualize_collision_models_)
+  //   collision_checker_->visualizeRobotCollisionModel(rangles, langles, bp, "robot_model", 0);
 
   //check robot against world
   ROS_DEBUG("[om] Collision checking time! robot-world first");

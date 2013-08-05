@@ -561,9 +561,12 @@ void PR2Simulator::moveRobot()
     }
   }
   
+  bool upper_arm_roll_changed = false;
   // upper arm roll
   if(delta_arm_roll_ != 0)
   {
+    upper_arm_roll_changed = true;
+
     double step_size = 0.02;
     if(std::abs(delta_arm_roll_) < step_size)
     {
@@ -612,6 +615,23 @@ void PR2Simulator::moveRobot()
     if((attached_object_ && (isSnapDone() || snap_object_)) || 
        (!isSnapDone() && snap_object_))
       object_manager_->moveObject(attached_id_, object_pose);
+
+    if(upper_arm_roll_changed)
+    {
+      visualization_msgs::InteractiveMarker marker;
+      int_marker_server_->get("r_gripper_marker", marker);
+      geometry_msgs::Pose pose = marker.pose;
+
+      tf::Quaternion rot(pose.orientation.x, 
+			 pose.orientation.y,
+			 pose.orientation.z,
+			 pose.orientation.w);
+      tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+      tf::quaternionTFToMsg(rot.inverse() * rot2, marker.controls.at(0).orientation);
+      
+      int_marker_server_->insert(marker);
+      int_marker_server_->applyChanges();
+    }
   }
   else
   {
@@ -865,7 +885,7 @@ void PR2Simulator::upperArmMarkerFeedback(
 
     double angle = next_roll - current_roll;
 
-    delta_arm_roll_ = angles::normalize_angle(angle);
+    delta_arm_roll_ = -1.0 * angles::normalize_angle(angle);
 
     break;
   }

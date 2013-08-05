@@ -471,6 +471,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   // Create and display a grid.
   grid_ = visualization_manager_->createDisplay("rviz/Grid", "Grid", true);
   ROS_ASSERT(grid_ != NULL);
+  grid_->setEnabled(false);
 
   // Create a robot model display.
   robot_model_ = visualization_manager_->createDisplay("rviz/MarkerArray", "Robot", true);
