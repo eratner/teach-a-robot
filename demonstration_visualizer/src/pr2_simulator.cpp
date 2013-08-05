@@ -24,7 +24,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     move_robot_markers_(true),
     pause_requested_(false),
     goal_orientation_changed_(false),
-    delta_arm_roll_(0)
+    delta_arm_roll_(0),
+    ignore_collisions_(false)
 {
   ros::NodeHandle nh;
 
@@ -1549,6 +1550,10 @@ bool PR2Simulator::validityCheck(const vector<double>& rangles,
                                  const vector<double>& langles, 
                                  const BodyPose& bp, 
                                  const geometry_msgs::Pose& object_pose){
+
+  if(ignore_collisions_)
+    return true;
+  
   if(attached_object_){
     //check robot motion
     // ROS_ERROR("Check robot move (attached)");
@@ -1948,6 +1953,11 @@ void PR2Simulator::setTorsoPosition(double position)
 {
   // @todo check if it is valid (i.e. within limits).
   torso_position_ = position;
+}
+
+void PR2Simulator::setIgnoreCollisions(bool ignore)
+{
+  ignore_collisions_ = ignore;
 }
 
 } // namespace demonstration_visualizer

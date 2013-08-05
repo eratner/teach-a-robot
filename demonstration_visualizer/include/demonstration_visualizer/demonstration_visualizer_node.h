@@ -75,6 +75,8 @@ public:
 
   void setGripperOrientationControl(bool enabled);
 
+  void setIgnoreCollisions(bool ignore);
+
   /**
    * Note that all poses are given in the world frame, if not 
    * otherwise specified.

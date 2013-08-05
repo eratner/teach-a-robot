@@ -211,6 +211,8 @@ public:
 
   void setTorsoPosition(double position);
 
+  void setIgnoreCollisions(bool ignore);
+
 private:
   bool playing_;
 
@@ -273,6 +275,8 @@ private:
   bool goal_orientation_changed_;
 
   double delta_arm_roll_;
+
+  bool ignore_collisions_;
 
 };
 

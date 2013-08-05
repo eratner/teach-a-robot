@@ -407,6 +407,10 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
+  QCheckBox *ignore_collisions = new QCheckBox("Ignore Collisions: ");
+  ignore_collisions->setCheckState(Qt::Unchecked);
+  user_controls_layout->addWidget(ignore_collisions);
+
   // QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
   // QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
   // fps_x_offset_layout->addWidget(fps_x_offset_label);
@@ -551,6 +555,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(gripper_orientation_button_, SIGNAL(clicked()), this, SLOT(toggleGripperOrientationMode()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
+  connect(ignore_collisions, SIGNAL(stateChanged(int)), this, SLOT(setIgnoreCollisions(int)));
   // connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   // connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -1987,6 +1992,21 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
     gripper_orientation_mode_ = true;
     node_.setGripperOrientationControl(true);
     // gripper_orientation_button_->setText("Disable Gripper Orientation Control");
+  }
+}
+
+void DemonstrationVisualizer::setIgnoreCollisions(int ignore)
+{
+  switch(ignore)
+  {
+  case Qt::Checked:
+    node_.setIgnoreCollisions(true);
+    break;
+  case Qt::Unchecked:
+    node_.setIgnoreCollisions(false);
+    break;
+  default:
+    break;
   }
 }
 

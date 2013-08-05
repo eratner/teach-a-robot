@@ -233,6 +233,8 @@ private slots:
 
   void toggleGripperOrientationMode();
 
+  void setIgnoreCollisions(int);
+
   // For controlling the grasp selection mode.
   void beginGraspSelection();
   void endGraspSelection();

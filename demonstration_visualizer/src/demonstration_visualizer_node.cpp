@@ -447,6 +447,11 @@ void DemonstrationVisualizerNode::setGripperOrientationControl(bool enabled)
   }
 }
 
+void DemonstrationVisualizerNode::setIgnoreCollisions(bool ignore)
+{
+  simulator_->setIgnoreCollisions(ignore);
+}
+
 geometry_msgs::Pose DemonstrationVisualizerNode::getBasePose()
 {
   return simulator_->getBasePose();
