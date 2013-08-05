@@ -309,6 +309,13 @@ void PR2Simulator::pause()
   end_effector_marker_vel_.linear.x = 0;
   end_effector_marker_vel_.linear.y = 0;
   end_effector_marker_vel_.linear.z = 0;
+
+  // @todo fix this, force key releases.
+  processKeyEvent(Qt::Key_W, QEvent::KeyRelease);
+  processKeyEvent(Qt::Key_A, QEvent::KeyRelease);
+  processKeyEvent(Qt::Key_S, QEvent::KeyRelease);
+  processKeyEvent(Qt::Key_D, QEvent::KeyRelease);
+  processKeyEvent(Qt::Key_Z, QEvent::KeyRelease);
 }
 
 void PR2Simulator::pauseLater()

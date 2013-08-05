@@ -229,18 +229,16 @@ void DemonstrationVisualizerNode::updateGoals()
 	goal_gripper_pose.orientation.y = y;
 	goal_gripper_pose.orientation.z = z;
 	goal_gripper_pose.orientation.w = w;
+
+	marker_in_map.M.GetRPY(roll, pitch, yaw);
+	marker_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+	gripper_in_map = marker_in_map * gripper_in_marker;
+	object_in_gripper = gripper_in_map.Inverse() * object_in_map;
       }
 
       goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
 						     pick_up_goal->getGripperJointPosition(),
 						     false);
-
-      // simulator_->attach(pick_up_goal->getObjectID(),
-      // 		   object_in_gripper);
-
-      object_in_gripper.M.GetRPY(roll, pitch, yaw);
-      ROS_INFO("object in gripper = (%f, %f, %f), (%f, %f, %f)", object_in_gripper.p.x(),
-	       object_in_gripper.p.y(), object_in_gripper.p.z(), roll, pitch, yaw);
 
       if(goal_reachable)
       {
