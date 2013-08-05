@@ -67,7 +67,7 @@ void Object::setPose(geometry_msgs::Pose p){
   if(movable){
     KDL::Vector v(p.position.x,p.position.y,p.position.z);
     group_.f.p = v;
-    group_.f.M.Quaternion(p.orientation.x,
+    group_.f.M = KDL::Rotation::Quaternion(p.orientation.x,
                           p.orientation.y,
                           p.orientation.z,
                           p.orientation.w);
