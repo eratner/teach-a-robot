@@ -589,8 +589,22 @@ void PR2Simulator::moveRobot()
 
     // ROS_INFO("step_size = %f, delta_arm_roll = %f", step_size, delta_arm_roll_);
 
-    solution[2] += step_size;
+    // solution[2] += step_size;
     delta_arm_roll_ -= step_size;
+    
+    std::vector<double> r_arm_joints = solution;
+    r_arm_joints[2] += step_size;
+    std::vector<double> roll_solution(7, 0);
+    
+    if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, roll_solution))
+    {
+      ROS_ERROR("IK failed on changing the right upper arm roll!");
+      delta_arm_roll_ = 0;
+    }
+    else
+    {
+      solution = roll_solution;
+    }
   }
 
   geometry_msgs::Pose object_pose;
