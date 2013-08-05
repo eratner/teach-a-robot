@@ -278,6 +278,7 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
   ROS_DEBUG("[om] Collision checking time! robot-world first");
   if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp, false, dist))
   {
+    collision_checker_->visualizeCollision();
     return false;
   }
   //check robot against itself
@@ -291,6 +292,7 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
     if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), false/*true*/, false, dist))
       return false;
   }
+  collision_checker_->deleteCollisionVisualizations();
   return true;
 }
 
@@ -321,6 +323,8 @@ bool ObjectManager::checkObjectMove(int id, Pose p,
     if(!collision_checker_->checkGroupAgainstGroup(&(objects_[i].group_),&(temp.group_),dist))
       return false;
   }
+
+  collision_checker_->deleteCollisionVisualizations();
 
   //check any extra constraints
   return objects_[id].checkConstraints(p);
