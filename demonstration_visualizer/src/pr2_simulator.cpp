@@ -85,7 +85,17 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[11] = -3.138816;
   joint_states_.position[12] = -0.862352;
   joint_states_.position[13] = 3.139786;
-  
+ 
+  // Keep left arm straight down (Only valid if torso is raised all the way)
+  joint_states_.position[0] = 0.2;
+  joint_states_.position[1] = 1.4;
+  joint_states_.position[2] = 1.9;
+  joint_states_.position[3] = -0.4;
+  joint_states_.position[4] = -0.1;
+  joint_states_.position[5] = -1.00;
+  joint_states_.position[6] = 0.0;
+
+
   // Set the gripper to be open initially.
   joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
