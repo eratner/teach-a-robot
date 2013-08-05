@@ -284,13 +284,19 @@ bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langle
   //check robot against itself
   ROS_DEBUG("[om] Collision checking time! robot-robot first");
   if(!collision_checker_->checkRobotAgainstRobot(rangles, langles, bp, false, dist))
+  {
+    collision_checker_->visualizeCollision();
     return false;
+  }
   //check robot against all objects
   for(unsigned int i=0; i<objects_.size(); i++){
     if(int(i)==skip_id)
       continue;
     if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), false/*true*/, false, dist))
+    {
+      collision_checker_->visualizeCollision();
       return false;
+    }  
   }
   collision_checker_->deleteCollisionVisualizations();
   return true;
@@ -312,16 +318,25 @@ bool ObjectManager::checkObjectMove(int id, Pose p,
 
   //check the object against the environment
   if(!collision_checker_->checkGroupAgainstWorld(&(temp.group_), dist))
+  {
+    collision_checker_->visualizeCollision();
     return false;
+  }
   //check object against robot
   if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(temp.group_), false, false, dist))
+  {
+    collision_checker_->visualizeCollision();
     return false;
+  }  
   //check object against all other objects
   for(unsigned int i=0; i<objects_.size(); i++){
     if(int(i)==id)
       continue;
     if(!collision_checker_->checkGroupAgainstGroup(&(objects_[i].group_),&(temp.group_),dist))
+    {
+      collision_checker_->visualizeCollision();
       return false;
+    }  
   }
 
   collision_checker_->deleteCollisionVisualizations();
