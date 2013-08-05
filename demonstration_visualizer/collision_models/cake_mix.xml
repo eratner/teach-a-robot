@@ -1,3 +1,56 @@
 <collision_model>
     <object label="cake_mix" mesh_resource="package://demonstration_visualizer/meshes/cake_mix/cake_mix.dae" />
+    <sphere id="1" x="0.01" y="0" z="0.01" radius="0.03" />
+    <sphere id="2" x="0.01" y="0" z="-0.02" radius="0.03" />
+    <sphere id="3" x="0.01" y="0" z="-0.05" radius="0.03" />
+    <sphere id="4" x="0.01" y="0" z="-0.08" radius="0.03" />
+    <sphere id="5" x="0.01" y="0" z="-0.11" radius="0.03" />
+    <sphere id="6" x="0.01" y="0" z="0.04" radius="0.03" />
+    <sphere id="7" x="0.01" y="0" z="0.07" radius="0.03" />
+    <sphere id="8" x="0.01" y="0" z="0.10" radius="0.03" />
+
+    <sphere id="9" x="0.04" y="0" z="0.01" radius="0.03" />
+    <sphere id="10" x="0.04" y="0" z="-0.02" radius="0.03" />
+    <sphere id="11" x="0.04" y="0" z="-0.05" radius="0.03" />
+    <sphere id="12" x="0.04" y="0" z="-0.08" radius="0.03" />
+    <sphere id="13" x="0.04" y="0" z="-0.11" radius="0.03" />
+    <sphere id="14" x="0.04" y="0" z="0.04" radius="0.03" />
+    <sphere id="15" x="0.04" y="0" z="0.07" radius="0.03" />
+    <sphere id="16" x="0.04" y="0" z="0.10" radius="0.03" />
+
+    <sphere id="17" x="0.07" y="0" z="0.01" radius="0.03" />
+    <sphere id="18" x="0.07" y="0" z="-0.02" radius="0.03" />
+    <sphere id="19" x="0.07" y="0" z="-0.05" radius="0.03" />
+    <sphere id="20" x="0.07" y="0" z="-0.08" radius="0.03" />
+    <sphere id="21" x="0.07" y="0" z="-0.11" radius="0.03" />
+    <sphere id="22" x="0.07" y="0" z="0.04" radius="0.03" />
+    <sphere id="23" x="0.07" y="0" z="0.07" radius="0.03" />
+    <sphere id="24" x="0.07" y="0" z="0.10" radius="0.03" />
+
+    <sphere id="25" x="-0.02" y="0" z="0.01" radius="0.03" />
+    <sphere id="26" x="-0.02" y="0" z="-0.02" radius="0.03" />
+    <sphere id="27" x="-0.02" y="0" z="-0.05" radius="0.03" />
+    <sphere id="28" x="-0.02" y="0" z="-0.08" radius="0.03" />
+    <sphere id="29" x="-0.02" y="0" z="-0.11" radius="0.03" />
+    <sphere id="30" x="-0.02" y="0" z="0.04" radius="0.03" />
+    <sphere id="31" x="-0.02" y="0" z="0.07" radius="0.03" />
+    <sphere id="32" x="-0.02" y="0" z="0.10" radius="0.03" />
+
+    <sphere id="33" x="-0.05" y="0" z="0.01" radius="0.03" />
+    <sphere id="34" x="-0.05" y="0" z="-0.02" radius="0.03" />
+    <sphere id="35" x="-0.05" y="0" z="-0.05" radius="0.03" />
+    <sphere id="36" x="-0.05" y="0" z="-0.08" radius="0.03" />
+    <sphere id="37" x="-0.05" y="0" z="-0.11" radius="0.03" />
+    <sphere id="38" x="-0.05" y="0" z="0.04" radius="0.03" />
+    <sphere id="39" x="-0.05" y="0" z="0.07" radius="0.03" />
+    <sphere id="40" x="-0.05" y="0" z="0.10" radius="0.03" />
+
+    <sphere id="41" x="-0.08" y="0" z="0.01" radius="0.03" />
+    <sphere id="42" x="-0.08" y="0" z="-0.02" radius="0.03" />
+    <sphere id="43" x="-0.08" y="0" z="-0.05" radius="0.03" />
+    <sphere id="44" x="-0.08" y="0" z="-0.08" radius="0.03" />
+    <sphere id="45" x="-0.08" y="0" z="-0.11" radius="0.03" />
+    <sphere id="46" x="-0.08" y="0" z="0.04" radius="0.03" />
+    <sphere id="47" x="-0.08" y="0" z="0.07" radius="0.03" />
+    <sphere id="48" x="-0.08" y="0" z="0.10" radius="0.03" />
 </collision_model>

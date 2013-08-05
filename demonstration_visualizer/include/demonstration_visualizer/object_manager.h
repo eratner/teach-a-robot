@@ -42,6 +42,8 @@ class ObjectManager{
 
     bool writeObjectsToOccupiedVoxelsFile(std::string filename);
 
+    void visualizeObjectCollisionModels();
+
     std::vector<double> getBoundingBoxDimensions() const;
 
     std::vector<double> getBoundingBoxOrigin() const;
