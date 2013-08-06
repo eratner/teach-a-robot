@@ -598,7 +598,7 @@ void PR2Simulator::moveRobot()
     
     if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, roll_solution))
     {
-      ROS_ERROR("IK failed on changing the right upper arm roll!");
+      ROS_ERROR("[PR2Sim] IK failed on changing the right upper arm roll!");
       delta_arm_roll_ = 0;
     }
     else
@@ -1438,32 +1438,63 @@ void PR2Simulator::updateEndEffectorMarker()
 
 void PR2Simulator::updateUpperArmMarker()
 {
-  std::vector<double> r_arm_joints(7, 0);
-  for(int i = 7; i < 14; ++i)
-  {
-    r_arm_joints[i-7] = joint_states_.position[i];
-  }
+  // std::vector<double> r_arm_joints(7, 0);
+  // for(int i = 7; i < 14; ++i)
+  // {
+  //   r_arm_joints[i-7] = joint_states_.position[i];
+  // }
 
-  std::vector<double> upper_arm_pose(7, 0);
-  if(!kdl_robot_model_.computeFK(r_arm_joints, "r_upper_arm_roll_link", upper_arm_pose))
-  {
-    ROS_ERROR("[PR2Sim] Compute FK failed for the upper arm roll link!");
-  }
+  // std::vector<double> upper_arm_pose(7, 0);
+  // if(!kdl_robot_model_.computeFK(r_arm_joints, "r_upper_arm_roll_link", upper_arm_pose))
+  // {
+  //   ROS_ERROR("[PR2Sim] Compute FK failed for the upper arm roll link!");
+  // }
 
-  r_upper_arm_roll_pose_.position.x = upper_arm_pose[0];
-  r_upper_arm_roll_pose_.position.y = upper_arm_pose[1];
-  r_upper_arm_roll_pose_.position.z = upper_arm_pose[2];
-  r_upper_arm_roll_pose_.orientation.x = upper_arm_pose[3];
-  r_upper_arm_roll_pose_.orientation.y = upper_arm_pose[4];
-  r_upper_arm_roll_pose_.orientation.z = upper_arm_pose[5];
-  r_upper_arm_roll_pose_.orientation.w = upper_arm_pose[6];
+  // r_upper_arm_roll_pose_.position.x = upper_arm_pose[0];
+  // r_upper_arm_roll_pose_.position.y = upper_arm_pose[1];
+  // r_upper_arm_roll_pose_.position.z = upper_arm_pose[2];
+  // r_upper_arm_roll_pose_.orientation.x = upper_arm_pose[3];
+  // r_upper_arm_roll_pose_.orientation.y = upper_arm_pose[4];
+  // r_upper_arm_roll_pose_.orientation.z = upper_arm_pose[5];
+  // r_upper_arm_roll_pose_.orientation.w = upper_arm_pose[6];
+
+  r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
 
   // ROS_INFO("Updating r_upper_arm_roll_link to pose (%f, %f, %f), (%f, %f, %f, %f).",
   // 	   r_upper_arm_roll_pose_.position.x, r_upper_arm_roll_pose_.position.y, r_upper_arm_roll_pose_.position.z,
   // 	   r_upper_arm_roll_pose_.orientation.x, r_upper_arm_roll_pose_.orientation.y, r_upper_arm_roll_pose_.orientation.z,
   // 	   r_upper_arm_roll_pose_.orientation.w);
 
-  int_marker_server_->setPose("r_upper_arm_marker", r_upper_arm_roll_pose_);
+  KDL::Frame ruarl_in_map(KDL::Rotation::Quaternion(r_upper_arm_roll_pose_.orientation.x,
+						    r_upper_arm_roll_pose_.orientation.y,
+						    r_upper_arm_roll_pose_.orientation.z,
+						    r_upper_arm_roll_pose_.orientation.w),
+			  KDL::Vector(r_upper_arm_roll_pose_.position.x,
+				      r_upper_arm_roll_pose_.position.y,
+				      r_upper_arm_roll_pose_.position.z)
+    );
+
+  KDL::Frame marker_in_ruarl(KDL::Rotation::Identity(),
+			     KDL::Vector(0.2, 0.0, 0.0));
+
+  KDL::Frame marker_in_map = ruarl_in_map * marker_in_ruarl;
+  geometry_msgs::Pose marker_pose;
+  marker_pose.position.x = marker_in_map.p.x();
+  marker_pose.position.y = marker_in_map.p.y();
+  marker_pose.position.z = marker_in_map.p.z();
+  double x, y, z, w;
+  marker_in_map.M.GetQuaternion(x, y, z, w);
+  marker_pose.orientation.x = x;
+  marker_pose.orientation.y = y;
+  marker_pose.orientation.z = z;
+  marker_pose.orientation.w = w;
+
+  // ROS_INFO("updating pose: (%f, %f, %f), (%f, %f, %f, %f)",
+  //   marker_pose.position.x, marker_pose.position.y, marker_pose.position.z,
+  //   marker_pose.orientation.x, marker_pose.orientation.y, marker_pose.orientation.z,
+  //   marker_pose.orientation.w);
+
+  int_marker_server_->setPose("r_upper_arm_marker", marker_pose);
   int_marker_server_->applyChanges();
 }
 
@@ -1934,15 +1965,44 @@ void PR2Simulator::disableOrientationControl()
 
 void PR2Simulator::enableUpperArmRollControl()
 {
+  r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
+  
+  KDL::Frame ruarl_in_map(KDL::Rotation::Quaternion(r_upper_arm_roll_pose_.orientation.x,
+						    r_upper_arm_roll_pose_.orientation.y,
+						    r_upper_arm_roll_pose_.orientation.z,
+						    r_upper_arm_roll_pose_.orientation.w),
+			  KDL::Vector(r_upper_arm_roll_pose_.position.x,
+				      r_upper_arm_roll_pose_.position.y,
+				      r_upper_arm_roll_pose_.position.z)
+    );
+
+  KDL::Frame marker_in_ruarl(KDL::Rotation::Identity(),
+			     KDL::Vector(0.20, 0.0, 0.0));
+
+  KDL::Frame marker_in_map = ruarl_in_map * marker_in_ruarl;
+  geometry_msgs::Pose marker_pose;
+  marker_pose.position.x = marker_in_map.p.x();
+  marker_pose.position.y = marker_in_map.p.y();
+  marker_pose.position.z = marker_in_map.p.z();
+  double x, y, z, w;
+  marker_in_map.M.GetQuaternion(x, y, z, w);
+  marker_pose.orientation.x = x;
+  marker_pose.orientation.y = y;
+  marker_pose.orientation.z = z;
+  marker_pose.orientation.w = w;
+
+  // ROS_INFO("initial pose: (%f, %f, %f), (%f, %f, %f, %f)",
+  //   marker_pose.position.x, marker_pose.position.y, marker_pose.position.z,
+  //   marker_pose.orientation.x, marker_pose.orientation.y, marker_pose.orientation.z,
+  //   marker_pose.orientation.w);
+
   // Place an interactive marker control on the right upper arm.
   visualization_msgs::InteractiveMarker int_marker;
-  int_marker.header.frame_id = "/base_footprint";
-  int_marker.pose = robot_markers_.markers.at(4).pose;
+  int_marker.header.frame_id = "/map"; //"/base_footprint";
+  int_marker.pose = marker_pose; //robot_markers_.markers.at(4).pose;
   int_marker.name = "r_upper_arm_marker";
   int_marker.description = "";
   int_marker.scale = 0.4;
-
-  r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
 
   visualization_msgs::InteractiveMarkerControl control;
   control.always_visible = true;
