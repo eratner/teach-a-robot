@@ -319,61 +319,49 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 
   // The basic control panel.
   QVBoxLayout *basic_layout = new QVBoxLayout();
-  start_button_ = new QPushButton("Start!");
-  basic_layout->addWidget(start_button_);
-  end_button_ = new QPushButton("End");
-  basic_layout->addWidget(end_button_);
-  QHBoxLayout *play_pause_layout = new QHBoxLayout();
-  QPushButton *play = new QPushButton("Play");
-  QPushButton *pause = new QPushButton("Pause");
-  play_pause_layout->addWidget(play);
-  play_pause_layout->addWidget(pause);
-  basic_layout->addLayout(play_pause_layout);
-
-  QGroupBox *camera_group = new QGroupBox("Camera Settings");
-  QHBoxLayout *camera_controls = new QHBoxLayout();
-  QPushButton *orbit_camera = new QPushButton("Orbit");
-  camera_buttons_.push_back(orbit_camera);
-  QPushButton *fps_camera = new QPushButton("FPS");
-  camera_buttons_.push_back(fps_camera);
-  QPushButton *top_down_camera = new QPushButton ("Top Down");
-  camera_buttons_.push_back(top_down_camera);
-  QPushButton *auto_camera = new QPushButton("Auto");
-  camera_buttons_.push_back(auto_camera);
-  QPushButton *top_down_fps_camera = new QPushButton("Top Down/FPS");
-  camera_buttons_.push_back(top_down_fps_camera);
-
-  camera_controls->addWidget(orbit_camera);
-  camera_controls->addWidget(fps_camera);
-  // camera_controls->addWidget(top_down_camera);
-  camera_controls->addWidget(auto_camera);
-  camera_controls->addWidget(top_down_fps_camera);
-  camera_group->setLayout(camera_controls);
-
-  basic_layout->addWidget(camera_group);
 
   QGroupBox *controls_group = new QGroupBox("Controls");
   QVBoxLayout *user_controls_layout = new QVBoxLayout();
 
-  // z_mode_button_ = new QPushButton("Enable Z-Mode");
-  // user_controls_layout->addWidget(z_mode_button_);
-
   QHBoxLayout *gripper_controls_layout = new QHBoxLayout();
-  accept_grasp_button_ = new QPushButton(/*"Accept Grasp"*/);
-  QPixmap accept_grasp_pixmap(":/icons/accept_grasp.png");
-  QIcon accept_grasp_icon(accept_grasp_pixmap);
-  accept_grasp_button_->setIcon(accept_grasp_icon);
-  accept_grasp_button_->setIconSize(QSize(80, 80));
-  accept_grasp_button_->setEnabled(false);
-  gripper_controls_layout->addWidget(accept_grasp_button_);
 
-  change_grasp_button_ = new QPushButton(/*"Change Grasp"*/);
-  QPixmap change_grasp_pixmap(":/icons/change_grasp.png");
-  QIcon change_grasp_icon(change_grasp_pixmap);
-  change_grasp_button_->setIcon(change_grasp_icon);
-  change_grasp_button_->setIconSize(QSize(80, 80));
-  change_grasp_button_->setEnabled(false);
-  gripper_controls_layout->addWidget(change_grasp_button_);
+  start_stop_button_ = new QPushButton();
+  QPixmap start_stop_pixmap(":/icons/start.png");
+  QIcon start_stop_icon(start_stop_pixmap);
+  start_stop_button_->setIcon(start_stop_icon);
+  start_stop_button_->setIconSize(QSize(80, 80));
+  gripper_controls_layout->addWidget(start_stop_button_);
+
+  play_pause_button_ = new QPushButton();
+  QPixmap play_pause_pixmap(":/icons/play.png");
+  QIcon play_pause_icon(play_pause_pixmap);
+  play_pause_button_->setIcon(play_pause_icon);
+  play_pause_button_->setIconSize(QSize(80, 80));
+  gripper_controls_layout->addWidget(play_pause_button_);  
+
+  // accept_grasp_button_ = new QPushButton(/*"Accept Grasp"*/);
+  // QPixmap accept_grasp_pixmap(":/icons/accept_grasp.png");
+  // QIcon accept_grasp_icon(accept_grasp_pixmap);
+  // accept_grasp_button_->setIcon(accept_grasp_icon);
+  // accept_grasp_button_->setIconSize(QSize(80, 80));
+  // accept_grasp_button_->setEnabled(false);
+  // gripper_controls_layout->addWidget(accept_grasp_button_);
+
+  // change_grasp_button_ = new QPushButton(/*"Change Grasp"*/);
+  // QPixmap change_grasp_pixmap(":/icons/change_grasp.png");
+  // QIcon change_grasp_icon(change_grasp_pixmap);
+  // change_grasp_button_->setIcon(change_grasp_icon);
+  // change_grasp_button_->setIconSize(QSize(80, 80));
+  // change_grasp_button_->setEnabled(false);
+  // gripper_controls_layout->addWidget(change_grasp_button_);
+
+  accept_change_grasp_button_ = new QPushButton();
+  QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
+  QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
+  accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
+  accept_change_grasp_button_->setIconSize(QSize(80, 80));
+  accept_change_grasp_button_->setEnabled(false);
+  gripper_controls_layout->addWidget(accept_change_grasp_button_);
 
   gripper_orientation_button_ = new QPushButton(/*"Enable Gripper Orientation Control"*/);
   QPixmap gripper_orientation_pixmap(":/icons/full_control.png");
@@ -414,29 +402,27 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
-  // QCheckBox *ignore_collisions = new QCheckBox("Ignore Collisions: ");
-  // ignore_collisions->setCheckState(Qt::Unchecked);
-  // user_controls_layout->addWidget(ignore_collisions);
+  QGroupBox *camera_group = new QGroupBox("Camera Settings");
+  QHBoxLayout *camera_controls = new QHBoxLayout();
+  QPushButton *orbit_camera = new QPushButton("Orbit");
+  camera_buttons_.push_back(orbit_camera);
+  QPushButton *fps_camera = new QPushButton("FPS");
+  camera_buttons_.push_back(fps_camera);
+  QPushButton *top_down_camera = new QPushButton ("Top Down");
+  camera_buttons_.push_back(top_down_camera);
+  QPushButton *auto_camera = new QPushButton("Auto");
+  camera_buttons_.push_back(auto_camera);
+  QPushButton *top_down_fps_camera = new QPushButton("Top Down/FPS");
+  camera_buttons_.push_back(top_down_fps_camera);
 
-  // QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
-  // QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
-  // fps_x_offset_layout->addWidget(fps_x_offset_label);
-  // QSlider *fps_x_offset = new QSlider(Qt::Horizontal);
-  // fps_x_offset->setMinimum(0);
-  // fps_x_offset->setMaximum(500);
-  // fps_x_offset->setValue(0);
-  // fps_x_offset_layout->addWidget(fps_x_offset);
-  // user_controls_layout->addLayout(fps_x_offset_layout);
+  camera_controls->addWidget(orbit_camera);
+  camera_controls->addWidget(fps_camera);
+  // camera_controls->addWidget(top_down_camera);
+  camera_controls->addWidget(auto_camera);
+  camera_controls->addWidget(top_down_fps_camera);
+  camera_group->setLayout(camera_controls);
 
-  // QHBoxLayout *fps_z_offset_layout = new QHBoxLayout();
-  // QLabel *fps_z_offset_label = new QLabel("FPS z-offset: ");
-  // fps_z_offset_layout->addWidget(fps_z_offset_label);
-  // QSlider *fps_z_offset = new QSlider(Qt::Horizontal);
-  // fps_z_offset->setMinimum(0);
-  // fps_z_offset->setMaximum(500);
-  // fps_z_offset->setValue(0);
-  // fps_z_offset_layout->addWidget(fps_z_offset);
-  // user_controls_layout->addLayout(fps_z_offset_layout);
+  basic_layout->addWidget(camera_group);
 
   controls_group->setLayout(user_controls_layout);
 
@@ -530,11 +516,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
 	  SIGNAL(customContextMenuRequested(const QPoint &)), this,
 	  SLOT(showGoalsMenu(const QPoint &)));
   connect(tabs, SIGNAL(currentChanged(int)), this, SLOT(tabChanged(int)));
-  connect(start_button_, SIGNAL(clicked()), this, SLOT(startBasicMode()));
-  connect(end_button_, SIGNAL(clicked()), this, SLOT(endBasicMode()));
   connect(scale_mesh_slider_, SIGNAL(valueChanged(int)), this, SLOT(scaleMesh(int)));
-  connect(play, SIGNAL(clicked()), this, SLOT(playSimulator()));
-  connect(pause, SIGNAL(clicked()), this, SLOT(pauseSimulator()));
 
   QSignalMapper *camera_signal_mapper = new QSignalMapper(this);
   connect(camera_signal_mapper, SIGNAL(mapped(int)), this, SLOT(changeCameraMode(int)));
@@ -556,16 +538,15 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(&node_, SIGNAL(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)), this, 
 	  SLOT(updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &)));
 
-  // connect(z_mode_button_, SIGNAL(clicked()), this, SLOT(toggleZMode()));
-  connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
-  connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
+  connect(start_stop_button_, SIGNAL(clicked()), this, SLOT(toggleStartStop()));
+  connect(play_pause_button_, SIGNAL(clicked()), this, SLOT(togglePlayPause()));
+  // connect(accept_grasp_button_, SIGNAL(clicked()), this, SLOT(endGraspSelection()));
+  // connect(change_grasp_button_, SIGNAL(clicked()), this, SLOT(beginGraspSelection()));
+  connect(accept_change_grasp_button_, SIGNAL(clicked()), this, SLOT(acceptChangeGrasp()));
   connect(gripper_orientation_button_, SIGNAL(clicked()), this, SLOT(toggleGripperOrientationMode()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
   connect(toggle_collisions_button_, SIGNAL(clicked()), this, SLOT(toggleCollisions()));
-  // connect(ignore_collisions, SIGNAL(stateChanged(int)), this, SLOT(setIgnoreCollisions(int)));
-  // connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
-  // connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
   next_mesh_id_ = 3;
   selected_mesh_ = -1;
@@ -577,8 +558,12 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   top_down_fps_camera_mode_ = 0;
   last_top_down_fps_camera_mode_ = 1;
   grasp_selected_ = false;
+
   gripper_orientation_mode_ = false;
   collisions_mode_ = true;
+  started_ = false;
+  playing_ = true;
+  accepted_grasp_ = false;
 
   setLayout(window_layout);
 
@@ -857,7 +842,8 @@ void DemonstrationVisualizer::beginReplay()
 
   node_.getMotionRecorder()->beginReplay(filename.toStdString());
 
-  node_.playSimulator();
+  // node_.playSimulator();
+  playSimulator();
 
   replaying_icon_->show();
 
@@ -1012,7 +998,8 @@ void DemonstrationVisualizer::loadScene()
   {
   case QMessageBox::Yes:
   {
-    node_.pauseSimulator();
+    // node_.pauseSimulator();
+    pauseSimulator();
 
     // Load the scene into the demonstration scene manager.
     int max_mesh_id = node_.getSceneManager()->loadScene(filename.toStdString());
@@ -1310,7 +1297,12 @@ void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
     {
       ROS_INFO("[DViz] Switching to pick up goal.");
 
-      grasp_selected_ = false;
+      QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
+      QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
+      accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
+      accept_change_grasp_button_->setIconSize(QSize(80, 80));
+      accept_change_grasp_button_->setEnabled(true);
+      accepted_grasp_ = false;
 
       beginGraspSelection();
 	
@@ -1320,7 +1312,7 @@ void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
     {
       ROS_INFO("[DViz] Switching to place goal.");
 
-      change_grasp_button_->setEnabled(false);
+      accept_change_grasp_button_->setEnabled(false);
 
       break;
     }
@@ -1336,8 +1328,8 @@ void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
 
 void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
 {
-  // pauseSimulator();
-  node_.pauseSimulatorLater();
+  // node_.pauseSimulatorLater();
+  pauseSimulator(true);
 
   bool done = false;
 
@@ -1395,7 +1387,12 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   {
     ROS_INFO("Next goal: pick up.");
 
-    grasp_selected_ = false;
+    QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
+    QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
+    accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
+    accept_change_grasp_button_->setIconSize(QSize(80, 80));
+    accept_change_grasp_button_->setEnabled(true);
+    accepted_grasp_ = false;
 
     beginGraspSelection();
 	
@@ -1405,7 +1402,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   {
     ROS_INFO("Next goal: place.");
 
-    change_grasp_button_->setEnabled(false);
+    accept_change_grasp_button_->setEnabled(false);
 
     break;
   }
@@ -1441,8 +1438,10 @@ void DemonstrationVisualizer::startBasicMode()
     return;
   }
 
-  start_button_->setEnabled(false);
-  end_button_->setEnabled(true);
+  QPixmap start_stop_pixmap(":/icons/done.png");
+  QIcon start_stop_icon(start_stop_pixmap);
+  start_stop_button_->setIcon(start_stop_icon);
+  start_stop_button_->setIconSize(QSize(80, 80));
 
   // Reset the robot.
   resetRobot();
@@ -1489,11 +1488,13 @@ void DemonstrationVisualizer::startBasicMode()
 
  void DemonstrationVisualizer::endBasicMode()
  {
-   end_button_->setEnabled(false);
-   start_button_->setEnabled(true);
+   QPixmap start_stop_pixmap(":/icons/start.png");
+   QIcon start_stop_icon(start_stop_pixmap);
+   start_stop_button_->setIcon(start_stop_icon);
+   start_stop_button_->setIconSize(QSize(80, 80));
 
-   // pauseSimulator();
-   node_.pauseSimulatorLater();
+   // node_.pauseSimulatorLater();
+   pauseSimulator(true);
 
    changeTool(1);
 
@@ -1892,26 +1893,29 @@ void DemonstrationVisualizer::changeCameraMode(int mode)
   camera_mode_ = (CameraMode)mode;
 }
 
-void DemonstrationVisualizer::pauseSimulator()
+void DemonstrationVisualizer::pauseSimulator(bool later)
 {
-  QPushButton *pause_button = basic_->findChild<QPushButton *>("Pause");
-  if(pause_button)
-    pause_button->setEnabled(false);
-  QPushButton *play_button = basic_->findChild<QPushButton *>("Play");
-  if(play_button)
-    play_button->setEnabled(true);
+  QPixmap play_pause_pixmap(":/icons/play.png");
+  QIcon play_pause_icon(play_pause_pixmap);
+  play_pause_button_->setIcon(play_pause_icon);
+  play_pause_button_->setIconSize(QSize(80, 80));
 
-  node_.pauseSimulator();
+  playing_ = false;
+
+  if(later)
+    node_.pauseSimulatorLater();
+  else
+    node_.pauseSimulator();
 }
 
 void DemonstrationVisualizer::playSimulator()
 {
-  QPushButton *pause_button = basic_->layout()->findChild<QPushButton *>("Pause");
-  if(pause_button)
-    pause_button->setEnabled(true);
-  QPushButton *play_button = basic_->layout()->findChild<QPushButton *>("Play");
-  if(play_button)
-    play_button->setEnabled(false);
+  QPixmap play_pause_pixmap(":/icons/pause.png");
+  QIcon play_pause_icon(play_pause_pixmap);
+  play_pause_button_->setIcon(play_pause_icon);
+  play_pause_button_->setIconSize(QSize(80, 80));
+
+  playing_ = true;
 
   node_.playSimulator();
 }
@@ -1988,6 +1992,32 @@ void DemonstrationVisualizer::setGripperPosition(int position)
   // }
 }
 
+void DemonstrationVisualizer::toggleStartStop()
+{
+  if(started_)
+  {
+    started_ = false;
+    endBasicMode();
+  }
+  else
+  {
+    started_ = true;
+    startBasicMode();
+  }
+}
+
+void DemonstrationVisualizer::togglePlayPause()
+{
+  if(playing_)
+  {
+    pauseSimulator();
+  }
+  else
+  {
+    playSimulator();
+  }
+}
+
 void DemonstrationVisualizer::toggleGripperOrientationMode()
 {
   if(gripper_orientation_mode_)
@@ -1998,7 +2028,6 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
     gripper_orientation_button_->setIcon(gripper_orientation_icon);
     gripper_orientation_button_->setIconSize(QSize(80, 80));
     node_.setGripperOrientationControl(false);
-    // gripper_orientation_button_->setText("Enable Gripper Orientation Control");
   }
   else
   {
@@ -2008,7 +2037,6 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
     gripper_orientation_button_->setIconSize(QSize(80, 80));
     gripper_orientation_mode_ = true;
     node_.setGripperOrientationControl(true);
-    // gripper_orientation_button_->setText("Disable Gripper Orientation Control");
   }
 }
 
@@ -2036,18 +2064,38 @@ void DemonstrationVisualizer::toggleCollisions()
   }
 }
 
+void DemonstrationVisualizer::acceptChangeGrasp()
+{
+  if(accepted_grasp_)
+  {
+    QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
+    QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
+    accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
+    accept_change_grasp_button_->setIconSize(QSize(80, 80));
+    
+    beginGraspSelection();
+    accepted_grasp_ = false;
+  }
+  else
+  {
+    QPixmap accept_change_grasp_pixmap(":/icons/change_grasp.png");
+    QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
+    accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
+    accept_change_grasp_button_->setIconSize(QSize(80, 80));
+
+    endGraspSelection();
+    accepted_grasp_ = true;
+  }
+}
+
 void DemonstrationVisualizer::beginGraspSelection()
 {
   changeState(GRASP_SELECTION);
 
-  node_.pauseSimulator();
+  pauseSimulator();
   node_.disableRobotMarkerControl();
 
-  accept_grasp_button_->setEnabled(true);
-  
-  if(grasp_selected_)
-    change_grasp_button_->setEnabled(false);
-
+  accept_change_grasp_button_->setEnabled(true);
   grasp_distance_slider_->setEnabled(true);
   gripper_position_slider_->setEnabled(true);
 
@@ -2066,8 +2114,6 @@ void DemonstrationVisualizer::endGraspSelection()
 {
   changeState(NORMAL);
 
-  grasp_selected_ = true;
-
   int current_goal = node_.getSceneManager()->getCurrentGoal();
   std::stringstream s; 
   s << "grasp_marker_goal_" << current_goal;
@@ -2077,14 +2123,12 @@ void DemonstrationVisualizer::endGraspSelection()
   goal->setGraspDone(true);
   node_.getSceneManager()->setGoalsChanged();
   changeCameraMode(camera_before_grasp_);
-  accept_grasp_button_->setEnabled(false);
-  change_grasp_button_->setEnabled(true);
   grasp_distance_slider_->setEnabled(false);
   gripper_position_slider_->setEnabled(false);
 
   // node_.prepGripperForGoal(node_.getSceneManager()->getCurrentGoal());
 
-  node_.playSimulator();
+  playSimulator();
   node_.enableRobotMarkerControl();
 }
 

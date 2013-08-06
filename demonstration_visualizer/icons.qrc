@@ -4,6 +4,10 @@
   <file>images/replaying.png</file>
   <file>icons/accept_grasp.png</file>
   <file>icons/change_grasp.png</file>
+  <file>icons/start.png</file>
+  <file>icons/done.png</file>
+  <file>icons/pause.png</file>
+  <file>icons/play.png</file>
   <file>icons/full_control.png</file>
   <file>icons/simple_control.png</file>
   <file>icons/disable2_collisions.png</file>

@@ -218,7 +218,7 @@ private slots:
   void changeCameraMode(int mode);
 
   // For pausing/playing the simulation.
-  void pauseSimulator();
+  void pauseSimulator(bool later = false);
   void playSimulator();
 
   void toggleZMode();
@@ -231,9 +231,16 @@ private slots:
 
   void setGripperPosition(int);
 
+  // Basic controls.
+  void toggleStartStop();
+
+  void togglePlayPause();
+
   void toggleGripperOrientationMode();
 
   void toggleCollisions();
+
+  void acceptChangeGrasp();
 
   // For controlling the grasp selection mode.
   void beginGraspSelection();
@@ -267,11 +274,12 @@ private:
   QWidget                    *controls_info_;
 
   // Basic controls.
-  QPushButton                *start_button_;
-  QPushButton                *end_button_;
+  QPushButton                *start_stop_button_;
+  QPushButton                *play_pause_button_;
   QPushButton                *z_mode_button_;
-  QPushButton                *accept_grasp_button_;
-  QPushButton                *change_grasp_button_;
+  /* QPushButton                *accept_grasp_button_; */
+  /* QPushButton                *change_grasp_button_; */
+  QPushButton                *accept_change_grasp_button_;
   QPushButton                *gripper_orientation_button_;
   QPushButton                *toggle_collisions_button_;
   QSlider                    *grasp_distance_slider_;
@@ -290,6 +298,9 @@ private:
   bool                       z_mode_;
   bool                       gripper_orientation_mode_;
   bool                       collisions_mode_;
+  bool                       started_;
+  bool                       playing_;
+  bool                       accepted_grasp_;
 
   double                     x_fps_offset_;
   double                     z_fps_offset_;
