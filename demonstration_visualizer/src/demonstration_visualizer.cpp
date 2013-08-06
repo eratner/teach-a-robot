@@ -18,6 +18,8 @@
 
 #include <ros/package.h>
 
+#define ICON_SIZE 65
+
 namespace demonstration_visualizer {
 
 AddGoalDialog::AddGoalDialog()
@@ -320,7 +322,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   // The basic control panel.
   QVBoxLayout *basic_layout = new QVBoxLayout();
 
-  QGroupBox *controls_group = new QGroupBox("Controls");
+  QGroupBox *controls_group = new QGroupBox(); //("Controls");
   QVBoxLayout *user_controls_layout = new QVBoxLayout();
 
   QHBoxLayout *gripper_controls_layout = new QHBoxLayout();
@@ -329,21 +331,21 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QPixmap start_stop_pixmap(":/icons/start.png");
   QIcon start_stop_icon(start_stop_pixmap);
   start_stop_button_->setIcon(start_stop_icon);
-  start_stop_button_->setIconSize(QSize(80, 80));
+  start_stop_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   gripper_controls_layout->addWidget(start_stop_button_);
 
   play_pause_button_ = new QPushButton();
   QPixmap play_pause_pixmap(":/icons/play.png");
   QIcon play_pause_icon(play_pause_pixmap);
   play_pause_button_->setIcon(play_pause_icon);
-  play_pause_button_->setIconSize(QSize(80, 80));
+  play_pause_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   gripper_controls_layout->addWidget(play_pause_button_);  
 
   // accept_grasp_button_ = new QPushButton(/*"Accept Grasp"*/);
   // QPixmap accept_grasp_pixmap(":/icons/accept_grasp.png");
   // QIcon accept_grasp_icon(accept_grasp_pixmap);
   // accept_grasp_button_->setIcon(accept_grasp_icon);
-  // accept_grasp_button_->setIconSize(QSize(80, 80));
+  // accept_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   // accept_grasp_button_->setEnabled(false);
   // gripper_controls_layout->addWidget(accept_grasp_button_);
 
@@ -351,7 +353,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   // QPixmap change_grasp_pixmap(":/icons/change_grasp.png");
   // QIcon change_grasp_icon(change_grasp_pixmap);
   // change_grasp_button_->setIcon(change_grasp_icon);
-  // change_grasp_button_->setIconSize(QSize(80, 80));
+  // change_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   // change_grasp_button_->setEnabled(false);
   // gripper_controls_layout->addWidget(change_grasp_button_);
 
@@ -359,7 +361,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
   QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
   accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
-  accept_change_grasp_button_->setIconSize(QSize(80, 80));
+  accept_change_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   accept_change_grasp_button_->setEnabled(false);
   gripper_controls_layout->addWidget(accept_change_grasp_button_);
 
@@ -367,14 +369,14 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   QPixmap gripper_orientation_pixmap(":/icons/full_control.png");
   QIcon gripper_orientation_icon(gripper_orientation_pixmap);
   gripper_orientation_button_->setIcon(gripper_orientation_icon);
-  gripper_orientation_button_->setIconSize(QSize(80, 80));
+  gripper_orientation_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   gripper_controls_layout->addWidget(gripper_orientation_button_);
 
   toggle_collisions_button_ = new QPushButton();
   QPixmap toggle_collisions_pixmap(":/icons/disable2_collisions.png");
   QIcon toggle_collisions_icon(toggle_collisions_pixmap);
   toggle_collisions_button_->setIcon(toggle_collisions_icon);
-  toggle_collisions_button_->setIconSize(QSize(80, 80));
+  toggle_collisions_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
   gripper_controls_layout->addWidget(toggle_collisions_button_);
 
   user_controls_layout->addLayout(gripper_controls_layout);
@@ -402,7 +404,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
-  QGroupBox *camera_group = new QGroupBox("Camera Settings");
+  QGroupBox *camera_group = new QGroupBox("Camera"); //("Camera Settings");
   QHBoxLayout *camera_controls = new QHBoxLayout();
   QPushButton *orbit_camera = new QPushButton("Orbit");
   camera_buttons_.push_back(orbit_camera);
@@ -422,11 +424,11 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   camera_controls->addWidget(top_down_fps_camera);
   camera_group->setLayout(camera_controls);
 
-  basic_layout->addWidget(camera_group);
-
   controls_group->setLayout(user_controls_layout);
 
   basic_layout->addWidget(controls_group);
+
+  basic_layout->addWidget(camera_group);
 
   basic_layout->addWidget(goals_list_);
 
@@ -1300,7 +1302,7 @@ void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
       QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
       QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
       accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
-      accept_change_grasp_button_->setIconSize(QSize(80, 80));
+      accept_change_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
       accept_change_grasp_button_->setEnabled(true);
       accepted_grasp_ = false;
 
@@ -1390,7 +1392,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
     QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
     QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
     accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
-    accept_change_grasp_button_->setIconSize(QSize(80, 80));
+    accept_change_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     accept_change_grasp_button_->setEnabled(true);
     accepted_grasp_ = false;
 
@@ -1441,7 +1443,7 @@ void DemonstrationVisualizer::startBasicMode()
   QPixmap start_stop_pixmap(":/icons/done.png");
   QIcon start_stop_icon(start_stop_pixmap);
   start_stop_button_->setIcon(start_stop_icon);
-  start_stop_button_->setIconSize(QSize(80, 80));
+  start_stop_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
 
   // Reset the robot.
   resetRobot();
@@ -1491,7 +1493,7 @@ void DemonstrationVisualizer::startBasicMode()
    QPixmap start_stop_pixmap(":/icons/start.png");
    QIcon start_stop_icon(start_stop_pixmap);
    start_stop_button_->setIcon(start_stop_icon);
-   start_stop_button_->setIconSize(QSize(80, 80));
+   start_stop_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
 
    // node_.pauseSimulatorLater();
    pauseSimulator(true);
@@ -1898,7 +1900,7 @@ void DemonstrationVisualizer::pauseSimulator(bool later)
   QPixmap play_pause_pixmap(":/icons/play.png");
   QIcon play_pause_icon(play_pause_pixmap);
   play_pause_button_->setIcon(play_pause_icon);
-  play_pause_button_->setIconSize(QSize(80, 80));
+  play_pause_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
 
   playing_ = false;
 
@@ -1913,7 +1915,7 @@ void DemonstrationVisualizer::playSimulator()
   QPixmap play_pause_pixmap(":/icons/pause.png");
   QIcon play_pause_icon(play_pause_pixmap);
   play_pause_button_->setIcon(play_pause_icon);
-  play_pause_button_->setIconSize(QSize(80, 80));
+  play_pause_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
 
   playing_ = true;
 
@@ -2026,7 +2028,7 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
     QPixmap gripper_orientation_pixmap(":/icons/full_control.png");
     QIcon gripper_orientation_icon(gripper_orientation_pixmap);
     gripper_orientation_button_->setIcon(gripper_orientation_icon);
-    gripper_orientation_button_->setIconSize(QSize(80, 80));
+    gripper_orientation_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     node_.setGripperOrientationControl(false);
   }
   else
@@ -2034,7 +2036,7 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
     QPixmap gripper_orientation_pixmap(":/icons/simple_control.png");
     QIcon gripper_orientation_icon(gripper_orientation_pixmap);
     gripper_orientation_button_->setIcon(gripper_orientation_icon);
-    gripper_orientation_button_->setIconSize(QSize(80, 80));
+    gripper_orientation_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     gripper_orientation_mode_ = true;
     node_.setGripperOrientationControl(true);
   }
@@ -2049,7 +2051,7 @@ void DemonstrationVisualizer::toggleCollisions()
     QPixmap toggle_collisions_pixmap(":/icons/enable_collisions.png");
     QIcon toggle_collisions_icon(toggle_collisions_pixmap);
     toggle_collisions_button_->setIcon(toggle_collisions_icon);
-    toggle_collisions_button_->setIconSize(QSize(80, 80));
+    toggle_collisions_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     node_.setIgnoreCollisions(true);
   }
   else
@@ -2059,7 +2061,7 @@ void DemonstrationVisualizer::toggleCollisions()
     QPixmap toggle_collisions_pixmap(":/icons/disable2_collisions.png");
     QIcon toggle_collisions_icon(toggle_collisions_pixmap);
     toggle_collisions_button_->setIcon(toggle_collisions_icon);
-    toggle_collisions_button_->setIconSize(QSize(80, 80));
+    toggle_collisions_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     node_.setIgnoreCollisions(false);
   }
 }
@@ -2071,7 +2073,7 @@ void DemonstrationVisualizer::acceptChangeGrasp()
     QPixmap accept_change_grasp_pixmap(":/icons/accept_grasp.png");
     QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
     accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
-    accept_change_grasp_button_->setIconSize(QSize(80, 80));
+    accept_change_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     
     beginGraspSelection();
     accepted_grasp_ = false;
@@ -2081,7 +2083,7 @@ void DemonstrationVisualizer::acceptChangeGrasp()
     QPixmap accept_change_grasp_pixmap(":/icons/change_grasp.png");
     QIcon accept_change_grasp_icon(accept_change_grasp_pixmap);
     accept_change_grasp_button_->setIcon(accept_change_grasp_icon);
-    accept_change_grasp_button_->setIconSize(QSize(80, 80));
+    accept_change_grasp_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
 
     endGraspSelection();
     accepted_grasp_ = true;
