@@ -233,7 +233,7 @@ private slots:
 
   void toggleGripperOrientationMode();
 
-  void setIgnoreCollisions(int);
+  void toggleCollisions();
 
   // For controlling the grasp selection mode.
   void beginGraspSelection();
@@ -273,6 +273,7 @@ private:
   QPushButton                *accept_grasp_button_;
   QPushButton                *change_grasp_button_;
   QPushButton                *gripper_orientation_button_;
+  QPushButton                *toggle_collisions_button_;
   QSlider                    *grasp_distance_slider_;
   QSlider                    *gripper_position_slider_;
 
@@ -288,6 +289,7 @@ private:
 
   bool                       z_mode_;
   bool                       gripper_orientation_mode_;
+  bool                       collisions_mode_;
 
   double                     x_fps_offset_;
   double                     z_fps_offset_;

@@ -5,5 +5,7 @@
   <file>icons/accept_grasp.png</file>
   <file>icons/change_grasp.png</file>
   <file>icons/full_control.png</file>
+  <file>icons/disable2_collisions.png</file>
+  <file>icons/enable_collisions.png</file>
 </qresource>
 </RCC>

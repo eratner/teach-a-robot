@@ -382,6 +382,13 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_orientation_button_->setIconSize(QSize(80, 80));
   gripper_controls_layout->addWidget(gripper_orientation_button_);
 
+  toggle_collisions_button_ = new QPushButton();
+  QPixmap toggle_collisions_pixmap(":/icons/disable2_collisions.png");
+  QIcon toggle_collisions_icon(toggle_collisions_pixmap);
+  toggle_collisions_button_->setIcon(toggle_collisions_icon);
+  toggle_collisions_button_->setIconSize(QSize(80, 80));
+  gripper_controls_layout->addWidget(toggle_collisions_button_);
+
   user_controls_layout->addLayout(gripper_controls_layout);
 
   QHBoxLayout *grasp_distance_layout = new QHBoxLayout();
@@ -407,9 +414,9 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
-  QCheckBox *ignore_collisions = new QCheckBox("Ignore Collisions: ");
-  ignore_collisions->setCheckState(Qt::Unchecked);
-  user_controls_layout->addWidget(ignore_collisions);
+  // QCheckBox *ignore_collisions = new QCheckBox("Ignore Collisions: ");
+  // ignore_collisions->setCheckState(Qt::Unchecked);
+  // user_controls_layout->addWidget(ignore_collisions);
 
   // QHBoxLayout *fps_x_offset_layout = new QHBoxLayout();
   // QLabel *fps_x_offset_label = new QLabel("FPS x-offset: ");
@@ -555,7 +562,8 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   connect(gripper_orientation_button_, SIGNAL(clicked()), this, SLOT(toggleGripperOrientationMode()));
   connect(grasp_distance_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGraspDistance(int)));
   connect(gripper_position_slider_, SIGNAL(valueChanged(int)), this, SLOT(setGripperPosition(int)));
-  connect(ignore_collisions, SIGNAL(stateChanged(int)), this, SLOT(setIgnoreCollisions(int)));
+  connect(toggle_collisions_button_, SIGNAL(clicked()), this, SLOT(toggleCollisions()));
+  // connect(ignore_collisions, SIGNAL(stateChanged(int)), this, SLOT(setIgnoreCollisions(int)));
   // connect(fps_x_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSXOffset(int)));
   // connect(fps_z_offset, SIGNAL(valueChanged(int)), this, SLOT(setFPSZOffset(int)));
 
@@ -570,6 +578,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   last_top_down_fps_camera_mode_ = 1;
   grasp_selected_ = false;
   gripper_orientation_mode_ = false;
+  collisions_mode_ = true;
 
   setLayout(window_layout);
 
@@ -1984,29 +1993,46 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
   if(gripper_orientation_mode_)
   {
     gripper_orientation_mode_ = false;
+    QPixmap gripper_orientation_pixmap(":/icons/full_control.png");
+    QIcon gripper_orientation_icon(gripper_orientation_pixmap);
+    gripper_orientation_button_->setIcon(gripper_orientation_icon);
+    gripper_orientation_button_->setIconSize(QSize(80, 80));
     node_.setGripperOrientationControl(false);
     // gripper_orientation_button_->setText("Enable Gripper Orientation Control");
   }
   else
   {
+    QPixmap gripper_orientation_pixmap(":/icons/simple_control.png");
+    QIcon gripper_orientation_icon(gripper_orientation_pixmap);
+    gripper_orientation_button_->setIcon(gripper_orientation_icon);
+    gripper_orientation_button_->setIconSize(QSize(80, 80));
     gripper_orientation_mode_ = true;
     node_.setGripperOrientationControl(true);
     // gripper_orientation_button_->setText("Disable Gripper Orientation Control");
   }
 }
 
-void DemonstrationVisualizer::setIgnoreCollisions(int ignore)
+void DemonstrationVisualizer::toggleCollisions()
 {
-  switch(ignore)
+  if(collisions_mode_)
   {
-  case Qt::Checked:
+    // Turn off collision detection (ignore = true).
+    collisions_mode_ = false;
+    QPixmap toggle_collisions_pixmap(":/icons/enable_collisions.png");
+    QIcon toggle_collisions_icon(toggle_collisions_pixmap);
+    toggle_collisions_button_->setIcon(toggle_collisions_icon);
+    toggle_collisions_button_->setIconSize(QSize(80, 80));
     node_.setIgnoreCollisions(true);
-    break;
-  case Qt::Unchecked:
+  }
+  else
+  {
+    // Turn on collision detection (ignore = false).
+    collisions_mode_ = true;
+    QPixmap toggle_collisions_pixmap(":/icons/disable2_collisions.png");
+    QIcon toggle_collisions_icon(toggle_collisions_pixmap);
+    toggle_collisions_button_->setIcon(toggle_collisions_icon);
+    toggle_collisions_button_->setIconSize(QSize(80, 80));
     node_.setIgnoreCollisions(false);
-    break;
-  default:
-    break;
   }
 }
 
