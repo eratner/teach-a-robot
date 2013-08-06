@@ -404,17 +404,17 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   gripper_position_layout->addWidget(gripper_position_slider_);
   user_controls_layout->addLayout(gripper_position_layout);
 
-  QGroupBox *camera_group = new QGroupBox("Camera"); //("Camera Settings");
+  QGroupBox *camera_group = new QGroupBox(); //("Camera Settings");
   QHBoxLayout *camera_controls = new QHBoxLayout();
-  QPushButton *orbit_camera = new QPushButton("Orbit");
+  QPushButton *orbit_camera = new QPushButton("Orbit\nCamera");
   camera_buttons_.push_back(orbit_camera);
-  QPushButton *fps_camera = new QPushButton("FPS");
+  QPushButton *fps_camera = new QPushButton("FPS\nCamera");
   camera_buttons_.push_back(fps_camera);
-  QPushButton *top_down_camera = new QPushButton ("Top Down");
+  QPushButton *top_down_camera = new QPushButton ("Top Down\nCamera");
   camera_buttons_.push_back(top_down_camera);
-  QPushButton *auto_camera = new QPushButton("Auto");
+  QPushButton *auto_camera = new QPushButton("Auto\nCamera");
   camera_buttons_.push_back(auto_camera);
-  QPushButton *top_down_fps_camera = new QPushButton("Top Down/FPS");
+  QPushButton *top_down_fps_camera = new QPushButton("Top Down/FPS\nCamera");
   camera_buttons_.push_back(top_down_fps_camera);
 
   camera_controls->addWidget(orbit_camera);
