@@ -152,6 +152,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   base_marker.color.g = 1;
   base_marker.color.b = 0;
   control.markers.push_back(base_marker);
+  
+  // *****************
+  control.markers[0].pose = geometry_msgs::Pose();
+  control.markers[0].pose.orientation.w = 1;
+  control.markers[0].header = std_msgs::Header();
+
   control.always_visible = true;
   int_marker.controls.push_back(control);
 
@@ -187,37 +193,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   control.markers.push_back(r_gripper_marker);
 
   control.markers[0].pose = geometry_msgs::Pose();
+  control.markers[0].pose.orientation.w = 1;
   control.markers[0].header = std_msgs::Header();
 
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
-  // control.orientation_mode = visualization_msgs::InteractiveMarkerControl::FIXED;
   int_marker.controls.clear();
   int_marker.controls.push_back(control);
-
-  // Allow the user to control the orientation of the gripper.
-  // control.markers.clear();
-
-  // control.name = "YAW";
-  // control.orientation.w = 1;
-  // control.orientation.x = 0;
-  // control.orientation.y = 1;
-  // control.orientation.z = 0;
-  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  // int_marker.controls.push_back(control);
-
-  // control.name = "ROLL";
-  // control.orientation.w = 1;
-  // control.orientation.x = 1;
-  // control.orientation.y = 0;
-  // control.orientation.z = 0;
-  // int_marker.controls.push_back(control);
-
-  // control.name = "PITCH";
-  // control.orientation.w = 1;
-  // control.orientation.x = 0;
-  // control.orientation.y = 0;
-  // control.orientation.z = 1;
-  // int_marker.controls.push_back(control);
   
   int_marker_server_->insert(int_marker,
 			     boost::bind(&PR2Simulator::gripperMarkerFeedback,
@@ -225,49 +206,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 					 _1)
 			     );
   int_marker_server_->applyChanges();
-
-  // Place an interactive marker control on the right upper arm.
-  // int_marker.header.frame_id = "/base_footprint";
-  // int_marker.pose = robot_markers_.markers.at(/*5*/4).pose;
-  // int_marker.name = "r_upper_arm_marker";
-  // int_marker.description = "";
-  // int_marker.scale = 0.4;
-
-  // r_upper_arm_roll_pose_ = robot_markers_.markers.at(4).pose;
-
-  // // visualization_msgs::Marker r_upper_arm_marker = robot_markers_.markers.at(5);
-  // // r_upper_arm_marker.scale.x = 1.1;
-  // // r_upper_arm_marker.scale.y = 1.1;
-  // // r_upper_arm_marker.scale.z = 1.1;
-  // // r_upper_arm_marker.color.r = 0;
-  // // r_upper_arm_marker.color.g = 0.5;
-  // // r_upper_arm_marker.color.b = 0.5;
-
-  // control.always_visible = true;
-  // // control.markers.clear();
-  // // control.markers.push_back(r_upper_arm_marker);
-
-  // // control.markers[0].pose = geometry_msgs::Pose();
-  // // control.markers[0].header = std_msgs::Header();
-
-  // // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::NONE;
-  // int_marker.controls.clear();
-  // // int_marker.controls.push_back(control);
-
-  // control.markers.clear();
-  // control.orientation.x = 0;
-  // control.orientation.y = 0;
-  // control.orientation.z = 0;
-  // control.orientation.w = 1;
-  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
-  // int_marker.controls.push_back(control);
-
-  // int_marker_server_->insert(int_marker,
-  //                            boost::bind(&PR2Simulator::upperArmMarkerFeedback,
-  // 			                 this,
-  // 			                 _1)
-  //                            );
-  // int_marker_server_->applyChanges();
 
   ROS_DEBUG("[PR2Sim] About to initialize the kinematic model.");
   std::string robot_description;
@@ -345,8 +283,8 @@ void PR2Simulator::run()
   // carrots) is disabled, then ensure that the carrots stay in place.
   if(!canMoveRobotMarkers())
   {
-    int_marker_server_->setPose("base_marker", base_pose_.pose);
-    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
+    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose, end_effector_pose_.header);
     int_marker_server_->applyChanges();     
   }
 
@@ -404,7 +342,7 @@ void PR2Simulator::run()
       {
 	base_pose_ = recorder_->getNextBasePose();
 
-	int_marker_server_->setPose("base_marker", base_pose_.pose);
+	int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
 	int_marker_server_->applyChanges();
       }
     }
@@ -421,7 +359,7 @@ void PR2Simulator::moveRobot()
      (isBaseMoving() && base_movement_controller_.getState() == BaseMovementController::INITIAL)
      )
   {
-    int_marker_server_->setPose("base_marker", base_pose_.pose);
+    int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
     int_marker_server_->applyChanges();
   }
 
@@ -972,7 +910,7 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
   goal_pose_ = base_pose_;
   
   // Reset the base pose interactive marker.
-  int_marker_server_->setPose("base_marker", base_pose_.pose);
+  int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
   int_marker_server_->applyChanges();
 
   // Reset the joints. (Leave the left arm joints as they were.)
@@ -998,7 +936,7 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
   end_effector_controller_.setState(EndEffectorController::INITIAL);
 
   // Reset the pose of the end-effector.
-  int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+  int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose, end_effector_pose_.header);
   int_marker_server_->applyChanges();
 
   if(attached_object_)
@@ -1028,7 +966,7 @@ void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
   if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
      base_movement_controller_.getState() == BaseMovementController::DONE)
   {
-    int_marker_server_->setPose("base_marker", base_pose_.pose);
+    int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
     int_marker_server_->applyChanges();
   }
 }
@@ -1403,7 +1341,7 @@ void PR2Simulator::updateEndEffectorMarker()
      end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
      recorder_->isReplaying()))
   {
-    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose);
+    int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose, end_effector_pose_.header);
     int_marker_server_->applyChanges();
   }
 
@@ -1429,7 +1367,7 @@ void PR2Simulator::updateEndEffectorMarker()
   pose.position.z += (1/getFrameRate())*end_effector_marker_vel_.linear.z;
 
   // Update the pose according to the current velocity command.
-  int_marker_server_->setPose("r_gripper_marker", pose);
+  int_marker_server_->setPose("r_gripper_marker", pose, end_effector_pose_.header);
   int_marker_server_->applyChanges();
 
   // Update the goal pose.

@@ -183,7 +183,6 @@ void EndEffectorController::printStateTransition(State next_state)
     r_gripper_marker.controls[0].markers[0].color.b = 0;
     int_marker_server_->insert(r_gripper_marker);
     int_marker_server_->applyChanges();
-
   }
 }
 
