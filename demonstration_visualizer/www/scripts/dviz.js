@@ -26,4 +26,12 @@ function init() {
     camera : viewer.camera,
     rootObject : viewer.selectableObjects
   });
+
+  var rmClient = new ROS3D.RobotMarkerArrayClient({
+    ros : ros,
+    tfClient : tfClient,
+    topic : '/visualization_marker_array',
+    path : 'http://resources.robotwebtools.org/',
+    rootObject : viewer.scene
+  });
 }
