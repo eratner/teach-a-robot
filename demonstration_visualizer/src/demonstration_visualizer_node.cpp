@@ -70,6 +70,9 @@ bool DemonstrationVisualizerNode::init(int argc, char **argv)
 
   base_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/vel_cmd", 1);
 
+  camera_update_pub_ = nh.advertise<demonstration_visualizer::CameraUpdate>(
+    "/dviz_camera_update", 1);
+
   return true;
 }
 
@@ -109,11 +112,23 @@ void DemonstrationVisualizerNode::run()
     // current goal.
     if(!getSceneManager()->taskDone() && getSceneManager()->getNumGoals() > 0)
     {
+      demonstration_visualizer::CameraUpdate camera_update;
+      camera_update.base_pose = getBasePose();
+      camera_update.end_effector_pose = getEndEffectorPose();
+      camera_update.object_pose = getSceneManager()->getCurrentGoalPose();
+      camera_update_pub_.publish(camera_update);
+
       Q_EMIT updateCamera(getEndEffectorPose(), getSceneManager()->getCurrentGoalPose());
     }
     else
     {
+      demonstration_visualizer::CameraUpdate camera_update;
+      camera_update.base_pose = getBasePose();
+      camera_update.end_effector_pose = getEndEffectorPose();
       // @todo sort of a hack, should make this cleaner.
+      camera_update.object_pose = getEndEffectorPose();
+      camera_update_pub_.publish(camera_update);      
+
       Q_EMIT updateCamera(getEndEffectorPose(), getEndEffectorPose());
     }
 

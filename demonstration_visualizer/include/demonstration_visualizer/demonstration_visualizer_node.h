@@ -11,6 +11,7 @@
 #include <interactive_markers/interactive_marker_server.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <interactive_markers/tools.h>
+#include <demonstration_visualizer/CameraUpdate.h>
 
 #include "demonstration_visualizer/visualization_helpers.h"
 #include "demonstration_visualizer/demonstration_scene_manager.h"
@@ -125,6 +126,7 @@ private:
 
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher base_vel_cmd_pub_;
+  ros::Publisher camera_update_pub_;
 
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
 

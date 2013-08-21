@@ -5,6 +5,7 @@ project(demonstration_visualizer)
 set(ROS_BUILD_TYPE Debug)
 
 rosbuild_init()
+rosbuild_genmsg()
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
 # For Qt components.
