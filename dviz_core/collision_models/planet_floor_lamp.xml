@@ -1,0 +1,3 @@
+<collision_model>
+    <object label="planet_floor_lamp" mesh_resource="package://demonstration_visualizer/meshes/Scene0/planet_floor_lamp/planet_floor_lamp.dae" />
+</collision_model>

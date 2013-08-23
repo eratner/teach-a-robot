@@ -1,0 +1,24 @@
+<launch>
+
+  <arg name="output" default="screen" />
+
+  <!-- Send the PR2 URDF to the parameter server -->
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find pr2_description)/robots/pr2.urdf.xacro'" />
+
+  <!-- The corresponding semantic description -->
+  <param name="robot_description_semantic" textfile="$(find pr2_description)/robots/pr2.srdf" />
+
+  <!-- DViz core -->
+  <node launch-prefix="gdb -ex run --args" name="dviz_core_node" pkg="dviz_core" type="dviz_core_node" output="$(arg output)">
+    <rosparam file="$(find pr2_collision_checker)/config/pr2_both_arms.yaml" command="load"/>
+    <rosparam file="$(find pr2_collision_checker)/config/pr2_body.yaml" command="load"/>
+
+    <param name="disable_collision_checking" value="true" />
+    <param name="enable_debug_visualizations" value="false" />
+    <param name="visualize_collision_models" value="false" />
+
+    <param name="left_arm_description_file" value="$(find pr2_collision_checker)/config/pr2_left_arm.cfg"/>
+    <param name="right_arm_description_file" value="$(find pr2_collision_checker)/config/pr2_right_arm.cfg"/>
+  </node>
+
+</launch>
