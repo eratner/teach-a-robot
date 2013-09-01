@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Teach-A-Robot</title>
+
+    <script type="text/javascript" src="http://cdn.robotwebtools.org/threejs/current/three.min.js"></script>
+    <script src="http://cdn.robotwebtools.org/ColladaAnimationCompress/current/ColladaLoader2.min.js"></script>
+    <script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+    <script type="text/javascript" src="scripts/ros3d.min.js"></script>
+    <script type="text/javascript" src="scripts/dviz.js"></script>
+
+  </head>
+
+  <body onload="init()">
+    <table>
+      <tr>
+        <td>
+          <div id="dviz"></div>
+        </td>
+        <td>
+          <button type="button" onclick="setCamera(0)">Camera 0</button>
+          <br />
+          <button type="button" onclick="setCamera(1)">Camera 1</button>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

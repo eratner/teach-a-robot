@@ -1,0 +1,8 @@
+<scene>
+    <collision_models path="/collision_models/test_scene_1" />
+    <size origin_x="-8.0" origin_y="-5.0" origin_z="0.0" size_x="12.0" size_y="9.0" size_z="2.0" />
+    <mesh id="3" label="pr2_mesh" position_x="1.0" position_y="1.0" position_z="1.0" orientation_x="-4.20575e-08" orientation_y="3.07155e-10" orientation_z="0.703209" orientation_w="0.710983" scale_x="1.0" scale_y="1.0" scale_z="1.0" movable="1" />
+    <mesh id="4" label="pr2_mesh" position_x="1.0" position_y="2.0" position_z="1.0" orientation_x="-4.20575e-08" orientation_y="3.07155e-10" orientation_z="0.703209" orientation_w="0.710983" scale_x="1.0" scale_y="1.0" scale_z="1.0" movable="1" />
+    <mesh id="9" label="pr2_mesh" position_x="-5.05379" position_y="0" position_z="1" orientation_x="-4.20575e-08" orientation_y="3.07155e-10" orientation_z="0.703209" orientation_w="0.710983" scale_x="1.0" scale_y="1.0" scale_z="1.0" movable="0" />
+    <mesh id="10" label="pr2_mesh" position_x="-2.05379" position_y="0" position_z="1" orientation_x="-4.20575e-08" orientation_y="3.07155e-10" orientation_z="0.703209" orientation_w="0.710983" scale_x="1.0" scale_y="1.0" scale_z="1.0" movable="0" />
+</scene>

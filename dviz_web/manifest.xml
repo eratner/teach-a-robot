@@ -1,0 +1,24 @@
+<package>
+
+  <description brief="User Demonstration Visualization (Web)">
+
+    A web browser-based tool for capturing user-demonstrated tasks.
+
+  </description>
+
+  <author>Ellis Ratner/eratner@bowdoin.edu</author>
+
+  <license>BSD</license>
+
+  <url>http://www.teacharobot.org/</url>
+
+  <depend package="roscpp" />
+  <depend package="dviz_core" />
+
+  <versioncontrol type="git" url="https://sbpl.pc.cs.cmu.edu/redmine/egraph-user-demos.git" />
+
+  <export>
+
+  </export>
+
+</package>
