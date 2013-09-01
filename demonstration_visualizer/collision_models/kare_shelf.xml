@@ -1,3 +1,0 @@
-<collision_model>
-    <object label="kare_shelf" mesh_resource="package://demonstration_visualizer/meshes/Scene0/kare_shelf/kare_shelf.dae" />
-</collision_model>

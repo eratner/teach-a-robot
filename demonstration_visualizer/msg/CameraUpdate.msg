@@ -1,3 +1,0 @@
-geometry_msgs/Pose base_pose
-geometry_msgs/Pose end_effector_pose
-geometry_msgs/Pose object_pose

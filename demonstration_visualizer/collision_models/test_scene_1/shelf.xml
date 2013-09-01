@@ -1,3 +1,0 @@
-<collision_model>
-  <object label="shelf" mesh_resource="package://demonstration_visualizer/meshes/shelf1/models/cabwall0.dae" />
-</collision_model>

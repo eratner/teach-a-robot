@@ -1,3 +1,0 @@
-<collision_model>
-    <object label="beijing_cup" mesh_resource="package://demonstration_visualizer/meshes/Scene0/beijing_cup/beijing_cup.dae" />
-</collision_model>

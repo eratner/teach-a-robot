@@ -1,3 +1,0 @@
-<collision_model>
-  <object label="desk" mesh_resource="package://demonstration_visualizer/meshes/desk1/models/untitled.dae" />
-</collision_model>

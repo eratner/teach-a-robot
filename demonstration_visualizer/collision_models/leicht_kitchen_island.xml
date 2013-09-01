@@ -1,3 +1,0 @@
-<collision_model>
-    <object label="leicht_kitchen_island" mesh_resource="package://demonstration_visualizer/meshes/Scene0/leicht_kitchen_island/leicht_kitchen_island.dae" />
-</collision_model>

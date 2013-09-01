@@ -1,3 +1,0 @@
-<collision_model>
-  <object label="sports_car" mesh_resource="package://demonstration_visualizer/meshes/car1/models/sport_car.dae" />
-</collision_model>

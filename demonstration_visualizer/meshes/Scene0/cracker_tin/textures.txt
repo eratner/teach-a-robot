@@ -1,5 +1,0 @@
-<texture0.jpg> <texture0.jpg>
-<texture1.jpg> <texture1.jpg>
-<texture2.jpg> <texture2.jpg>
-<texture3.jpg> <texture3.jpg>
-<texture4.jpg> <texture4.jpg>
