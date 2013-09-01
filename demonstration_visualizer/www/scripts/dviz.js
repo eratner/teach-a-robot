@@ -85,6 +85,13 @@ function init() {
     rate : 10.0,
     fixedFrame : 'map'
   });
+  
+  var meshClient = new ROS3D.MarkerClient({
+    ros : ros,
+    topic : '/visualization_marker',
+    tfClient : tfClient,
+    rootObject : viewer.scene
+  });
 
   var imClient = new ROS3D.InteractiveMarkerClient({
     ros : ros,
