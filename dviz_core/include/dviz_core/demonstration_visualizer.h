@@ -11,8 +11,10 @@
 #include <interactive_markers/interactive_marker_server.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <interactive_markers/tools.h>
-#include <dviz_core/CameraUpdate.h>
 
+#include <dviz_core/Goal.h>
+#include <dviz_core/Task.h>
+#include <dviz_core/Command.h>
 #include <dviz_core/visualization_helpers.h>
 #include <dviz_core/demonstration_scene_manager.h>
 #include <dviz_core/pr2_simulator.h>
@@ -40,6 +42,8 @@ public:
   bool init(int argc, char **argv);
 
   std::string getWorldFrame() const;
+
+  bool processCommand(dviz_core::Command::Request &, dviz_core::Command::Response &);
 
   /**
    * @see PR2Simulator::pause().
@@ -126,7 +130,9 @@ private:
 
   ros::Publisher end_effector_vel_cmd_pub_;
   ros::Publisher base_vel_cmd_pub_;
-  ros::Publisher camera_update_pub_;
+  ros::Publisher task_pub_;
+
+  ros::ServiceServer command_service_;
 
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
 

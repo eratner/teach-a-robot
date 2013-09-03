@@ -12,20 +12,37 @@
     <script type="text/javascript" src="scripts/ros3d.min.js"></script>
     <script type="text/javascript" src="scripts/dviz.js"></script>
 
+    <script src="//code.jquery.com/jquery.js"></script>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-theme.min.css">
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+
   </head>
 
   <body onload="init()">
-    <table>
-      <tr>
-        <td>
-          <div id="dviz"></div>
-        </td>
-        <td>
-          <button type="button" onclick="setCamera(0)">Camera 0</button>
-          <br />
-          <button type="button" onclick="setCamera(1)">Camera 1</button>
-        </td>
-      </tr>
-    </table>
+    <div class="container">
+
+      <div class="jumbotron">
+	<h1>Teach-A-Robot</h1>
+      </div>
+
+      <div class="col-lg-10">
+	<div id="dviz"></div>
+      </div>
+      <div class="col-lg-2">
+	<h2>Controls</h2>
+	<div class="btn-group-vertical">
+	  <button type="button" class="btn btn-default" onclick="dvizClient.resetRobot()">Reset Robot</button>
+	</div>
+      </div>
+
+    </div>
+
+    <div id="footer">
+      <div class="container">
+        <p class="text-muted credit">&copy; TeachARobot.org 2013</p>
+      </div>
+    </div>
+
   </body>
 </html>

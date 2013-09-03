@@ -1,5 +1,5 @@
 /**
- * @author Ellis Ratner - ellis.ratner@gmail.com
+ * @author Ellis Ratner - eratner@bowdoin.edu
  */
 
 var DVIZ = DVIZ || {};
@@ -10,6 +10,7 @@ var DVIZ = DVIZ || {};
  * @constructor
  * @param options - object with the following keys:
  *  * ros - a handle to the ROS connection
+ *  * tfClient - the TF client handle to use
  *  * viewer - a handle to the ROS3D Viewer
  *  * width - the width of the Viewer's canvas
  *  * height - the height of the Viewer's canvas
@@ -18,36 +19,25 @@ DVIZ.CameraManager = function(options) {
   var that = this;
   options = options || {};
   this.ros = options.ros;
+  this.tfClient = options.tfClient;
   this.viewer = options.viewer;
   this.canvasWidth = options.width;
   this.canvasHeight = options.height;
 
-  this.cameraMode = 1;
-  this.lastCameraMode = 0;
+  this.cameraMode = 0;
+  this.lastCameraMode = 1;
 
-  var updateTopic = new ROSLIB.Topic({
-    ros : this.ros,
-    name : '/dviz_camera_update',
-    messageType : 'demonstration_visualizer/CameraUpdate',
-    compression : 'png'
+  this.tfClient.subscribe('/base_footprint', function(message) {
+    var tf = new ROSLIB.Transform(message);
+
+    // Center the camera at the base of the robot.
+    if(that.cameraMode === 0) {
+      that.viewer.cameraControls.center.x = tf.translation.x;
+      that.viewer.cameraControls.center.y = tf.translation.y;
+      that.viewer.cameraControls.center.z = tf.translation.z;
+      that.viewer.cameraControls.update();
+    }
   });
-  updateTopic.subscribe(this.processCameraUpdate.bind(this));
-};
-
-/**
- * Updates the camera each time a CameraUpdate is received from DViz.
- *
- * @param message - the CameraUpdate message to use
- */
-DVIZ.CameraManager.prototype.processCameraUpdate = function(message) {
-  var basePose = new ROSLIB.Pose(message.base_pose);
-  var endEffectorPose = new ROSLIB.Pose(message.end_effector_pose);
-  var objectPose = new ROSLIB.Pose(message.object_pose);
-
-  this.viewer.cameraControls.center.x = basePose.position.x;
-  this.viewer.cameraControls.center.y = basePose.position.y;
-  this.viewer.cameraControls.center.z = basePose.position.z;
-  this.viewer.cameraControls.update();
 };
 
 /**
@@ -62,13 +52,55 @@ DVIZ.CameraManager.prototype.setCamera = function(mode) {
   }
   this.lastCameraMode = this.cameraMode;
   this.cameraMode = mode;
-}
+};
 
-var cameraManager = null;
+/**
+ * A web-based demonstration visualizer client.
+ * 
+ * @constructor
+ * @param options - object with the following keys:
+ *  * ros - a handle to the ROS connection
+ *  * tfClient - the TF client handle to use
+ *  * viewer - a handle to the ROS3D Viewer
+ *  * width - the width of the Viewer's canvas
+ *  * height - the height of the Viewer's canvas
+ */
+DVIZ.DemonstrationVisualizerClient = function(options) {
+  var ros = options.ros;
+  var tfClient = options.tfClient;
+  var viewer = options.viewer;
+  var width = options.viewerWidth;
+  var height = options.viewerHeight;
+  
+  this.cameraManager = new DVIZ.CameraManager({
+    ros : ros,
+    tfClient : tfClient,
+    viewer : viewer,
+    width : width,
+    height : height
+  });
+  
+  this.dvizCommandClient = new ROSLIB.Service({
+    ros : ros,
+    name : '/dviz_command',
+    serviceType : 'dviz_core/Command'
+  });
+};
+
+DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'reset_robot',
+    args : []
+  }), function(response) {
+    console.log(response.response);
+  });
+};
+
+var dvizClient = null;
 
 function init() {
   var ros = new ROSLIB.Ros({
-    url : 'ws://localhost:9090'
+    url: 'ws://sbpl.net:21891'
   });
 
   var viewer = new ROS3D.Viewer({
@@ -110,19 +142,11 @@ function init() {
     rootObject : viewer.scene
   });
 
-  cameraManager = new DVIZ.CameraManager({
+  dvizClient = new DVIZ.DemonstrationVisualizerClient({
     ros : ros,
+    tfClient : tfClient,
     viewer : viewer,
-    width : 800,
-    height : 600
+    viewerWidth : 800,
+    viewerHeight : 600
   });
-}
-
-function setCamera(mode) {
-  if(cameraManager === null) {
-    console.warn('camera manager not initialized!');
-    return;
-  } 
-
-  cameraManager.setCamera(mode);
 }

@@ -2,7 +2,7 @@
 
 namespace demonstration_visualizer {
 
-  DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv, bool threaded)
+DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv, bool threaded)
 {
   if(!init(argc, argv))
     ROS_ERROR("[DVizCore] Unable to connect to master!");
@@ -49,7 +49,7 @@ DemonstrationVisualizerCore::~DemonstrationVisualizerCore()
 
 bool DemonstrationVisualizerCore::init(int argc, char **argv)
 {
-  ros::init(argc, argv, "demonstration_visualizer");
+  ros::init(argc, argv, "dviz_core");
   sleep(2.0);
 
   // Make sure that we can communicate with the master.
@@ -69,8 +69,15 @@ bool DemonstrationVisualizerCore::init(int argc, char **argv)
 
   base_vel_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/vel_cmd", 1);
 
-  camera_update_pub_ = nh.advertise<dviz_core::CameraUpdate>(
-    "/dviz_camera_update", 1);
+  // Advertise a topic for publishing the current task.
+  task_pub_ = nh.advertise<dviz_core::Task>("/dviz_task", 1);
+
+  // Advertise a service for processing commands issued to dviz.
+  command_service_ = nh.advertiseService<dviz_core::Command::Request,
+					 dviz_core::Command::Response>("/dviz_command",
+					 boost::bind(&DemonstrationVisualizerCore::processCommand,
+						     this,
+						     _1, _2));
 
   return true;
 }
@@ -78,6 +85,94 @@ bool DemonstrationVisualizerCore::init(int argc, char **argv)
 std::string DemonstrationVisualizerCore::getWorldFrame() const
 {
   return world_frame_;
+}
+
+bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &req,
+						 dviz_core::Command::Response &res)
+{
+  // First, determine what the command is. Then process the appropriate number of arguments.
+  if(req.command.compare(dviz_core::Command::Request::PLAY) == 0)
+  {
+    playSimulator();
+  }
+  else if(req.command.compare(dviz_core::Command::Request::PAUSE_NOW) == 0)
+  {
+    pauseSimulator();
+  }
+  else if(req.command.compare(dviz_core::Command::Request::PAUSE_LATER) == 0)
+  {
+    pauseSimulatorLater();
+  }
+  else if(req.command.compare(dviz_core::Command::Request::RESET_ROBOT) == 0)
+  {
+    resetRobot();
+  }
+  else if(req.command.compare(dviz_core::Command::Request::LOAD_TASK) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      if(req.args[0].substr(0, 10).compare("package://") == 0)
+      {
+	int i = req.args[0].substr(10).find("/");
+	std::string package = req.args[0].substr(10, i);
+	std::string path = req.args[0].substr(10+i);
+	std::stringstream ss;
+	ss << ros::package::getPath(package) << "/" << path;
+	getSceneManager()->loadTask(ss.str());
+      }
+      else
+      {
+	getSceneManager()->loadTask(req.args[0]);
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for load_task (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for load_task (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  }
+  else if(req.command.compare(dviz_core::Command::Request::LOAD_SCENE) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      if(req.args[0].substr(0, 10).compare("package://") == 0)
+      {
+	int i = req.args[0].substr(10).find("/");
+	std::string package = req.args[0].substr(10, i);
+	std::string path = req.args[0].substr(10+i);
+	std::stringstream ss;
+	ss << ros::package::getPath(package) << "/" << path;
+	getSceneManager()->loadScene(ss.str());
+      }
+      else
+      {
+	getSceneManager()->loadScene(req.args[0]);
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for load_scene (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for load_scene (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  }
+  else
+  {
+    ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());
+    std::stringstream ss;
+    ss << "Invalid command \"" << req.command.c_str() << "\".";
+    res.response = ss.str();
+    return false;
+  }
+
+  return true;
 }
 
 void DemonstrationVisualizerCore::pauseSimulator()
@@ -100,7 +195,7 @@ void DemonstrationVisualizerCore::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
-    ROS_DEBUG("[dvn] Running simulator.");
+    ROS_DEBUG("[DVizCore] Running simulator.");
     simulator_->run();
 
     getSceneManager()->updateScene();
@@ -111,23 +206,11 @@ void DemonstrationVisualizerCore::run()
     // current goal.
     if(!getSceneManager()->taskDone() && getSceneManager()->getNumGoals() > 0)
     {
-      dviz_core::CameraUpdate camera_update;
-      camera_update.base_pose = getBasePose();
-      camera_update.end_effector_pose = getEndEffectorPose();
-      camera_update.object_pose = getSceneManager()->getCurrentGoalPose();
-      camera_update_pub_.publish(camera_update);
-
       Q_EMIT updateCamera(getEndEffectorPose(), getSceneManager()->getCurrentGoalPose());
     }
     else
     {
-      dviz_core::CameraUpdate camera_update;
-      camera_update.base_pose = getBasePose();
-      camera_update.end_effector_pose = getEndEffectorPose();
       // @todo sort of a hack, should make this cleaner.
-      camera_update.object_pose = getEndEffectorPose();
-      camera_update_pub_.publish(camera_update);      
-
       Q_EMIT updateCamera(getEndEffectorPose(), getEndEffectorPose());
     }
 
@@ -140,6 +223,46 @@ void DemonstrationVisualizerCore::run()
 
 void DemonstrationVisualizerCore::updateGoals()
 {
+  // Update the task message. 
+  std::vector<Goal *> current_goals = getSceneManager()->getGoals();
+  dviz_core::Task task;
+  task.current_goal = getSceneManager()->getCurrentGoal();
+  dviz_core::Goal goal;
+  std::vector<Goal *>::iterator it;
+  for(it = current_goals.begin(); it != current_goals.end(); ++it)
+  {
+    goal.number = (*it)->getGoalNumber();
+    goal.description = (*it)->getDescription();
+    goal.type = (*it)->getType();
+    switch((*it)->getType())
+    {
+    case Goal::PICK_UP:
+    {
+      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(*it);
+      goal.object_id = pick_up_goal->getObjectID();
+      goal.grasp_pose = pick_up_goal->getGraspPose();
+      goal.initial_object_pose = pick_up_goal->getInitialObjectPose();
+      goal.grasp_distance = pick_up_goal->getGraspDistance();
+      goal.gripper_joint_position = pick_up_goal->getGripperJointPosition();
+
+      break;
+    }
+    case Goal::PLACE:
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(*it);
+      goal.object_id = place_goal->getObjectID();
+      goal.ignore_yaw = place_goal->ignoreYaw();
+      goal.place_pose = place_goal->getPlacePose();
+
+      break;
+    }
+    default:
+      break;
+    }
+    task.goals.push_back(goal);
+  }
+  task_pub_.publish(task);
+
   // Check to see if the end-effector has reached a goal.
   if(getSceneManager()->editGoalsMode() ||
      getSceneManager()->taskDone() ||
@@ -233,10 +356,9 @@ void DemonstrationVisualizerCore::updateGoals()
 
       double dist_A = angles::normalize_angle_positive(roll) - angles::normalize_angle_positive(current_roll);
       double dist_B = angles::normalize_angle_positive(roll + M_PI) - angles::normalize_angle_positive(current_roll);
-      ROS_INFO("dist_A = %f, dist_B = %f", dist_A, dist_B);
       if(std::abs(dist_A) > std::abs(dist_B))
       {
-	ROS_INFO("Choosing the other symmetric gripper roll.");
+	// ROS_INFO("Choosing the other symmetric gripper roll.");
 	KDL::Rotation rot = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
 	rot.GetQuaternion(x, y, z, w);
 	goal_gripper_pose.orientation.x = x;
@@ -359,19 +481,6 @@ void DemonstrationVisualizerCore::updateGoals()
       {
 	ROS_ERROR("[DVizCore] Unable to reach goal %d!", getSceneManager()->getCurrentGoal());
       }
-
-      // simulator_->detach();
-
-      // Snap the object to the place pose.
-      // object_manager_->moveObject(place_goal->getObjectID(), place_goal->getPlacePose());
-
-      // Reset the orientation of the gripper.
-      // ROS_INFO("Resetting right gripper orientation...");
-      // simulator_->resetGripperOrientation();
-	
-      // Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
-
-      // getSceneManager()->setCurrentGoal(getSceneManager()->getCurrentGoal() + 1);
     }
 	
     break;
@@ -388,7 +497,6 @@ void DemonstrationVisualizerCore::setRobotSpeed(double linear, double angular)
 
 void DemonstrationVisualizerCore::resetRobot()
 {
-  // simulator_->resetRobot();
   simulator_->resetRobotTo(getSceneManager()->getInitialRobotPose(),
                            getSceneManager()->getInitialTorsoPosition());
 }

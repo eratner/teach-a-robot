@@ -1,0 +1,15 @@
+# Command constants.
+string PLAY = play
+string PAUSE_NOW = pause_now
+string PAUSE_LATER = pause_later
+string RESET_ROBOT = reset_robot
+string LOAD_TASK = load_task
+string LOAD_SCENE = load_scene
+
+# A valid string command.
+string command
+# A string array of arguments for the given command.
+string[] args
+---
+# A string response from the server for the given command.
+string response
