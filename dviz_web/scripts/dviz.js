@@ -66,11 +66,13 @@ DVIZ.CameraManager.prototype.setCamera = function(mode) {
  *  * height - the height of the Viewer's canvas
  */
 DVIZ.DemonstrationVisualizerClient = function(options) {
+  var that = this;
   var ros = options.ros;
   var tfClient = options.tfClient;
   var viewer = options.viewer;
   var width = options.viewerWidth;
   var height = options.viewerHeight;
+  this.goals = [];
   
   this.cameraManager = new DVIZ.CameraManager({
     ros : ros,
@@ -84,6 +86,28 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     ros : ros,
     name : '/dviz_command',
     serviceType : 'dviz_core/Command'
+  });
+
+  var taskTopic = new ROSLIB.Topic({
+    ros : ros,
+    name : '/dviz_task',
+    messageType : 'dviz_core/Task',
+    compression : 'png'
+  });
+  taskTopic.subscribe(function(message) {
+    if(message.goals.length === 0) {
+      document.getElementById('task').innerHTML = 'No task loaded.';
+      return;
+    }
+    that.goals = message.goals;
+    var currentGoal = message.current_goal;
+    var html = '';
+    for(var i = 0; i < message.goals.length; ++i) {
+      html = html + '<a href="#" class="list-group-item' + 
+	(message.goals[i].number == currentGoal ? ' active' : '') + 
+	'">' + message.goals[i].description + '</a>';
+    }
+    document.getElementById('task').innerHTML = html;
   });
 };
 

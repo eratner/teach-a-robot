@@ -5,6 +5,7 @@ string PAUSE_LATER = pause_later
 string RESET_ROBOT = reset_robot
 string LOAD_TASK = load_task
 string LOAD_SCENE = load_scene
+string SHOW_BASE_PATH = show_base_path
 
 # A valid string command.
 string command

@@ -163,6 +163,34 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }
   }
+  else if(req.command.compare(dviz_core::Command::Request::SHOW_BASE_PATH) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      if(req.args[0].substr(0, 10).compare("package://") == 0)
+      {
+	int i = req.args[0].substr(10).find("/");
+	std::string package = req.args[0].substr(10, i);
+	std::string path = req.args[0].substr(10+i);
+	std::stringstream ss;
+	ss << ros::package::getPath(package) << "/" << path;
+	showBasePath(ss.str());
+      }
+      else
+      {
+	showBasePath(req.args[0]);
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for show_base_path (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for show_base_path (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }    
+  }
   else
   {
     ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());
