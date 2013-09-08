@@ -1,3 +1,3 @@
 <collision_model>
-    <object label="cracker_tin" mesh_resource="package://demonstration_visualizer/meshes/Scene0/cracker_tin/cracker_tin.dae" />
+    <object label="cracker_tin" mesh_resource="package://dviz_core/meshes/Scene0/cracker_tin/cracker_tin.dae" />
 </collision_model>

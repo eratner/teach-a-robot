@@ -1,3 +1,3 @@
 <collision_model>
-    <object label="max_webgl_kitchen" mesh_resource="package://demonstration_visualizer/meshes/max_webgl_kitchen/max_webgl_kitchen.dae" />
+    <object label="max_webgl_kitchen" mesh_resource="package://dviz_core/meshes/max_webgl_kitchen/max_webgl_kitchen.dae" />
 </collision_model>

@@ -1,5 +1,5 @@
 <collision_model>
-    <object label="water_bottle" mesh_resource="package://demonstration_visualizer/meshes/water_bottle/water_bottle.dae" />
+    <object label="water_bottle" mesh_resource="package://dviz_core/meshes/water_bottle/water_bottle.dae" />
 
     <sphere id="1" x="0" y="0" z="-0.085" radius="0.0375" />
     <sphere id="1" x="0" y="0" z="-0.0475" radius="0.0375" />

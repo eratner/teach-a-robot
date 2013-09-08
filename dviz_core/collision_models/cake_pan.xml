@@ -1,5 +1,5 @@
 <collision_model>
-    <object label="cake_pan" mesh_resource="package://demonstration_visualizer/meshes/cake_pan/cake_pan.dae" />
+    <object label="cake_pan" mesh_resource="package://dviz_core/meshes/cake_pan/cake_pan.dae" />
 
     <sphere id="1" x="0.115" y="0" z="0" radius="0.01" />
     <sphere id="2" x="0.115" y="0" z="-0.01" radius="0.01" />

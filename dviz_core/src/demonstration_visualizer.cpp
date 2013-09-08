@@ -191,6 +191,55 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }    
   }
+  else if(req.command.compare(dviz_core::Command::Request::LOAD_MESH) == 0)
+  {
+    if(req.args.size() == 2 || req.args.size() == 3)
+    {
+      bool movable = (req.args[1].compare("true") == 0);
+
+      std::string name = "";
+      // Get the name of the mesh.
+      if(req.args.size() == 3)
+      {
+	name = req.args[2];
+      }
+      else
+      {
+	int i;
+	for(i = req.args[0].size()-1; i >= 0; --i)
+	{
+	  if(req.args[0].substr(i, 1).compare("/") == 0)
+	    break;
+	}
+	name = req.args[0].substr(i);
+      }
+
+      // if(req.args[0].substr(0, 10).compare("package://") == 0)
+      // {
+      // 	int i = req.args[0].substr(10).find("/");
+      // 	std::string package = req.args[0].substr(10, i);
+      // 	std::string path = req.args[0].substr(10+i);
+      // 	std::stringstream ss;
+      // 	ss << ros::package::getPath(package) << "/" << path;
+      // 	// @todo figure out the mesh IDs.
+      // 	getSceneManager()->addMeshFromFile(ss.str(), 20, name, movable);
+      // }
+      // else
+      // {
+      // 	getSceneManager()->addMeshFromFile(req.args[0], 20, name, movable);
+      // }
+      getSceneManager()->addMeshFromFile(req.args[0], 20, name, movable);
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for load_mesh (%d given, 2 required, 1 optional).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for load_mesh (" << req.args.size() << " given, 2 required, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }    
+  }
   else
   {
     ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());

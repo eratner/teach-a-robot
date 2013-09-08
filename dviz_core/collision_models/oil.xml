@@ -1,5 +1,5 @@
 <collision_model>
-    <object label="oil" mesh_resource="package://demonstration_visualizer/meshes/oil/oil.dae" />
+    <object label="oil" mesh_resource="package://dviz_core/meshes/oil/oil.dae" />
 
     <sphere id="1" x="0" y="0" z="-0.10" radius="0.045" />
     <sphere id="2" x="0" y="0" z="-0.06" radius="0.04" />

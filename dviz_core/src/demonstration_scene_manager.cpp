@@ -9,8 +9,8 @@ DemonstrationSceneManager::DemonstrationSceneManager(
     interactive_markers::InteractiveMarkerServer *int_marker_server,
     ObjectManager* object_manager
   )
-  : goals_changed_(false), edit_goals_mode_(true),
-    edit_meshes_mode_(true), int_marker_server_(int_marker_server), current_goal_(-1),
+  : goals_changed_(false), edit_goals_mode_(false),
+    edit_meshes_mode_(false), int_marker_server_(int_marker_server), current_goal_(-1),
     object_manager_(object_manager), pviz_(pviz)
 {
   goal_feedback_ = boost::bind(&DemonstrationSceneManager::processGoalFeedback,
@@ -193,7 +193,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
   // Read the path to the collision model files.
   element = root_handle.FirstChild().Element();
-  std::string package_path = ros::package::getPath("demonstration_visualizer");
+  std::string package_path = ros::package::getPath("dviz_core");
   if(element == NULL)
   {
     ROS_ERROR("This is broken. XML parsing of the scene file went wrong. (element = NULL)");
@@ -453,7 +453,7 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
     
     // Add the collision model file, if it does not already exist.
     std::stringstream ss;
-    ss << ros::package::getPath("demonstration_visualizer") << "/collision_models/" << it->label << ".xml";
+    ss << ros::package::getPath("dviz_core") << "/collision_models/" << it->label << ".xml";
     ROS_INFO("[SceneManager] Checking if %s exists...", ss.str().c_str());
     if(!boost::filesystem::exists(ss.str()))
     {
@@ -534,7 +534,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
   // @todo for now, we assume the user has loaded the appropriate scene file, but 
   // in the future there should be a tag at the top of the file:
   // <scene_file path="..." />
-  // where path is relative to the package://demonstration_visualizer path.
+  // where path is relative to the package://dviz_core path.
   TiXmlElement *scene_file = root_handle.FirstChild("scene_file").Element();
   if(scene_file == NULL)
   {
