@@ -240,6 +240,29 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }    
   }
+  else if(req.command.compare(dviz_core::Command::Request::BASIC_GRIPPER) == 0)
+  {
+    if(req.args.size() == 0)
+    {
+      // Enable basic gripper controls.
+      setGripperOrientationControl(false);
+    }
+    else if(req.args.size() == 1)
+    {
+      bool basic_gripper = req.args[0].compare("true") == 0;
+      setGripperOrientationControl(!basic_gripper);
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for basic_gripper (%d given, 1 optional).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for basic_gripper (" << req.args.size() << " given, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }    
+
+  }
   else
   {
     ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());

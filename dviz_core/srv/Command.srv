@@ -7,6 +7,7 @@ string LOAD_TASK = load_task
 string LOAD_SCENE = load_scene
 string SHOW_BASE_PATH = show_base_path
 string LOAD_MESH = load_mesh
+string BASIC_GRIPPER = basic_gripper
 
 # A valid string command.
 string command
