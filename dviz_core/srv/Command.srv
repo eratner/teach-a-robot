@@ -1,4 +1,6 @@
 # Command constants.
+string ADD_USER = add_user
+string KILL_USER = kill_user
 string PLAY = play
 string PAUSE_NOW = pause_now
 string PAUSE_LATER = pause_later

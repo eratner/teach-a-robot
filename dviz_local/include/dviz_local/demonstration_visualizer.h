@@ -11,7 +11,7 @@
 
 #include <map>
 
-#include <dviz_core/demonstration_visualizer.h>
+#include <dviz_core/demonstration_visualizer_core.h>
 
 #include <rviz/render_panel.h>
 #include <rviz/visualization_manager.h>
@@ -31,7 +31,8 @@
 
 Q_DECLARE_METATYPE(geometry_msgs::Pose);
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 struct UserDemonstrationInfo
 {

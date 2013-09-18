@@ -16,11 +16,12 @@ find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
 
 qt4_wrap_cpp(MOC_FILES 
-  include/dviz_core/demonstration_visualizer.h 
+  include/dviz_core/demonstration_visualizer_core.h 
 )
 
 rosbuild_add_library(dviz_core
-  src/demonstration_visualizer.cpp
+  src/demonstration_visualizer_core.cpp
+  src/demonstration_visualizer_user.cpp
   src/visualization_helpers.cpp
   src/demonstration_scene_manager.cpp
   src/object.cpp
@@ -39,9 +40,17 @@ target_link_libraries(dviz_core
 )
 
 rosbuild_add_executable(dviz_core_node
-  src/demonstration_visualizer_node.cpp
+  src/demonstration_visualizer_core_node.cpp
+)
+
+rosbuild_add_executable(dviz_user_node
+  src/demonstration_visualizer_user_node.cpp
 )
 
 target_link_libraries(dviz_core_node
+  dviz_core
+)
+
+target_link_libraries(dviz_user_node
   dviz_core
 )

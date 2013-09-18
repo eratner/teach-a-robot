@@ -16,6 +16,7 @@
 #include <dviz_core/end_effector_controller.h>
 #include <dviz_core/motion_recorder.h>
 #include <dviz_core/object_manager.h>
+#include <dviz_core/common.h>
 #include <sbpl_manipulation_components_pr2/pr2_kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
 
@@ -27,7 +28,8 @@
 #include <cmath>
 #include <map>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer 
+{
 
 class PR2Simulator
 {
@@ -35,7 +37,8 @@ public:
   PR2Simulator(MotionRecorder *recorder, 
 	       PViz *pviz, 
 	       interactive_markers::InteractiveMarkerServer *int_marker_server,
-	       ObjectManager* object_manager);
+	       ObjectManager* object_manager,
+               int user_id = 0);
 
   ~PR2Simulator();
 
@@ -215,6 +218,7 @@ public:
 
 private:
   bool playing_;
+  int user_id_;
 
   // @todo find better names for these control modes.
   bool move_end_effector_while_dragging_;

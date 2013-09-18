@@ -5,8 +5,10 @@ namespace demonstration_visualizer {
 PR2Simulator::PR2Simulator(MotionRecorder *recorder, 
 			   PViz *pviz,
 			   interactive_markers::InteractiveMarkerServer *int_marker_server,
-			   ObjectManager* object_manager)
+			   ObjectManager* object_manager,
+                           int user_id)
   : playing_(true), 
+    user_id_(user_id),
     move_end_effector_while_dragging_(true),
     move_base_while_dragging_(false),
     attached_object_(false),
@@ -39,7 +41,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
   // Initialize the base pose.
   base_pose_.header.stamp = ros::Time();
-  base_pose_.header.frame_id = "/map";
+  //base_pose_.header.frame_id = "/map";
+  base_pose_.header.frame_id = resolveName("map", user_id_);
   base_pose_.pose.position.x = 0;
   base_pose_.pose.position.y = 0;
   base_pose_.pose.position.z = 0;
@@ -120,20 +123,24 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 					   &PR2Simulator::updateEndEffectorVelocity,
 					   this);
 
-  marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
+  // marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
+  marker_pub_ = nh.advertise<visualization_msgs::Marker>(
+    resolveName("visualization_marker", user_id_), 1000);
 
   // Attach an interactive marker to the base of the robot.
   visualizeRobot();
   
   // Initialize the end-effector pose.
-  end_effector_pose_.header.frame_id = "/base_footprint";
+  // end_effector_pose_.header.frame_id = "/base_footprint";
+  end_effector_pose_.header.frame_id = resolveName("base_footprint", user_id_);
   end_effector_pose_.header.stamp = ros::Time();
   end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
 
   end_effector_goal_pose_ = end_effector_pose_;
 
   visualization_msgs::InteractiveMarker int_marker;
-  int_marker.header.frame_id = "/map";
+  // int_marker.header.frame_id = "/map";
+  int_marker.header.frame_id = resolveName("map", user_id_);
   int_marker.name = "base_marker";
   int_marker.description = "";
 
@@ -153,7 +160,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   base_marker.color.b = 0;
   control.markers.push_back(base_marker);
   
-  // *****************
   control.markers[0].pose = geometry_msgs::Pose();
   control.markers[0].pose.orientation.w = 1;
   control.markers[0].header = std_msgs::Header();
@@ -175,7 +181,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Attach an interactive marker to the end effectors of the robot.
   visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
 
-  int_marker.header.frame_id = "/base_footprint";
+  // int_marker.header.frame_id = "/base_footprint";
+  int_marker.header.frame_id = resolveName("base_footprint", user_id_);
   int_marker.pose = robot_markers_.markers.at(11).pose;
   int_marker.name = "r_gripper_marker";
   int_marker.description = "";
@@ -212,12 +219,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   std::string robot_param = "";
   if(!nh.searchParam("robot_description", robot_param))
   {
-    ROS_ERROR("[PR2SimpleSim] Failed to find the robot_description on the parameter server.");
+    ROS_ERROR("[PR2Sim] Failed to find the robot_description on the parameter server.");
   }
   nh.param<std::string>(robot_param, robot_description, "");
   std::vector<std::string> planning_joints(joint_states_.name.begin()+7, joint_states_.name.end()-1);
   if(!kdl_robot_model_.init(robot_description, planning_joints))
-    ROS_ERROR("[PR2SimpleSim] Failed to initialize the KDLRobotModel for the PR2."); 
+    ROS_ERROR("[PR2Sim] Failed to initialize the KDLRobotModel for the PR2."); 
 
   kdl_robot_model_.setPlanningLink("r_gripper_palm_link");
 
@@ -390,7 +397,6 @@ void PR2Simulator::moveRobot()
   BodyPose body_pose;
   body_pose.x = new_x;
   body_pose.y = new_y;
-  // body_pose.z = 0.0;
   body_pose.z = getTorsoPosition();
   body_pose.theta = new_theta;
 
@@ -442,7 +448,7 @@ void PR2Simulator::moveRobot()
 
       // Try once more to find a valid IK solution by searching locally for valid
       // end-effector positions.
-      ROS_INFO("IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
+      ROS_INFO("[PR2Sim] IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
 	       end_effector_pose[1], end_effector_pose[2]);
       std::vector<std::pair<double, double> > intervals;
       intervals.push_back(std::make_pair(-0.03 + end_effector_pose[0], 
@@ -558,7 +564,7 @@ void PR2Simulator::moveRobot()
 
   if(validityCheck(solution, l_arm_joints, body_pose, object_pose))
   {
-    ROS_DEBUG("[sim] Collision free!");
+    ROS_DEBUG("[PR2Sim] Collision free!");
     // All is valid, first move the base pose.
     base_pose_.pose.position.x = new_x;
     base_pose_.pose.position.y = new_y;
@@ -697,41 +703,6 @@ bool PR2Simulator::setEndEffectorGoalPose(const geometry_msgs::Pose &goal_pose)
     end_effector_controller_.setState(EndEffectorController::READY);
     return true;
   }
-  // else if(moving_gripper_marker_)
-  // {
-  //   ROS_INFO("IK failed at (%f, %f, %f), but...", goal_pose.position.x, goal_pose.position.y, 
-  // 	     goal_pose.position.z);
-  //   std::vector<std::pair<double, double> > intervals;
-  //   intervals.push_back(std::make_pair(-0.03 + goal_pose.position.x, 0.03 + goal_pose.position.x));
-  //   intervals.push_back(std::make_pair(-0.03 + goal_pose.position.y, 0.03 + goal_pose.position.y));
-  //   intervals.push_back(std::make_pair(goal_pose.position.z, goal_pose.position.z));
-  //   std::vector<double> d;
-  //   d.push_back(0.005);
-  //   d.push_back(0.005);
-  //   d.push_back(0);
-  //   geometry_msgs::Pose pose;
-  //   pose.position.x = goal_pose.position.x;
-  //   pose.position.y = goal_pose.position.y;
-  //   pose.position.z = goal_pose.position.z;
-  //   pose.orientation = goal_pose.orientation;
-  //   double x, y, z;
-
-  //   if(closestValidEndEffectorPosition(pose, intervals, d, x, y, z))
-  //   {
-  //     ROS_INFO("...found a valid position at (%f, %f, %f)!", x, y, z);
-  //     end_effector_goal_pose_.pose.position.x = x;
-  //     end_effector_goal_pose_.pose.position.y = y;
-  //     end_effector_goal_pose_.pose.position.z = z;
-  //     int_marker_server_->setPose("r_gripper_marker", end_effector_goal_pose_.pose);
-  //     int_marker_server_->applyChanges();
-  //     end_effector_controller_.setState(EndEffectorController::READY);
-  //     return true;
-  //   }
-  //   else
-  //   {
-  //     ROS_INFO("...nevermind :(");
-  //   }
-  // }
 
   end_effector_controller_.setState(EndEffectorController::INVALID_GOAL);
   return false;
@@ -812,7 +783,7 @@ void PR2Simulator::gripperMarkerFeedback(
 
     if(!move_end_effector_while_dragging_ && canMoveRobotMarkers())
     {
-      ROS_INFO("[PR2SimpleSim] Setting new end effector goal position at (%f, %f, %f).",
+      ROS_INFO("[PR2Sim] Setting new end effector goal position at (%f, %f, %f).",
 	       feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
       setEndEffectorGoalPose(feedback->pose);
     }
@@ -944,7 +915,8 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
 
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
-  base_path.header.frame_id = "/map";
+  // base_path.header.frame_id = "/map";
+  base_path.header.frame_id = resolveName("map", user_id_);
   base_path.ns = "motion_rec";
   base_path.id = 0;
   base_path.action = visualization_msgs::Marker::DELETE;
@@ -1454,10 +1426,15 @@ void PR2Simulator::updateTransforms()
 				       base_pose_.pose.orientation.z,
 				       base_pose_.pose.orientation.w)
 			);
+  // tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
+  // 						     ros::Time::now(),
+  // 						     "map",
+  // 						     "base_footprint")
+  // 				);
   tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
 						     ros::Time::now(),
-						     "map",
-						     "base_footprint")
+						     resolveName("map", user_id_),
+						     resolveName("base_footprint", user_id_))
 				);
 
   // Get the pose of the base footprint in the torso lift link frame.
@@ -1468,7 +1445,9 @@ void PR2Simulator::updateTransforms()
   base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
   // Note that all computed poses of the end-effector are in the base footprint frame.
-  kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), "base_footprint");
+  // kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), "base_footprint");
+  kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), 
+						    resolveName("base_footprint", user_id_));
 }
 
 bool PR2Simulator::isBaseMoving() const
@@ -1524,13 +1503,15 @@ bool PR2Simulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
   return true;
 }
 
-void PR2Simulator::attach(int id, KDL::Frame transform){
+void PR2Simulator::attach(int id, KDL::Frame transform)
+{
   attached_object_ = true;
   attached_id_ = id;
   attached_transform_ = transform;
 }
 
-void PR2Simulator::detach(){
+void PR2Simulator::detach()
+{
   attached_object_ = false;
 }
 
@@ -1542,7 +1523,8 @@ KDL::Frame PR2Simulator::getAttachedTransform() const
 bool PR2Simulator::validityCheck(const vector<double>& rangles, 
                                  const vector<double>& langles, 
                                  const BodyPose& bp, 
-                                 const geometry_msgs::Pose& object_pose){
+                                 const geometry_msgs::Pose& object_pose)
+{
 
   if(ignore_collisions_)
     return true;
@@ -1571,7 +1553,8 @@ void PR2Simulator::showEndEffectorWorkspaceArc()
   visualization_msgs::Marker arc;
 
   arc.header.stamp = ros::Time::now();
-  arc.header.frame_id = "/map";
+  // arc.header.frame_id = "/map";
+  arc.header.frame_id = resolveName("map", user_id_);
 
   // Align the center of the arc with right shoulder link.
   arc.pose.position.x = robot_markers_.markers.at(2).pose.position.x;
@@ -1729,7 +1712,7 @@ bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &cu
   // @todo for now we assume inputs are correct, but in the future we should check.
   if(verbose)
   {
-    ROS_INFO("Searching from position (%f, %f, %f) over intervals %f <= x < %f, %f <= y < %f"
+    ROS_INFO("[PR2Sim] Searching from position (%f, %f, %f) over intervals %f <= x < %f, %f <= y < %f"
 	     " and %f <= z < %f with resolutions dx = %f, dy = %f, and dz = %f.",
 	     current_pose.position.x, current_pose.position.y, current_pose.position.z,
 	     intervals[0].first, intervals[0].second, intervals[1].first, intervals[1].second,
@@ -1936,7 +1919,8 @@ void PR2Simulator::enableUpperArmRollControl()
 
   // Place an interactive marker control on the right upper arm.
   visualization_msgs::InteractiveMarker int_marker;
-  int_marker.header.frame_id = "/map"; //"/base_footprint";
+  // int_marker.header.frame_id = "/map"; //"/base_footprint";
+  int_marker.header.frame_id = resolveName("map", user_id_);
   int_marker.pose = marker_pose; //robot_markers_.markers.at(4).pose;
   int_marker.name = "r_upper_arm_marker";
   int_marker.description = "";

@@ -10,7 +10,8 @@
 
 #include <map>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer 
+{
 
 class ObjectManager{
   public:
