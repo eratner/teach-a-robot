@@ -1,15 +1,17 @@
 #include <dviz_core/demonstration_scene_manager.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 const std::string DemonstrationSceneManager::GOAL_MARKER_NAMESPACE = "dviz_goal";
 
 DemonstrationSceneManager::DemonstrationSceneManager(
     PViz *pviz,
     interactive_markers::InteractiveMarkerServer *int_marker_server,
-    ObjectManager* object_manager
+    ObjectManager* object_manager,
+    int user_id
   )
-  : goals_changed_(false), edit_goals_mode_(false),
+  : user_id_(user_id), goals_changed_(false), edit_goals_mode_(false),
     edit_meshes_mode_(false), int_marker_server_(int_marker_server), current_goal_(-1),
     object_manager_(object_manager), pviz_(pviz)
 {
@@ -23,7 +25,7 @@ DemonstrationSceneManager::DemonstrationSceneManager(
 
   ros::NodeHandle nh;
 
-  marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker", 0);
+  marker_pub_ = nh.advertise<visualization_msgs::Marker>(resolveName("visualization_marker", user_id_), 0);
 
   initial_robot_pose_.position.x = 0;
   initial_robot_pose_.position.y = 0;
@@ -31,8 +33,6 @@ DemonstrationSceneManager::DemonstrationSceneManager(
   initial_robot_pose_.orientation.w = 1;
 
   initial_torso_position_ = 0.3;
-
-  ROS_INFO("[dsm] Constructor complete.");
 }
 
 DemonstrationSceneManager::~DemonstrationSceneManager()
@@ -93,7 +93,7 @@ void DemonstrationSceneManager::updateScene()
       std::vector<visualization_msgs::Marker>::iterator it;
       for(it = meshes.begin(); it != meshes.end(); ++it)
       {
-	it->header.frame_id = "/map";
+	it->header.frame_id = resolveName("map", user_id_);
 	it->header.stamp = ros::Time();
 	it->action = visualization_msgs::Marker::DELETE;
 	it->type = visualization_msgs::Marker::MESH_RESOURCE;
@@ -123,7 +123,7 @@ void DemonstrationSceneManager::updateScene()
 	}
 	int_marker_server_->applyChanges();
 
-	it->header.frame_id = "/map";
+	it->header.frame_id = resolveName("map", user_id_);
 	it->header.stamp = ros::Time();
 	it->action = visualization_msgs::Marker::ADD;
 	it->type = visualization_msgs::Marker::MESH_RESOURCE;

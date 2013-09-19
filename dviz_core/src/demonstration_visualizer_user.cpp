@@ -24,6 +24,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   nh.param<std::string>("right_arm_description_file", rarm_filename, "");
   object_manager_ = new ObjectManager(rarm_filename, larm_filename);
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_, id_);
+  demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_, id_);
 }
 
 DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
@@ -34,6 +35,13 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
   delete object_manager_;
   delete recorder_;
   delete simulator_;
+  delete demonstration_scene_manager_;
+
+  if(ros::isStarted())
+  {
+    ros::shutdown();
+    ros::waitForShutdown();
+  }
 }
 
 void DemonstrationVisualizerUser::run()
@@ -44,11 +52,11 @@ void DemonstrationVisualizerUser::run()
     // Run the simulator.
     simulator_->run();
 
-    // Update the scene.
-    // scene_manager_->updateScene();
+    // Update the demonstration scene.
+    demonstration_scene_manager_->updateScene();
 
-    // Update goals.
-    // updateGoals();
+    // Update goals and task.
+    updateGoalsAndTask();
 
     ros::spinOnce();
     rate.sleep();
@@ -63,23 +71,146 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   if(req.command.compare(dviz_core::Command::Request::KILL_USER) == 0)
   {
     ok_ = false;
-  }
+  } // end KILL_USER
   else if(req.command.compare(dviz_core::Command::Request::PLAY) == 0)
   {
     simulator_->play();
-  }
+  } // end PLAY
   else if(req.command.compare(dviz_core::Command::Request::PAUSE_NOW) == 0)
   {
     simulator_->pause();
-  }
+  } // end PAUSE_NOW
   else if(req.command.compare(dviz_core::Command::Request::PAUSE_LATER) == 0)
   {
     simulator_->pauseLater();
-  }
+  } // end PAUSE_LATER
   else if(req.command.compare(dviz_core::Command::Request::RESET_ROBOT) == 0)
   {
     simulator_->resetRobot();
-  }
+  } // end RESET_ROBOT
+  else if(req.command.compare(dviz_core::Command::Request::LOAD_TASK) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      if(req.args[0].substr(0, 10).compare("package://") == 0)
+      {
+	int i = req.args[0].substr(10).find("/");
+	std::string package = req.args[0].substr(10, i);
+	std::string path = req.args[0].substr(10+i);
+	std::stringstream ss;
+	ss << ros::package::getPath(package) << "/" << path;
+	demonstration_scene_manager_->loadTask(ss.str());
+      }
+      else
+      {
+	demonstration_scene_manager_->loadTask(req.args[0]);
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_task (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for load_task (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end LOAD_TASK
+  else if(req.command.compare(dviz_core::Command::Request::LOAD_SCENE) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      if(req.args[0].substr(0, 10).compare("package://") == 0)
+      {
+	int i = req.args[0].substr(10).find("/");
+	std::string package = req.args[0].substr(10, i);
+	std::string path = req.args[0].substr(10+i);
+	std::stringstream ss;
+	ss << ros::package::getPath(package) << "/" << path;
+	demonstration_scene_manager_->loadScene(ss.str());
+      }
+      else
+      {
+	demonstration_scene_manager_->loadScene(req.args[0]);
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_scene (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for load_scene (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end LOAD_SCENE
+  else if(req.command.compare(dviz_core::Command::Request::SHOW_BASE_PATH) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      if(req.args[0].substr(0, 10).compare("package://") == 0)
+      {
+	int i = req.args[0].substr(10).find("/");
+	std::string package = req.args[0].substr(10, i);
+	std::string path = req.args[0].substr(10+i);
+	std::stringstream ss;
+	ss << ros::package::getPath(package) << "/" << path;
+	showBasePath(ss.str());
+      }
+      else
+      {
+	showBasePath(req.args[0]);
+      }
+    }
+    else if(req.args.size() == 0)
+    {
+      showBasePath();
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for show_base_path (%d given, 1 optional).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for show_base_path (" << req.args.size() << " given, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }  
+  } // end SHOW_BASE_PATH
+  else if(req.command.compare(dviz_core::Command::Request::LOAD_MESH) == 0)
+  {
+    if(req.args.size() == 2 || req.args.size() == 3)
+    {
+      bool movable = (req.args[1].compare("true") == 0);
+
+      std::string name = "";
+      // Get the name of the mesh.
+      if(req.args.size() == 3)
+      {
+	name = req.args[2];
+      }
+      else
+      {
+	int i;
+	for(i = req.args[0].size()-1; i >= 0; --i)
+	{
+	  if(req.args[0].substr(i, 1).compare("/") == 0)
+	    break;
+	}
+	name = req.args[0].substr(i);
+      }
+
+      demonstration_scene_manager_->addMeshFromFile(req.args[0], 20, name, movable);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_mesh (%d given, 2 required, 1 optional).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for load_mesh (" << req.args.size() << " given, 2 required, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }    
+  } // end LOAD_MESH
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -90,6 +221,303 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   }
 
   return true;
+}
+
+bool DemonstrationVisualizerUser::processCommand(const std::string &command, 
+						 const std::vector<std::string> &args)
+{
+  dviz_core::Command::Request req;
+  req.command = command;
+  req.args = args;
+  dviz_core::Command::Response res;
+  return processCommand(req, res);
+}
+
+void DemonstrationVisualizerUser::updateGoalsAndTask()
+{
+  // Update the task message. 
+  std::vector<Goal *> current_goals = demonstration_scene_manager_->getGoals();
+  dviz_core::Task task;
+  task.current_goal = demonstration_scene_manager_->getCurrentGoal();
+  dviz_core::Goal goal;
+  std::vector<Goal *>::iterator it;
+  for(it = current_goals.begin(); it != current_goals.end(); ++it)
+  {
+    goal.number = (*it)->getGoalNumber();
+    goal.description = (*it)->getDescription();
+    goal.type = (*it)->getType();
+    switch((*it)->getType())
+    {
+    case Goal::PICK_UP:
+    {
+      PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(*it);
+      goal.object_id = pick_up_goal->getObjectID();
+      goal.grasp_pose = pick_up_goal->getGraspPose();
+      goal.initial_object_pose = pick_up_goal->getInitialObjectPose();
+      goal.grasp_distance = pick_up_goal->getGraspDistance();
+      goal.gripper_joint_position = pick_up_goal->getGripperJointPosition();
+
+      break;
+    }
+    case Goal::PLACE:
+    {
+      PlaceGoal *place_goal = static_cast<PlaceGoal *>(*it);
+      goal.object_id = place_goal->getObjectID();
+      goal.ignore_yaw = place_goal->ignoreYaw();
+      goal.place_pose = place_goal->getPlacePose();
+
+      break;
+    }
+    default:
+      break;
+    }
+    task.goals.push_back(goal);
+  }
+  task_pub_.publish(task);
+
+  // Check to see if the end-effector has reached a goal.
+  if(demonstration_scene_manager_->editGoalsMode() ||
+     demonstration_scene_manager_->taskDone() ||
+     demonstration_scene_manager_->getNumGoals() == 0)
+    return;
+
+  Goal *current_goal = demonstration_scene_manager_->getGoal(demonstration_scene_manager_->getCurrentGoal());
+
+  switch(current_goal->getType())
+  {
+  case Goal::PICK_UP:
+  {
+    PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
+    bool goal_reachable = true;
+      
+    if(demonstration_scene_manager_->hasReachedGoal(demonstration_scene_manager_->getCurrentGoal(), 
+						    simulator_->getEndEffectorPose(), 0.05) 
+       && !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/)
+    {
+      ROS_INFO("[DVizUser%d] Reached goal %d!", id_, demonstration_scene_manager_->getCurrentGoal());
+
+      geometry_msgs::Pose object_pose = demonstration_scene_manager_->getObjectPose(pick_up_goal->getObjectID());
+      geometry_msgs::Pose gripper_pose = pick_up_goal->getGraspPose();
+      KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_pose.orientation.x,
+							 object_pose.orientation.y,
+							 object_pose.orientation.z,
+							 object_pose.orientation.w),
+			       KDL::Vector(object_pose.position.x,
+					   object_pose.position.y,
+					   object_pose.position.z)
+	);
+      KDL::Frame marker_in_map(KDL::Rotation::Quaternion(gripper_pose.orientation.x,
+							 gripper_pose.orientation.y,
+							 gripper_pose.orientation.z,
+							 gripper_pose.orientation.w),
+			       KDL::Vector(gripper_pose.position.x,
+					   gripper_pose.position.y,
+					   gripper_pose.position.z)
+	);
+      KDL::Frame gripper_in_marker(KDL::Rotation::Identity(),
+				   KDL::Vector(-1.0*pick_up_goal->getGraspDistance(),
+					       0.0,
+					       0.0)
+	);
+      KDL::Frame gripper_in_map = marker_in_map * gripper_in_marker;
+
+      KDL::Frame object_in_gripper = gripper_in_map.Inverse() * object_in_map;
+	    
+      // Get the pose of the gripper in the base frame.
+      geometry_msgs::Pose base_pose = simulator_->getBasePose();
+      KDL::Frame base_in_map(KDL::Rotation::Quaternion(base_pose.orientation.x,
+						       base_pose.orientation.y,
+						       base_pose.orientation.z,
+						       base_pose.orientation.w),
+			     KDL::Vector(base_pose.position.x,
+					 base_pose.position.y,
+					 base_pose.position.z)
+	);
+
+      KDL::Frame gripper_in_base = base_in_map.Inverse() * gripper_in_map;
+	  
+      geometry_msgs::Pose goal_gripper_pose;
+      goal_gripper_pose.position.x = gripper_in_base.p.x();
+      goal_gripper_pose.position.y = gripper_in_base.p.y();
+      goal_gripper_pose.position.z = gripper_in_base.p.z();
+      double x, y, z, w;
+      gripper_in_base.M.GetQuaternion(x, y, z, w);
+      goal_gripper_pose.orientation.x = x;
+      goal_gripper_pose.orientation.y = y;
+      goal_gripper_pose.orientation.z = z;
+      goal_gripper_pose.orientation.w = w;
+
+      geometry_msgs::Pose end_effector_pose = simulator_->getEndEffectorPoseInBase();
+      KDL::Frame current_gripper_in_base(KDL::Rotation::Quaternion(end_effector_pose.orientation.x,
+								   end_effector_pose.orientation.y,
+								   end_effector_pose.orientation.z,
+								   end_effector_pose.orientation.w),
+					 KDL::Vector(end_effector_pose.position.x,
+						     end_effector_pose.position.y,
+						     end_effector_pose.position.z)
+	);
+
+      double current_roll, current_pitch, current_yaw;
+      current_gripper_in_base.M.GetRPY(current_roll, current_pitch, current_yaw);
+      ROS_INFO("[DVizUser%d] Current end-effector RPY: (%f, %f, %f).", id_, current_roll, current_pitch, current_yaw);
+								
+      double roll, pitch, yaw;
+      gripper_in_base.M.GetRPY(roll, pitch, yaw);
+      ROS_INFO("[DVizUser%d] Goal reached, snapping end-effector to grasp pose (%f, %f, %f), (%f, %f, %f).", id_,
+	       goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
+	       roll, pitch, yaw);
+
+      double dist_A = angles::normalize_angle_positive(roll) - angles::normalize_angle_positive(current_roll);
+      double dist_B = angles::normalize_angle_positive(roll + M_PI) - angles::normalize_angle_positive(current_roll);
+      if(std::abs(dist_A) > std::abs(dist_B))
+      {
+	KDL::Rotation rot = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+	rot.GetQuaternion(x, y, z, w);
+	goal_gripper_pose.orientation.x = x;
+	goal_gripper_pose.orientation.y = y;
+	goal_gripper_pose.orientation.z = z;
+	goal_gripper_pose.orientation.w = w;
+
+	marker_in_map.M.GetRPY(roll, pitch, yaw);
+	marker_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+	gripper_in_map = marker_in_map * gripper_in_marker;
+	object_in_gripper = gripper_in_map.Inverse() * object_in_map;
+      }
+
+      goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
+						     pick_up_goal->getGripperJointPosition(),
+						     false);
+
+      if(goal_reachable)
+      {
+	simulator_->attach(pick_up_goal->getObjectID(), object_in_gripper);
+	  
+	// Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+
+	demonstration_scene_manager_->setCurrentGoal(demonstration_scene_manager_->getCurrentGoal() + 1);
+      }
+      else
+      {
+	ROS_ERROR("[DVizUser%d] Unable to reach goal %d!", id_, demonstration_scene_manager_->getCurrentGoal());
+      }
+    }
+
+    break;
+  }
+  case Goal::PLACE:
+  {
+    PlaceGoal *place_goal = static_cast<PlaceGoal *>(current_goal);
+    geometry_msgs::Pose object_pose = object_manager_->getMarker(place_goal->getObjectID()).pose;
+    bool goal_reachable = true;
+
+    if(demonstration_scene_manager_->hasReachedGoal(demonstration_scene_manager_->getCurrentGoal(), 
+						    object_pose, 0.08) 
+       && !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/)
+    {
+      // Snap the gripper to the correct position so that the object that it is holding moves 
+      // smoothly to the goal pose. 
+      geometry_msgs::Pose object_goal_pose = place_goal->getPlacePose();
+      if(place_goal->ignoreYaw())
+      {
+	ROS_INFO("Ignoring yaw...");
+	geometry_msgs::Pose object_pose;
+	if(!simulator_->getObjectPose(object_pose))
+	{
+	  ROS_ERROR("[DVizUser] No attached object!");
+	  return;
+	}
+
+	double goal_yaw = tf::getYaw(object_pose.orientation);
+	KDL::Rotation rot = KDL::Rotation::Quaternion(object_goal_pose.orientation.x,
+						      object_goal_pose.orientation.y,
+						      object_goal_pose.orientation.z,
+						      object_goal_pose.orientation.w);
+	double roll, pitch, yaw;
+	rot.GetRPY(roll, pitch, yaw);
+	tf::Quaternion goal_orientation;
+	goal_orientation.setRPY(roll, pitch, goal_yaw);
+	tf::quaternionTFToMsg(goal_orientation, object_goal_pose.orientation);
+      }
+
+      KDL::Frame object_in_map(KDL::Rotation::Quaternion(object_goal_pose.orientation.x,
+							 object_goal_pose.orientation.y,
+							 object_goal_pose.orientation.z,
+							 object_goal_pose.orientation.w),
+			       KDL::Vector(object_goal_pose.position.x,
+					   object_goal_pose.position.y,
+					   object_goal_pose.position.z));
+
+      KDL::Frame object_in_gripper = simulator_->getAttachedTransform();
+
+      KDL::Frame gripper_in_map = object_in_map * object_in_gripper.Inverse();
+
+      geometry_msgs::Pose base_pose = simulator_->getBasePose();
+
+      KDL::Frame base_in_map(KDL::Rotation::Quaternion(base_pose.orientation.x,
+						       base_pose.orientation.y,
+						       base_pose.orientation.z,
+						       base_pose.orientation.w),
+			     KDL::Vector(base_pose.position.x,
+					 base_pose.position.y,
+					 base_pose.position.z));
+
+      KDL::Frame gripper_in_base = base_in_map.Inverse() * gripper_in_map;
+      geometry_msgs::Pose goal_gripper_pose;
+      goal_gripper_pose.position.x = gripper_in_base.p.x();
+      goal_gripper_pose.position.y = gripper_in_base.p.y();
+      goal_gripper_pose.position.z = gripper_in_base.p.z();
+      double x, y, z, w;
+      gripper_in_base.M.GetQuaternion(x, y, z, w);
+      goal_gripper_pose.orientation.x = x;
+      goal_gripper_pose.orientation.y = y;
+      goal_gripper_pose.orientation.z = z;
+      goal_gripper_pose.orientation.w = w;
+
+      // @todo set the correct gripper joint position (2nd argument).
+      goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
+						     EndEffectorController::GRIPPER_OPEN_ANGLE,
+						     true);
+
+      if(goal_reachable)
+      {
+	simulator_->detach();
+	  
+	// Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
+
+	demonstration_scene_manager_->setCurrentGoal(demonstration_scene_manager_->getCurrentGoal() + 1);
+      }
+      else
+      {
+	ROS_ERROR("[DVizUser%d] Unable to reach goal %d!", id_, demonstration_scene_manager_->getCurrentGoal());
+      }
+    }
+	
+    break;
+  }
+  default:
+    break;
+  }
+}
+
+void DemonstrationVisualizerUser::showBasePath(const std::string &filename)
+{
+  visualization_msgs::Marker base_path;
+
+  if(filename.empty())
+  {
+    base_path = recorder_->getBasePath();
+  }
+  else
+  {
+    if(!recorder_->getBasePath(filename, base_path))
+    {
+      ROS_ERROR("[DVizCore] Error getting the base path!");
+      return;
+    }
+  }
+  
+  // @todo no marker pub!!!
+  // marker_pub_.publish(base_path);
 }
 
 bool DemonstrationVisualizerUser::init(int argc, char **argv)
@@ -108,8 +536,14 @@ bool DemonstrationVisualizerUser::init(int argc, char **argv)
   ros::NodeHandle nh("~");
   command_service_ = nh.advertiseService<dviz_core::Command::Request,
 					 dviz_core::Command::Response>("dviz_command",
-					 boost::bind(&DemonstrationVisualizerUser::processCommand,
+					 boost::bind(static_cast<bool (DemonstrationVisualizerUser::*)
+						     (dviz_core::Command::Request &, 
+						      dviz_core::Command::Response &)>(
+							&DemonstrationVisualizerUser::processCommand),
 						     this, _1, _2));
+
+  // Advertise a topic for publishing the current task.
+  task_pub_ = nh.advertise<dviz_core::Task>("dviz_task", 1);
 
   return true;
 }

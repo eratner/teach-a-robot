@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 #include <interactive_markers/interactive_marker_server.h>
 #include <dviz_core/visualization_helpers.h>
+#include <dviz_core/common.h>
 #include <dviz_core/object_manager.h>
 #include <dviz_core/goal.h>
 #include <pviz/pviz.h>
@@ -33,7 +34,7 @@ public:
   static const std::string GOAL_MARKER_NAMESPACE;
 
   DemonstrationSceneManager(PViz *pviz, interactive_markers::InteractiveMarkerServer *int_marker_server, 
-			    /*CollisionChecker* collision_checker, */ObjectManager* object_manager);
+			    ObjectManager* object_manager, int user_id = 0);
 
   ~DemonstrationSceneManager();
 
@@ -134,6 +135,8 @@ public:
   double getInitialTorsoPosition() const;
 
 private:
+  int user_id_;
+
   bool goals_changed_;
   bool edit_goals_mode_;
   bool edit_meshes_mode_;

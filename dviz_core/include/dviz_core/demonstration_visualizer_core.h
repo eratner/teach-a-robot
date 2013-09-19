@@ -19,22 +19,17 @@
 #include <dviz_core/object_manager.h>
 #include <cmath>
 
-#include <QThread>
-#include <QEvent>
-
 namespace demonstration_visualizer 
 {
 
 /**
- * @brief This runs all the ROS functionality (i.e. publishing to topics, subscribing
- *        to services, etc.) on a separate thread from the dviz Qt component.
- *        In this way, the ROS loop and Qt event loop are separated.
+ * @brief DVizCore is responsible for adding and killing DVizUsers, as well as 
+ *        brokering communication between DVizClients and DVizUsers.
  */
-class DemonstrationVisualizerCore : public QThread
+class DemonstrationVisualizerCore
 {
-Q_OBJECT
 public:
-  DemonstrationVisualizerCore(int argc, char **argv, bool threaded = true);
+  DemonstrationVisualizerCore(int argc, char **argv);
 
   virtual ~DemonstrationVisualizerCore();
 
@@ -63,33 +58,13 @@ public:
   int addUser();
 
   /**
-   * @see PR2Simulator::pause().
+   * @brief The main run loop of DVizCore.
    */
-  void pauseSimulator();
-
-  /**
-   * @see PR2Simulator::pauseLater().
-   */
-  void pauseSimulatorLater();
-  
-  /**
-   * @see PR2Simulator::play().
-   */
-  void playSimulator();
-
   void run();
-
-  void updateGoals();
 
   void setRobotSpeed(double, double);
 
   void resetRobot();
-
-  DemonstrationSceneManager *getSceneManager();
-
-  MotionRecorder *getMotionRecorder();
-
-  interactive_markers::InteractiveMarkerServer *getInteractiveMarkerServer();
   
   void processKeyEvent(int key, int type);
   
@@ -117,10 +92,6 @@ public:
 
   void setBaseVelocity(const geometry_msgs::Twist &);
 
-  void setJointStates(const sensor_msgs::JointState &);
-
-  void showBasePath(const std::string &filename = "");
-
   void showInteractiveGripper(int goal_number);
 
   void graspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -129,36 +100,20 @@ public:
 
   void enableRobotMarkerControl();
 
-Q_SIGNALS:
-  void rosShutdown();
-  void goalComplete(int);
-  void updateCamera(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
-
 private:
   /**
    * @brief A helper method that simply passes the Command service call
    *        along to the specified DVizUser.
    */
-  bool passCommandToUser(const std::string &command, std::string &response, int id);
+  bool passCommandToUser(const std::string &command, 
+			 std::string &response, 
+			 int id,
+                         const std::vector<std::string> &args = std::vector<std::string>());
 
   int last_id_;
   std::map<int, ros::ServiceClient> user_command_services_;
 
-  DemonstrationSceneManager *demonstration_scene_manager_;
-  ObjectManager* object_manager_;
-  MotionRecorder *recorder_;
-  PViz *pviz_;
-  PR2Simulator *simulator_;
-
-  ros::Publisher marker_pub_;
-  ros::Publisher end_effector_vel_cmd_pub_;
-  ros::Publisher base_vel_cmd_pub_;
-  ros::Publisher task_pub_;
-
   ros::ServiceServer command_service_;
-
-  interactive_markers::InteractiveMarkerServer *int_marker_server_;
-
 };
 
 } // namespace demonstration_visualizer

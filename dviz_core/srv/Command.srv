@@ -1,14 +1,36 @@
 # Command constants.
+
+# ADD_USER: no arguments.
 string ADD_USER = add_user
+
+# KILL_USER: arguments = { id }
 string KILL_USER = kill_user
+
+# PLAY: arguments = { id }
 string PLAY = play
+
+# PAUSE_NOW: arguments = { id }
 string PAUSE_NOW = pause_now
+
+# PAUSE_LATER: arguments = { id }
 string PAUSE_LATER = pause_later
+
+# RESET_ROBOT: arguments = { id }
 string RESET_ROBOT = reset_robot
+
+# LOAD_TASK: arguments = { id, task-file-name }
 string LOAD_TASK = load_task
+
+# LOAD_SCENE: arguments = { id, scene-file-name }
 string LOAD_SCENE = load_scene
+
+# SHOW_BASE_PATH: arguments = { id, [base-path-file-name] }
 string SHOW_BASE_PATH = show_base_path
+
+# LOAD_MESH: arguments = { id, mesh-file-name, movable, [mesh-name] }
 string LOAD_MESH = load_mesh
+
+# BASIC_GRIPPER: arguments = { id }
 string BASIC_GRIPPER = basic_gripper
 
 # A valid string command.

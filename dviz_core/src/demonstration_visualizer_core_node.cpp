@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv)
 {
-  demonstration_visualizer::DemonstrationVisualizerCore dviz_core(argc, argv, false);
+  demonstration_visualizer::DemonstrationVisualizerCore dviz_core(argc, argv);
 
   dviz_core.run();
 

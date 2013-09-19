@@ -15,10 +15,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
 include(${QT_USE_FILE})
 
-qt4_wrap_cpp(MOC_FILES 
-  include/dviz_core/demonstration_visualizer_core.h 
-)
-
 rosbuild_add_library(dviz_core
   src/demonstration_visualizer_core.cpp
   src/demonstration_visualizer_user.cpp
@@ -31,7 +27,6 @@ rosbuild_add_library(dviz_core
   src/end_effector_controller.cpp
   src/motion_recorder.cpp
   src/goal.cpp
-  ${MOC_FILES}
 )
 
 target_link_libraries(dviz_core

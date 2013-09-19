@@ -41,7 +41,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
   // Initialize the base pose.
   base_pose_.header.stamp = ros::Time();
-  //base_pose_.header.frame_id = "/map";
   base_pose_.header.frame_id = resolveName("map", user_id_);
   base_pose_.pose.position.x = 0;
   base_pose_.pose.position.y = 0;
@@ -113,17 +112,16 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Set the initial position of the torso to be fully raised. @todo make this a constant
   torso_position_ = 0.3;
 
-  vel_cmd_sub_ = nh.subscribe("vel_cmd",
+  vel_cmd_sub_ = nh.subscribe(resolveName("vel_cmd", user_id_),
 			      100,
 			      &PR2Simulator::updateBaseVelocity,
 			      this);
 
-  end_effector_vel_cmd_sub_ = nh.subscribe("end_effector_vel_cmd",
+  end_effector_vel_cmd_sub_ = nh.subscribe(resolveName("end_effector_vel_cmd", user_id_),
 					   100,
 					   &PR2Simulator::updateEndEffectorVelocity,
 					   this);
 
-  // marker_pub_ = nh.advertise<visualization_msgs::Marker>("visualization_marker", 1000);
   marker_pub_ = nh.advertise<visualization_msgs::Marker>(
     resolveName("visualization_marker", user_id_), 1000);
 
@@ -131,7 +129,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   visualizeRobot();
   
   // Initialize the end-effector pose.
-  // end_effector_pose_.header.frame_id = "/base_footprint";
   end_effector_pose_.header.frame_id = resolveName("base_footprint", user_id_);
   end_effector_pose_.header.stamp = ros::Time();
   end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
@@ -139,7 +136,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   end_effector_goal_pose_ = end_effector_pose_;
 
   visualization_msgs::InteractiveMarker int_marker;
-  // int_marker.header.frame_id = "/map";
   int_marker.header.frame_id = resolveName("map", user_id_);
   int_marker.name = "base_marker";
   int_marker.description = "";
@@ -181,7 +177,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Attach an interactive marker to the end effectors of the robot.
   visualization_msgs::Marker r_gripper_marker = robot_markers_.markers.at(11);
 
-  // int_marker.header.frame_id = "/base_footprint";
   int_marker.header.frame_id = resolveName("base_footprint", user_id_);
   int_marker.pose = robot_markers_.markers.at(11).pose;
   int_marker.name = "r_gripper_marker";
@@ -915,7 +910,6 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
 
   // Delete the drawn base path.
   visualization_msgs::Marker base_path;
-  // base_path.header.frame_id = "/map";
   base_path.header.frame_id = resolveName("map", user_id_);
   base_path.ns = "motion_rec";
   base_path.id = 0;
@@ -1420,22 +1414,50 @@ void PR2Simulator::updateTransforms()
   transform.setOrigin(tf::Vector3(base_pose_.pose.position.x,
 				  base_pose_.pose.position.y,
 				  base_pose_.pose.position.z)
-		      );
+    );
   transform.setRotation(tf::Quaternion(base_pose_.pose.orientation.x,
 				       base_pose_.pose.orientation.y,
 				       base_pose_.pose.orientation.z,
 				       base_pose_.pose.orientation.w)
-			);
-  // tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
-  // 						     ros::Time::now(),
-  // 						     "map",
-  // 						     "base_footprint")
-  // 				);
+    );
   tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
 						     ros::Time::now(),
 						     resolveName("map", user_id_),
 						     resolveName("base_footprint", user_id_))
-				);
+    );
+
+  // Broadcast the coordinate frame of the (right) end-effector in the base footprint frame
+  // and in the map frame.
+  transform.setOrigin(tf::Vector3(end_effector_pose_.pose.position.x,
+				  end_effector_pose_.pose.position.y,
+				  end_effector_pose_.pose.position.z)
+    );
+  transform.setRotation(tf::Quaternion(end_effector_pose_.pose.orientation.x,
+				       end_effector_pose_.pose.orientation.y,
+				       end_effector_pose_.pose.orientation.z,
+				       end_effector_pose_.pose.orientation.z)
+    );
+  tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
+						     ros::Time::now(),
+						     resolveName("base_footprint", user_id_),
+						     resolveName("right_end_effector", user_id_))
+    );
+
+  geometry_msgs::Pose end_effector_in_map = getEndEffectorPose();
+  transform.setOrigin(tf::Vector3(end_effector_in_map.position.x,
+				  end_effector_in_map.position.y,
+				  end_effector_in_map.position.z)
+    );
+  transform.setRotation(tf::Quaternion(end_effector_in_map.orientation.x,
+				       end_effector_in_map.orientation.y,
+				       end_effector_in_map.orientation.z,
+				       end_effector_in_map.orientation.w)
+    );
+  tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
+						     ros::Time::now(),
+						     resolveName("map", user_id_),
+						     resolveName("right_end_effector", user_id_))
+    );
 
   // Get the pose of the base footprint in the torso lift link frame.
   KDL::Frame base_in_torso_lift_link;
@@ -1445,7 +1467,6 @@ void PR2Simulator::updateTransforms()
   base_in_torso_lift_link.M = KDL::Rotation::Quaternion(0.0, 0.0, 0.0, 1.0);
 
   // Note that all computed poses of the end-effector are in the base footprint frame.
-  // kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), "base_footprint");
   kdl_robot_model_.setKinematicsToPlanningTransform(base_in_torso_lift_link.Inverse(), 
 						    resolveName("base_footprint", user_id_));
 }

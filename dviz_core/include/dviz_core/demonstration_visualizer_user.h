@@ -4,15 +4,22 @@
 #include <ros/ros.h>
 #include <interactive_markers/interactive_marker_server.h>
 
+#include <dviz_core/demonstration_scene_manager.h>
 #include <dviz_core/pr2_simulator.h>
 #include <dviz_core/object_manager.h>
 #include <dviz_core/motion_recorder.h>
 #include <dviz_core/common.h>
 #include <dviz_core/Command.h>
+#include <dviz_core/Goal.h>
+#include <dviz_core/Task.h>
 
 namespace demonstration_visualizer
 {
 
+/**
+ * @brief DVizUser provides all the back-end functionality of performing 
+ *        and capturing user demonstrations in a simulated environment.
+ */
 class DemonstrationVisualizerUser
 {
 public:
@@ -21,7 +28,7 @@ public:
   ~DemonstrationVisualizerUser();
 
   /**
-   * @brief The main run loop.
+   * @brief The main run loop of DVizUser.
    */
   void run();
 
@@ -31,6 +38,25 @@ public:
    * @return true on successful execution of the command, false otherwise.
    */
   bool processCommand(dviz_core::Command::Request &, dviz_core::Command::Response &);
+
+  /**
+   * @brief
+   *
+   * @return true on successful execution of the command, false otherwise.
+   */
+  bool processCommand(const std::string &command, const std::vector<std::string> &args);
+
+  /**
+   * @brief Updates the goals and tasks, and monitors if goals have been completed 
+   *        or tasks change. Also publishes the current task and task state for 
+   *        DVizClients. 
+   */
+  void updateGoalsAndTask();
+
+  /**
+   * @brief Show the base path of a recorded motion.
+   */
+  void showBasePath(const std::string &filename = std::string());
 
 private:
   /**
@@ -45,10 +71,13 @@ private:
   bool ok_;
   ros::ServiceServer command_service_;
 
+  ros::Publisher task_pub_;
+
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
   PViz *pviz_;
   ObjectManager *object_manager_;
   MotionRecorder *recorder_;
+  DemonstrationSceneManager *demonstration_scene_manager_;
   PR2Simulator *simulator_;
 
 };

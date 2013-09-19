@@ -1,4 +1,4 @@
-#include <dviz_local/demonstration_visualizer.h>
+#include <dviz_local/demonstration_visualizer_client.h>
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -164,7 +164,7 @@ void AddGoalDialog::setIgnoreYaw(int ignore)
   }
 }
 
-DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget *parent)
+DemonstrationVisualizerClient::DemonstrationVisualizerClient(int argc, char **argv, QWidget *parent)
  : QWidget(parent), core_(argc, argv)
 {
   setWindowTitle("Teach-A-Robot");
@@ -572,7 +572,7 @@ DemonstrationVisualizer::DemonstrationVisualizer(int argc, char **argv, QWidget 
   core_.resetRobot();
 }
 
-DemonstrationVisualizer::~DemonstrationVisualizer()
+DemonstrationVisualizerClient::~DemonstrationVisualizerClient()
 {
   if(visualization_manager_ != NULL)
   {
@@ -586,19 +586,19 @@ DemonstrationVisualizer::~DemonstrationVisualizer()
   visualization_manager_ = 0;
 }
 
-void DemonstrationVisualizer::changeState(State s)
+void DemonstrationVisualizerClient::changeState(State s)
 {
   // @todo print state transition.
 
   current_state_ = s;
 }
 
-DemonstrationVisualizer::State DemonstrationVisualizer::getState() const
+DemonstrationVisualizerClient::State DemonstrationVisualizerClient::getState() const
 {
   return current_state_;
 }
 
-void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
+void DemonstrationVisualizerClient::keyPressEvent(QKeyEvent *event)
 {
   if(event->isAutoRepeat())
     event->ignore();
@@ -628,7 +628,7 @@ void DemonstrationVisualizer::keyPressEvent(QKeyEvent *event)
   }
 }
 
-void DemonstrationVisualizer::keyReleaseEvent(QKeyEvent *event)
+void DemonstrationVisualizerClient::keyReleaseEvent(QKeyEvent *event)
 {
   if(event->isAutoRepeat())
     event->ignore();
@@ -639,7 +639,7 @@ void DemonstrationVisualizer::keyReleaseEvent(QKeyEvent *event)
   }
 }
 
-bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
+bool DemonstrationVisualizerClient::eventFilter(QObject *obj, QEvent *event)
 {
   if(event->type() == QEvent::KeyPress)
   {
@@ -749,7 +749,7 @@ bool DemonstrationVisualizer::eventFilter(QObject *obj, QEvent *event)
   }
 }
 
-void DemonstrationVisualizer::toggleGrid()
+void DemonstrationVisualizerClient::toggleGrid()
 {
   if(grid_->isEnabled())
   {
@@ -763,12 +763,12 @@ void DemonstrationVisualizer::toggleGrid()
   }
 }
 
-void DemonstrationVisualizer::resetRobot()
+void DemonstrationVisualizerClient::resetRobot()
 {
   core_.resetRobot();
 }
 
-void DemonstrationVisualizer::resetTask()
+void DemonstrationVisualizerClient::resetTask()
 {
   user_demo_.goals_completed_ = 0;
 
@@ -787,7 +787,7 @@ void DemonstrationVisualizer::resetTask()
   // core_.getSceneManager()->setGoalsChanged();
 }
 
-void DemonstrationVisualizer::changeTool(int tool_index)
+void DemonstrationVisualizerClient::changeTool(int tool_index)
 {
   if(tool_index == 0)
     return;
@@ -800,7 +800,7 @@ void DemonstrationVisualizer::changeTool(int tool_index)
 	   visualization_manager_->getToolManager()->getCurrentTool()->getName().toLocal8Bit().data());  
 }
 
-void DemonstrationVisualizer::beginRecording()
+void DemonstrationVisualizerClient::beginRecording()
 {
   QString directory = QFileDialog::getExistingDirectory(this,
 							tr("Open Directory"),
@@ -820,7 +820,7 @@ void DemonstrationVisualizer::beginRecording()
   ROS_INFO("[DViz] Recording to %s", directory.toLocal8Bit().data());
 }
 
-void DemonstrationVisualizer::endRecording()
+void DemonstrationVisualizerClient::endRecording()
 {
   core_.getMotionRecorder()->endRecording();
 
@@ -829,7 +829,7 @@ void DemonstrationVisualizer::endRecording()
   ROS_INFO("[DViz] Recording has ended.");
 }
 
-void DemonstrationVisualizer::beginReplay()
+void DemonstrationVisualizerClient::beginReplay()
 {
   QString filename = QFileDialog::getOpenFileName(this,
 						  tr("Replay Bag File"),
@@ -852,14 +852,14 @@ void DemonstrationVisualizer::beginReplay()
   ROS_INFO("Replaying from file %s", filename.toLocal8Bit().data());
 }
 
-void DemonstrationVisualizer::endReplay()
+void DemonstrationVisualizerClient::endReplay()
 {
   core_.getMotionRecorder()->endReplay();
 
   replaying_icon_->hide();
 }
 
-void DemonstrationVisualizer::loadMesh()
+void DemonstrationVisualizerClient::loadMesh()
 {
   std::string package_path = ros::package::getPath("dviz_core");
 
@@ -927,7 +927,7 @@ void DemonstrationVisualizer::loadMesh()
   core_.getSceneManager()->addMeshFromFile(resource_path.str(), next_mesh_id_-1, mesh_name, movable);
 }
 
-void DemonstrationVisualizer::deleteMesh()
+void DemonstrationVisualizerClient::deleteMesh()
 {
   if(selected_mesh_ == -1)
   {
@@ -949,7 +949,7 @@ void DemonstrationVisualizer::deleteMesh()
     selected_mesh_ = -1;
 }
 
-void DemonstrationVisualizer::setEditSceneMode(int mode)
+void DemonstrationVisualizerClient::setEditSceneMode(int mode)
 {
   switch(mode)
   {
@@ -971,7 +971,7 @@ void DemonstrationVisualizer::setEditSceneMode(int mode)
   }
 }
 
-void DemonstrationVisualizer::loadScene()
+void DemonstrationVisualizerClient::loadScene()
 {
   std::string package_path = ros::package::getPath("dviz_core");
 
@@ -1049,7 +1049,7 @@ void DemonstrationVisualizer::loadScene()
   }
 }
 
-void DemonstrationVisualizer::saveScene()
+void DemonstrationVisualizerClient::saveScene()
 {
   std::string package_path = ros::package::getPath("dviz_core");
 
@@ -1073,7 +1073,7 @@ void DemonstrationVisualizer::saveScene()
   core_.getSceneManager()->saveScene(filename.toStdString());
 }
 
-void DemonstrationVisualizer::loadTask()
+void DemonstrationVisualizerClient::loadTask()
 {
   std::string package_path = ros::package::getPath("dviz_core");
 
@@ -1127,7 +1127,7 @@ void DemonstrationVisualizer::loadTask()
   }
 }
 
-void DemonstrationVisualizer::saveTask()
+void DemonstrationVisualizerClient::saveTask()
 {
   std::string package_path = ros::package::getPath("dviz_core");
 
@@ -1151,7 +1151,7 @@ void DemonstrationVisualizer::saveTask()
   core_.getSceneManager()->saveTask(filename.toStdString());
 }
 
-void DemonstrationVisualizer::setEditGoalsMode(int mode)
+void DemonstrationVisualizerClient::setEditGoalsMode(int mode)
 {
   switch(mode)
   {
@@ -1169,7 +1169,7 @@ void DemonstrationVisualizer::setEditGoalsMode(int mode)
   }
 }
 
-void DemonstrationVisualizer::selectMesh(int mesh_index)
+void DemonstrationVisualizerClient::selectMesh(int mesh_index)
 {
   mesh_index -= 1;
   if(mesh_index >= 0)
@@ -1181,7 +1181,7 @@ void DemonstrationVisualizer::selectMesh(int mesh_index)
   }
 }
 
-void DemonstrationVisualizer::scaleMesh(int value)
+void DemonstrationVisualizerClient::scaleMesh(int value)
 {
   if(selected_mesh_ == -1)
   {
@@ -1198,17 +1198,17 @@ void DemonstrationVisualizer::scaleMesh(int value)
   core_.getSceneManager()->updateMeshScale(selected_mesh_, scale_factor, scale_factor, scale_factor);
 }
 
-void DemonstrationVisualizer::setLinearSpeed(double linear)
+void DemonstrationVisualizerClient::setLinearSpeed(double linear)
 {
   core_.setRobotSpeed(linear, 0);
 }
 
-void DemonstrationVisualizer::setAngularSpeed(double angular)
+void DemonstrationVisualizerClient::setAngularSpeed(double angular)
 {
   core_.setRobotSpeed(0, angular);
 }
 
-void DemonstrationVisualizer::addTaskGoal()
+void DemonstrationVisualizerClient::addTaskGoal()
 {
   // Update the object list.
   add_goal_dialog_.setObjects(core_.getSceneManager()->getObjects());
@@ -1243,7 +1243,7 @@ void DemonstrationVisualizer::addTaskGoal()
   goals_list_->addItem(QString(goal_desc.str().c_str()));
 }
 
-void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
+void DemonstrationVisualizerClient::editGoalDescription(QListWidgetItem *goal)
 {
   int goal_number = goals_list_->row(goal);
   std::string current_desc = core_.getSceneManager()->getGoalDescription(goal_number);
@@ -1264,7 +1264,7 @@ void DemonstrationVisualizer::editGoalDescription(QListWidgetItem *goal)
   }
 }
 
-void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
+void DemonstrationVisualizerClient::showGoalsMenu(const QPoint &p)
 {
   QPoint global_pos = goals_list_->mapToGlobal(p);
   QModelIndex i = goals_list_->indexAt(p);
@@ -1328,7 +1328,7 @@ void DemonstrationVisualizer::showGoalsMenu(const QPoint &p)
   }
 }
 
-void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
+void DemonstrationVisualizerClient::notifyGoalComplete(int goal_number)
 {
   // core_.pauseSimulatorLater();
   pauseSimulator(true);
@@ -1413,7 +1413,7 @@ void DemonstrationVisualizer::notifyGoalComplete(int goal_number)
   }
 }
 
-void DemonstrationVisualizer::tabChanged(int index)
+void DemonstrationVisualizerClient::tabChanged(int index)
 {
   if(index == 0)
   {
@@ -1427,7 +1427,7 @@ void DemonstrationVisualizer::tabChanged(int index)
   }
 }
 
-void DemonstrationVisualizer::startBasicMode()
+void DemonstrationVisualizerClient::startBasicMode()
 {
   if(core_.getSceneManager()->getNumGoals() == 0)
   {
@@ -1488,7 +1488,7 @@ void DemonstrationVisualizer::startBasicMode()
   core_.getMotionRecorder()->beginRecording(package_path);
 }
 
- void DemonstrationVisualizer::endBasicMode()
+ void DemonstrationVisualizerClient::endBasicMode()
  {
    QPixmap start_stop_pixmap(":/icons/start.png");
    QIcon start_stop_icon(start_stop_pixmap);
@@ -1520,7 +1520,7 @@ void DemonstrationVisualizer::startBasicMode()
 	    user_demo_.goals_completed_, time_str.c_str());
  }
 
-void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const geometry_msgs::Pose &B)
+void DemonstrationVisualizerClient::updateCamera(const geometry_msgs::Pose &A, const geometry_msgs::Pose &B)
 {
   rviz::ViewManager *view_manager = visualization_manager_->getViewManager();
 
@@ -1875,7 +1875,7 @@ void DemonstrationVisualizer::updateCamera(const geometry_msgs::Pose &A, const g
   previous_camera_mode_ = camera_mode_;
 }
 
-void DemonstrationVisualizer::changeCameraMode(int mode)
+void DemonstrationVisualizerClient::changeCameraMode(int mode)
 {
   if(getState() == GRASP_SELECTION && camera_mode_ == GOAL)
   {
@@ -1895,7 +1895,7 @@ void DemonstrationVisualizer::changeCameraMode(int mode)
   camera_mode_ = (CameraMode)mode;
 }
 
-void DemonstrationVisualizer::pauseSimulator(bool later)
+void DemonstrationVisualizerClient::pauseSimulator(bool later)
 {
   QPixmap play_pause_pixmap(":/icons/play.png");
   QIcon play_pause_icon(play_pause_pixmap);
@@ -1910,7 +1910,7 @@ void DemonstrationVisualizer::pauseSimulator(bool later)
     core_.pauseSimulator();
 }
 
-void DemonstrationVisualizer::playSimulator()
+void DemonstrationVisualizerClient::playSimulator()
 {
   QPixmap play_pause_pixmap(":/icons/pause.png");
   QIcon play_pause_icon(play_pause_pixmap);
@@ -1922,7 +1922,7 @@ void DemonstrationVisualizer::playSimulator()
   core_.playSimulator();
 }
 
-void DemonstrationVisualizer::toggleZMode()
+void DemonstrationVisualizerClient::toggleZMode()
 {
   if(z_mode_)
     disableZMode();
@@ -1930,7 +1930,7 @@ void DemonstrationVisualizer::toggleZMode()
     enableZMode();
 }
 
-void DemonstrationVisualizer::enableZMode()
+void DemonstrationVisualizerClient::enableZMode()
 {
   ROS_INFO("[DViz] Enabling Z-mode.");
   z_mode_ = true;
@@ -1939,7 +1939,7 @@ void DemonstrationVisualizer::enableZMode()
 			QEvent::KeyPress);
 }
 
-void DemonstrationVisualizer::disableZMode()
+void DemonstrationVisualizerClient::disableZMode()
 {
   ROS_INFO("[DViz] Disabling Z-mode.");
   z_mode_ = false;
@@ -1948,7 +1948,7 @@ void DemonstrationVisualizer::disableZMode()
 			QEvent::KeyRelease);
 }
 
-void DemonstrationVisualizer::setFPSXOffset(int offset)
+void DemonstrationVisualizerClient::setFPSXOffset(int offset)
 {
   if(camera_mode_ == FPS)
   {
@@ -1957,7 +1957,7 @@ void DemonstrationVisualizer::setFPSXOffset(int offset)
   }
 }
 
-void DemonstrationVisualizer::setFPSZOffset(int offset)
+void DemonstrationVisualizerClient::setFPSZOffset(int offset)
 {
   if(camera_mode_ == FPS)
   {
@@ -1966,7 +1966,7 @@ void DemonstrationVisualizer::setFPSZOffset(int offset)
   }
 }
 
-void DemonstrationVisualizer::setGripperPosition(int position)
+void DemonstrationVisualizerClient::setGripperPosition(int position)
 {
   double p = (double)position/1000.0;
   
@@ -1994,7 +1994,7 @@ void DemonstrationVisualizer::setGripperPosition(int position)
   // }
 }
 
-void DemonstrationVisualizer::toggleStartStop()
+void DemonstrationVisualizerClient::toggleStartStop()
 {
   if(started_)
   {
@@ -2008,7 +2008,7 @@ void DemonstrationVisualizer::toggleStartStop()
   }
 }
 
-void DemonstrationVisualizer::togglePlayPause()
+void DemonstrationVisualizerClient::togglePlayPause()
 {
   if(playing_)
   {
@@ -2020,7 +2020,7 @@ void DemonstrationVisualizer::togglePlayPause()
   }
 }
 
-void DemonstrationVisualizer::toggleGripperOrientationMode()
+void DemonstrationVisualizerClient::toggleGripperOrientationMode()
 {
   if(gripper_orientation_mode_)
   {
@@ -2042,7 +2042,7 @@ void DemonstrationVisualizer::toggleGripperOrientationMode()
   }
 }
 
-void DemonstrationVisualizer::toggleCollisions()
+void DemonstrationVisualizerClient::toggleCollisions()
 {
   if(collisions_mode_)
   {
@@ -2066,7 +2066,7 @@ void DemonstrationVisualizer::toggleCollisions()
   }
 }
 
-void DemonstrationVisualizer::acceptChangeGrasp()
+void DemonstrationVisualizerClient::acceptChangeGrasp()
 {
   if(accepted_grasp_)
   {
@@ -2090,7 +2090,7 @@ void DemonstrationVisualizer::acceptChangeGrasp()
   }
 }
 
-void DemonstrationVisualizer::beginGraspSelection()
+void DemonstrationVisualizerClient::beginGraspSelection()
 {
   changeState(GRASP_SELECTION);
 
@@ -2112,7 +2112,7 @@ void DemonstrationVisualizer::beginGraspSelection()
   core_.showInteractiveGripper(current_goal);
 }
 
-void DemonstrationVisualizer::endGraspSelection()
+void DemonstrationVisualizerClient::endGraspSelection()
 {
   changeState(NORMAL);
 
@@ -2134,7 +2134,7 @@ void DemonstrationVisualizer::endGraspSelection()
   core_.enableRobotMarkerControl();
 }
 
-void DemonstrationVisualizer::setGraspDistance(int value)
+void DemonstrationVisualizerClient::setGraspDistance(int value)
 {
   double distance = (double)value/100.0;
 

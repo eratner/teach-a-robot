@@ -2,8 +2,8 @@
  * @author Ellis Ratner
  * @date June 2013
  */
-#ifndef DEMONSTRATION_VISUALIZER_H
-#define DEMONSTRATION_VISUALIZER_H
+#ifndef DEMONSTRATION_VISUALIZER_CLIENT_H
+#define DEMONSTRATION_VISUALIZER_CLIENT_H
 
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
@@ -127,7 +127,7 @@ private:
  *	   from a collection of meshes. This class primarily handles the user 
  *         interface.
  */
-class DemonstrationVisualizer : public QWidget
+class DemonstrationVisualizerClient : public QWidget
 {
 Q_OBJECT
 public:
@@ -317,4 +317,4 @@ private:
 
 } // namespace demonstration_visualizer
 
-#endif // DEMONSTRATION_VISUALIZER_H
+#endif // DEMONSTRATION_VISUALIZER_CLIENT_H
