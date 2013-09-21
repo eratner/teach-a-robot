@@ -3,7 +3,7 @@
 namespace demonstration_visualizer
 {
 
-DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id)
+DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id, bool web)
   : id_(id), ok_(true)
 {
   ROS_INFO("[DVizUser%d] Constructing user.", id_);
@@ -13,8 +13,31 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
     ROS_ERROR("[DVizUser%d] Unable to connect to ROS master!", id_);
   }
 
+  // For web purposes, we need to fork a process to run an interactive marker proxy node.
+  if(web)
+  {
+    int rosrun = fork();
+    if(rosrun == 0)
+    {
+      char topic_ns[256];
+      sprintf(topic_ns, "topic_ns:=/dviz_user_%d/interactive_markers", id_);
+      char target_frame[256];
+      sprintf(target_frame, "target_frame:=/dviz_user_%d/map", id_);
+      char proxy_name[256];
+      sprintf(proxy_name, "__name:=proxy%d", id_);
+      execlp("rosrun", "rosrun", "interactive_marker_proxy", "proxy", topic_ns, target_frame, proxy_name, (char *)0);
+      ROS_WARN("execlp probably failed in addUser()!");
+    }
+    else if(rosrun < 0)
+    {
+      ROS_ERROR("[DVizUser%d] fork failed in constructor!", id_);
+    }
+  }
+
   int_marker_server_ = new interactive_markers::InteractiveMarkerServer(resolveName("interactive_markers", id_));
-  pviz_ = new PViz();
+  std::stringstream ss;
+  ss << "dviz_user_" << id_;
+  pviz_ = new PViz(ss.str());
   recorder_ = new MotionRecorder();
 
   std::string larm_filename;
@@ -199,6 +222,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	name = req.args[0].substr(i);
       }
 
+      ROS_INFO("[DVizUser%d] Adding mesh %s from file %s.", id_, name.c_str(), req.args[0].c_str());
       demonstration_scene_manager_->addMeshFromFile(req.args[0], 20, name, movable);
     }
     else

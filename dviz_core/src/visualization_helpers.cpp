@@ -1,6 +1,7 @@
 #include <dviz_core/visualization_helpers.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 visualization_msgs::Marker makeMeshMarker(std::string mesh_resource,
 					  std::string ns,

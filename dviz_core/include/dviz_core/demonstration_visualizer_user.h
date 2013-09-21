@@ -13,6 +13,8 @@
 #include <dviz_core/Goal.h>
 #include <dviz_core/Task.h>
 
+#include <boost/thread/mutex.hpp>
+
 namespace demonstration_visualizer
 {
 
@@ -23,7 +25,7 @@ namespace demonstration_visualizer
 class DemonstrationVisualizerUser
 {
 public:
-  DemonstrationVisualizerUser(int argc, char **argv, int id);
+  DemonstrationVisualizerUser(int argc, char **argv, int id, bool web = true);
 
   ~DemonstrationVisualizerUser();
 

@@ -156,7 +156,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
     }
     int_marker_server_->applyChanges();
 
-    it->header.frame_id = "/map";
+    it->header.frame_id = resolveName("map", user_id_);
     it->header.stamp = ros::Time();
     it->action = visualization_msgs::Marker::DELETE;
     it->type = visualization_msgs::Marker::MESH_RESOURCE;
@@ -352,7 +352,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
       return -1;
     }
 
-    mesh_marker.header.frame_id = "/map";
+    mesh_marker.header.frame_id = resolveName("map", user_id_);
     mesh_marker.header.stamp = ros::Time();
     mesh_marker.ns = "demonstration_visualizer";
     mesh_marker.action = visualization_msgs::Marker::ADD;
@@ -780,7 +780,7 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename,
 {
   // Spawn the mesh at the origin.
   geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.header.frame_id = "/map";
+  pose_stamped.header.frame_id = resolveName("map", user_id_);
   pose_stamped.header.stamp = ros::Time();
   pose_stamped.pose.position.x = 0;
   pose_stamped.pose.position.y = 0;
@@ -791,6 +791,8 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename,
   pose_stamped.pose.orientation.w = 1.0;  
   geometry_msgs::Vector3 scale;
   scale.x = scale.y = scale.z = 1;
+
+  ROS_INFO("1");
 
   visualization_msgs::Marker marker = makeMeshMarker(filename,
 						     "demonstration_visualizer",
@@ -808,8 +810,11 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
 					const std::string &label,
 					bool movable)
 {
+  ROS_INFO("2");
+ 
   if(movable)
   {
+    ROS_INFO("adding movable");
     // Add a movable object.
     Object o = Object(marker);
     o.label = label;
@@ -818,6 +823,7 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
   }
   else
   {
+    ROS_INFO("adding unmovable");
     // Add a nonmovable object.
     Object o = Object(marker);
     o.label = label;
@@ -831,11 +837,13 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
 void DemonstrationSceneManager::visualizeMesh(const visualization_msgs::Marker &marker, 
 					      bool attach_interactive_marker)
 {
+  ROS_INFO("3");
+
   if(attach_interactive_marker)
   {
     // Attach an interactive marker to control this marker.
     visualization_msgs::InteractiveMarker int_marker;
-    int_marker.header.frame_id = "/map";
+    int_marker.header.frame_id = resolveName("map", user_id_);
     int_marker.pose = marker.pose;
 
     // Give each interactive marker a unique name according to each mesh's unique id.
@@ -1292,7 +1300,7 @@ void DemonstrationSceneManager::setEditMeshesMode(bool edit)
       std::vector<visualization_msgs::Marker>::iterator it;
       for(it = meshes.begin(); it != meshes.end(); ++it)
       {
-	it->header.frame_id = "/map";
+	it->header.frame_id = resolveName("map", user_id_);
 	it->header.stamp = ros::Time();
 	it->action = visualization_msgs::Marker::DELETE;
 	it->type = visualization_msgs::Marker::MESH_RESOURCE;
@@ -1322,7 +1330,7 @@ void DemonstrationSceneManager::setEditMeshesMode(bool edit)
 	}
 	int_marker_server_->applyChanges();
 
-	it->header.frame_id = "/map";
+	it->header.frame_id = resolveName("map", user_id_);
 	it->header.stamp = ros::Time();
 	it->action = visualization_msgs::Marker::ADD;
 	it->type = visualization_msgs::Marker::MESH_RESOURCE;
@@ -1403,7 +1411,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 
       for(int i = 0; i < int(gripper_markers.size()); ++i)
       {
-	gripper_markers[i].header.frame_id = "/map";
+	gripper_markers[i].header.frame_id = resolveName("map", user_id_);
 	gripper_markers[i].color.a = 0.3;
 	marker_pub_.publish(gripper_markers[i]);
       }
@@ -1419,7 +1427,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
     // where the user should place the object. 
     visualization_msgs::Marker object = object_manager_->getMarker(place_goal->getObjectID());
       
-    object.header.frame_id = "/map";
+    object.header.frame_id = resolveName("map", user_id_);
     object.header.stamp = ros::Time();
     object.ns = "dviz_place_goal";
     object.id = place_goal->getGoalNumber();
@@ -1436,7 +1444,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
     {
       // Attach an interactive marker to control this marker.
       visualization_msgs::InteractiveMarker int_marker;
-      int_marker.header.frame_id = "/map";
+      int_marker.header.frame_id = resolveName("map", user_id_);
       int_marker.pose = object.pose;
 
       // Give each interactive marker a unique name according to each goal's unique id.
@@ -1510,7 +1518,7 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
     int_marker_server_->erase(marker_name.str());
     int_marker_server_->applyChanges();
 
-    object.header.frame_id = "/map";
+    object.header.frame_id = resolveName("map", user_id_);
     object.header.stamp = ros::Time();
     object.ns = "dviz_place_goal";
     object.id = place_goal->getGoalNumber();

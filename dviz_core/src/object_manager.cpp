@@ -7,25 +7,25 @@ using namespace geometry_msgs;
 
 namespace demonstration_visualizer {
 
-ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename)
-  : bounding_box_dimensions_(3, 0), bounding_box_origin_(3, 0)
+ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename, int user_id)
+  : user_id_(user_id), bounding_box_dimensions_(3, 0), bounding_box_origin_(3, 0)
 {
   rarm_file_ = rarm_filename;
   larm_file_ = larm_filename;
   enable_debug_visualizations_ = false;
-  disable_collision_checking_ = false;
+  disable_collision_checking_ = true;
   load_objects_from_voxels_file_ = false;
   visualize_collision_models_ = false;
   collision_checker_ = NULL;
 
   ros::NodeHandle ph("~");
   ph.param("enable_debug_visualizations", enable_debug_visualizations_, false);
-  ph.param("disable_collision_checking",  disable_collision_checking_, false);
+  ph.param("disable_collision_checking",  disable_collision_checking_, true);
   ph.param("visualize_collision_models",  visualize_collision_models_, false);
 
   ROS_DEBUG("[om] Initializing object manager.");
-  ROS_DEBUG("[om] right_arm_file: %s",rarm_file_.c_str());
-  ROS_DEBUG("[om]  left_arm_file: %s",larm_file_.c_str());
+  ROS_DEBUG("[om] right_arm_file: %s", rarm_file_.c_str());
+  ROS_DEBUG("[om]  left_arm_file: %s", larm_file_.c_str());
 }
 
 bool ObjectManager::initializeCollisionChecker(vector<double> dims, vector<double> origin){
@@ -58,7 +58,8 @@ bool ObjectManager::initializeCollisionChecker(vector<double> dims, vector<doubl
   collision_checker_ = new pr2_collision_checker::PR2CollisionSpace(rarm_file_, 
                                                                     larm_file_, 
                                                                     dims, origin, 
-                                                                    0.02, "/map");
+                                                                    0.02, 
+								    resolveName("map", user_id_));
   if(!collision_checker_->init())
   {
     ROS_ERROR("[om] Failed to initialize the collision checker.");

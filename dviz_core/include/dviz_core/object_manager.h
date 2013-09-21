@@ -2,6 +2,7 @@
 #define OBJECT_MANAGER_H
 
 #include <dviz_core/object.h>
+#include <dviz_core/common.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Pose.h>
 #include <pviz/pviz.h>
@@ -15,7 +16,7 @@ namespace demonstration_visualizer
 
 class ObjectManager{
   public:
-    ObjectManager(std::string rarm_file, std::string larm_file);
+    ObjectManager(std::string rarm_file, std::string larm_file, int user_id = 0);
     bool initializeCollisionChecker(std::vector<double> dims, std::vector<double> origin);
     void addObject(Object o);
     
@@ -50,6 +51,8 @@ class ObjectManager{
     std::vector<double> getBoundingBoxOrigin() const;
 
   private:
+    int user_id_;
+
     pr2_collision_checker::PR2CollisionSpace* collision_checker_;
     std::map<int, Object> objects_;
     std::string rarm_file_;

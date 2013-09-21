@@ -237,11 +237,16 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
   }
   else if(req.command.compare(dviz_core::Command::Request::LOAD_MESH) == 0)
   {
-    if(req.args.size() == 2)
+    if(req.args.size() == 3 || req.args.size() == 4)
     {
       int user_id = atoi(req.args[0].c_str());
       std::vector<std::string> args;
       args.push_back(req.args[1]);
+      args.push_back(req.args[2]);
+      if(req.args.size() == 4)
+      {
+	args.push_back(req.args[3]);
+      }
       if(!passCommandToUser(dviz_core::Command::Request::LOAD_MESH, res.response, user_id, args))
       {
 	ROS_ERROR("[DVizCore] Error in load_mesh command.");
@@ -249,10 +254,10 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     }
     else
     {
-      ROS_ERROR("[DVizCore] Invalid number of arguments for load_mesh (%d given, 2 required).",
+      ROS_ERROR("[DVizCore] Invalid number of arguments for load_mesh (%d given, 3 required, 1 optional).",
 		req.args.size());
       std::stringstream ss;
-      ss << "Invalid number of arguments for load_mesh (" << req.args.size() << " given, 2 required).";
+      ss << "Invalid number of arguments for load_mesh (" << req.args.size() << " given, 3 required, 1 optional).";
       res.response = ss.str();
       return false;
     }  
@@ -316,6 +321,7 @@ int DemonstrationVisualizerCore::addUser()
     id = last_id_;
     execlp("rosrun", "rosrun", "dviz_core", "dviz_user_node", user_id, (char *)0);
     ROS_WARN("execlp probably failed in addUser()!");
+    return -1;
   }
   else if(rosrun < 0)
   {
@@ -325,13 +331,16 @@ int DemonstrationVisualizerCore::addUser()
 
   // Establish a command service client to issue commands to the newly created user.
   ros::NodeHandle nh;
+  ROS_INFO("adding %s", resolveName("dviz_command", id).c_str());
   if(user_command_services_.find(id) != user_command_services_.end())
   {
+    ROS_INFO("[DVizCore] Adding service %s.", resolveName("dviz_command", id).c_str());
     user_command_services_.insert(std::pair<int, ros::ServiceClient>(
 				    id, nh.serviceClient<dviz_core::Command>(resolveName("dviz_command", id))));
   }
   else
   {
+    ROS_INFO("[DVizCore] Re-adding service %s.", resolveName("dviz_command", id).c_str());
     user_command_services_[id] = nh.serviceClient<dviz_core::Command>(resolveName("dviz_command", id));
   }
 
