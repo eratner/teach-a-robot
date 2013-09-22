@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id, bool web)
-  : id_(id), ok_(true)
+  : id_(id), ok_(true), web_(web)
 {
   ROS_INFO("[DVizUser%d] Constructing user.", id_);
 
@@ -14,7 +14,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   }
 
   // For web purposes, we need to fork a process to run an interactive marker proxy node.
-  if(web)
+  if(web_)
   {
     int rosrun = fork();
     if(rosrun == 0)
@@ -45,7 +45,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   ros::NodeHandle nh("~");
   nh.param<std::string>("left_arm_description_file", larm_filename, "");
   nh.param<std::string>("right_arm_description_file", rarm_filename, "");
-  object_manager_ = new ObjectManager(rarm_filename, larm_filename);
+  object_manager_ = new ObjectManager(rarm_filename, larm_filename, id_);
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_, id_);
   demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_, id_);
 }
@@ -53,6 +53,22 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
 DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 {
   ROS_INFO("[DVizUser%d] Destructing user.", id_);
+
+  if(web_)
+  {
+    int rosnode = fork();
+    if(rosnode == 0)
+    {
+      char proxy_name[256];
+      sprintf(proxy_name, "/proxy%d", id_);
+      execlp("rosnode", "rosnode", "kill", proxy_name, (char *)0);
+      ROS_WARN("execlp probably failed in destructor!");
+    }
+    else if(rosnode < 0)
+    {
+      ROS_ERROR("[DVizUser%d] fork failed in destructor!", id_);
+    }
+  }
 
   delete int_marker_server_;
   delete object_manager_;

@@ -121,18 +121,43 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 };
 
 DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
+  console.log('[DVizClient] Resetting robot...');
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'reset_robot',
-    args : [this.id]
+    args : [this.id.toString()]
   }), function(response) {
-    console.log(response.response);
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
   });
 };
 
+DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
+  // @todo for now, just load the kitchen mesh.
+  console.log('[DVizClient] Loading kitchen...');
+
+  // Load the kitchen scene to start with.
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'load_mesh',
+    args : [this.id.toString(), 
+	    'package://dviz_core/meshes/max_webgl_kitchen/max_webgl_kitchen.dae',
+	    'false', 
+	    'kitchen']
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + res.response);
+    } else {
+      console.log('[DVizClient] Loaded kitchen mesh.');
+    }
+  });
+}
+
+var ros = null;
+var dvizCommandClient = null;
 var dvizClient = null;
 
 function init() {
-  var ros = new ROSLIB.Ros({
+  ros = new ROSLIB.Ros({
     url: 'ws://sbpl.net:21891'
   });
 
@@ -144,7 +169,7 @@ function init() {
   });
 
   // Request a new DVizUser from the server.
-  var dvizCommandClient = new ROSLIB.Service({
+  dvizCommandClient = new ROSLIB.Service({
     ros : ros,
     name : '/dviz_command',
     serviceType : 'dviz_core/Command'
@@ -197,26 +222,15 @@ function init() {
       viewerHeight : 600,
       id : userId
     });
-
-    console.log('[DVizClient] Loading kitchen...');
-
-    // Load the kitchen scene to start with.
-    dvizCommandClient.callService(new ROSLIB.ServiceRequest({
-      command : 'load_mesh',
-      args : [userId.toString(), 
-	      'package://dviz_core/meshes/max_webgl_kitchen/max_webgl_kitchen.dae',
-	      'false', 
-	      'kitchen']
-    }), function(res) {
-      if(res.response.length > 0) {
-	console.log('[DVizClient] Error response: ' + res.response);
-      } else {
-	console.log('[DVizClient] Loaded kitchen mesh.');
-      }
-    });
   });
 }
 
-// @todo kill the DVizUser when the user exits the page
-// window.onbeforeunload = function removeUser() {
-// }
+// Kill the DVizUser when the user exits the page
+window.onbeforeunload = function removeUser() {
+  dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'kill_user',
+    args : [dvizClient.id.toString()]
+  }), function(response) {
+    console.log('[DVizClient] Killed user ' + dvizClient.id.toString() + '.');
+  });
+}

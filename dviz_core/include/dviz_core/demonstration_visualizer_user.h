@@ -71,6 +71,7 @@ private:
 
   int id_;
   bool ok_;
+  bool web_;
   ros::ServiceServer command_service_;
 
   ros::Publisher task_pub_;

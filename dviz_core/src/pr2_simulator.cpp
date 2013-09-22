@@ -909,13 +909,13 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
     detach();
 
   // Delete the drawn base path.
-  visualization_msgs::Marker base_path;
-  base_path.header.frame_id = resolveName("map", user_id_);
-  base_path.ns = "motion_rec";
-  base_path.id = 0;
-  base_path.action = visualization_msgs::Marker::DELETE;
-  base_path.type = visualization_msgs::Marker::LINE_STRIP;
-  marker_pub_.publish(base_path);
+  // visualization_msgs::Marker base_path;
+  // base_path.header.frame_id = resolveName("map", user_id_);
+  // base_path.ns = "motion_rec";
+  // base_path.id = 0;
+  // base_path.action = visualization_msgs::Marker::DELETE;
+  // base_path.type = visualization_msgs::Marker::LINE_STRIP;
+  // marker_pub_.publish(base_path);
 
   // If the simulator is paused, we need to manually update the 
   // visualization of the robot.
