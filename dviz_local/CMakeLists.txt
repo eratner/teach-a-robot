@@ -18,20 +18,21 @@ qt4_add_resources(RCC_FILES
 
 qt4_wrap_cpp(MOC_FILES 
   include/dviz_local/demonstration_visualizer_client.h 
+  include/dviz_local/helpers.h
 )
 
 # @todo there should be a better way to find necessary headers and libs
 include_directories(../dviz_core/include)
 link_directories(../dviz_core/lib)
 
-rosbuild_add_executable(dviz_local
+rosbuild_add_executable(dviz_local_node
   src/demonstration_visualizer_client_node.cpp
   src/demonstration_visualizer_client.cpp
   ${RCC_FILES}
   ${MOC_FILES}
 )
 
-target_link_libraries(dviz_local
+target_link_libraries(dviz_local_node
   dviz_core
   ${QT_LIBRARIES}
 )

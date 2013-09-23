@@ -7,11 +7,11 @@
 
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <map>
 
-#include <dviz_core/demonstration_visualizer_core.h>
+#include <dviz_core/demonstration_visualizer_user.h>
+#include <dviz_local/helpers.h>
 
 #include <rviz/render_panel.h>
 #include <rviz/visualization_manager.h>
@@ -20,106 +20,20 @@
 #include <rviz/tool.h>
 #include <rviz/view_manager.h>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/thread.hpp>
+
 #include <QWidget>
-#include <QComboBox>
 #include <QLabel>
 #include <QKeyEvent>
 #include <QTabWidget>
 #include <QListWidget>
 #include <QPushButton>
-#include <QDialog>
 
 Q_DECLARE_METATYPE(geometry_msgs::Pose);
 
 namespace demonstration_visualizer
 {
-
-struct UserDemonstrationInfo
-{
-  UserDemonstrationInfo()
-  : start_time_(), end_time_(), last_goal_time_(), started_(false), goals_completed_(0)
-  {
-
-  }
-
-  void reset()
-  {
-    start_time_ = ros::Time();
-    end_time_ = ros::Time();
-    last_goal_time_ = ros::Time();
-  }
-
-  void start()
-  {
-    start_time_ = ros::Time::now();
-    last_goal_time_ = ros::Time::now();
-    started_ = true;
-  }
-  
-  ros::Duration stop()
-  {
-    if(started_)
-    {
-      started_ = false;
-      end_time_ = ros::Time::now();
-      return (end_time_ - start_time_);
-    }
-
-    return ros::Duration(0.0);
-  }
-
-  ros::Duration goalComplete()
-  {
-    goals_completed_++;
-
-    ros::Duration time_to_complete = ros::Time::now() - last_goal_time_;
-
-    last_goal_time_ = ros::Time::now();
-
-    return time_to_complete;
-  }
-
-  ros::Time start_time_;
-  ros::Time end_time_;
-  ros::Time last_goal_time_;
-  bool started_;
-  int goals_completed_;
-
-};
-
-class AddGoalDialog : public QDialog
-{
-Q_OBJECT
-public:
-  AddGoalDialog();
-
-  std::string getDescription() const;
-
-  Goal::GoalType getGoalType() const;
-
-  int getObject() const;
-
-  void setObjects(const std::vector<Object> &objects);
-
-  bool ignoreYaw() const;
-
-private slots:
-  void goalTypeChanged(int);
-  void objectChanged(int);
-  void setDescription(const QString &); 
-  void setIgnoreYaw(int);
-  
-private:
-  std::string description_;
-  Goal::GoalType goal_type_;
-  int object_id_;
-  std::vector<Object> objects_;
-  bool ignore_yaw_;
-
-  QComboBox *select_goal_type_;
-  QComboBox *select_object_;
-
-};
 
 /**
  *  @brief A Qt-based application that provides a user interface for capturing 
@@ -141,9 +55,9 @@ public:
   enum State { NORMAL = 0,
 	       GRASP_SELECTION };
 
-  DemonstrationVisualizer(int argc, char **argv, QWidget *parent = 0);
+  DemonstrationVisualizerClient(int argc, char **argv, QWidget *parent = 0);
 
-  virtual ~DemonstrationVisualizer();
+  virtual ~DemonstrationVisualizerClient();
 
   void changeState(State s);
 
@@ -250,7 +164,9 @@ private slots:
   void setGraspDistance(int);
   
 private:
-  DemonstrationVisualizerCore core_;
+  DemonstrationVisualizerUser user_;
+  boost::thread dviz_user_thread_;
+
   UserDemonstrationInfo user_demo_;
 
   rviz::RenderPanel          *render_panel_;
