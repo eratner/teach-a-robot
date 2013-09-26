@@ -33,6 +33,16 @@ string LOAD_MESH = load_mesh
 # BASIC_GRIPPER: arguments = { id }
 string BASIC_GRIPPER = basic_gripper
 
+# RESET_TASK: arguments = { id }
+string RESET_TASK = reset_task
+
+string BEGIN_RECORDING = begin_recording
+string BEGIN_REPLAY = begin_replay
+string END_RECORDING = end_recording
+
+# PROCESS_KEY: arguments = { id, key, type }
+string PROCESS_KEY = process_key
+
 # A valid string command.
 string command
 # A string array of arguments for the given command.

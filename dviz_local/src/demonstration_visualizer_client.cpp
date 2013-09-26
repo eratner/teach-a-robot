@@ -1834,8 +1834,13 @@ void DemonstrationVisualizerClient::enableZMode()
   ROS_INFO("[DViz] Enabling Z-mode.");
   z_mode_ = true;
   z_mode_button_->setText("Disable Z-Mode");
-  // user_.processKeyEvent(Qt::Key_Z,
-  // 			QEvent::KeyPress);
+  std::vector<std::string> args;
+  args.push_back(boost::lexical_cast<std::string>(Qt::Key_Z));
+  args.push_back(boost::lexical_cast<std::string>(QEvent::KeyPress));
+  if(!user_.processCommand("process_key", args))
+  {
+    ROS_ERROR("[DVizClient] Failed to process key event!");
+  }
 }
 
 void DemonstrationVisualizerClient::disableZMode()
@@ -1843,8 +1848,13 @@ void DemonstrationVisualizerClient::disableZMode()
   ROS_INFO("[DViz] Disabling Z-mode.");
   z_mode_ = false;
   z_mode_button_->setText("Enable Z-Mode");
-  // user_.processKeyEvent(Qt::Key_Z,
-  // 			QEvent::KeyRelease);
+  std::vector<std::string> args;
+  args.push_back(boost::lexical_cast<std::string>(Qt::Key_Z));
+  args.push_back(boost::lexical_cast<std::string>(QEvent::KeyRelease));
+  if(!user_.processCommand("process_key", args))
+  {
+    ROS_ERROR("[DVizClient] Failed to process key event!");
+  }
 }
 
 void DemonstrationVisualizerClient::setFPSXOffset(int offset)
@@ -1852,7 +1862,6 @@ void DemonstrationVisualizerClient::setFPSXOffset(int offset)
   if(camera_mode_ == FPS)
   {
     x_fps_offset_ = (double)offset/100;
-    // ROS_INFO("[DViz] (FPS mode) Setting x-offset to %f.", x_fps_offset_);
   }
 }
 
@@ -1861,7 +1870,6 @@ void DemonstrationVisualizerClient::setFPSZOffset(int offset)
   if(camera_mode_ == FPS)
   {
     z_fps_offset_ = (double)offset/100;
-    // ROS_INFO("[DViz] (FPS mode) Setting z-offset to %f.", z_fps_offset_);
   }
 }
 
@@ -1884,14 +1892,6 @@ void DemonstrationVisualizerClient::setGripperPosition(int position)
     // @TODO
     // user_.showInteractiveGripper(user_.getSceneManager()->getCurrentGoal());
   }
-  // else
-  // {
-  //   sensor_msgs::JointState joints;
-  //   joints.name.push_back("r_gripper_joint");
-  //   joints.position.push_back(p);
-
-  //   user_.setJointStates(joints);
-  // }
 }
 
 void DemonstrationVisualizerClient::toggleStartStop()
@@ -1922,6 +1922,7 @@ void DemonstrationVisualizerClient::togglePlayPause()
 
 void DemonstrationVisualizerClient::toggleGripperOrientationMode()
 {
+  bool disable = false;
   if(gripper_orientation_mode_)
   {
     gripper_orientation_mode_ = false;
@@ -1929,8 +1930,7 @@ void DemonstrationVisualizerClient::toggleGripperOrientationMode()
     QIcon gripper_orientation_icon(gripper_orientation_pixmap);
     gripper_orientation_button_->setIcon(gripper_orientation_icon);
     gripper_orientation_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
-    // @TODO
-    // user_.setGripperOrientationControl(false);
+    disable = true;
   }
   else
   {
@@ -1939,8 +1939,13 @@ void DemonstrationVisualizerClient::toggleGripperOrientationMode()
     gripper_orientation_button_->setIcon(gripper_orientation_icon);
     gripper_orientation_button_->setIconSize(QSize(ICON_SIZE, ICON_SIZE));
     gripper_orientation_mode_ = true;
-    // @TODO
-    // user_.setGripperOrientationControl(true);
+    disable = false;
+  }
+  std::vector<std::string> args;
+  args.push_back((disable ? "true" : "false"));
+  if(!user_.processCommand("basic_gripper", args))
+  {
+    ROS_ERROR("[DVizClient] Failed to toggle gripper controls!");
   }
 }
 

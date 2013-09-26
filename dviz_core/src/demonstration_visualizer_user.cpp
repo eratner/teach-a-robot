@@ -170,7 +170,10 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       }
       else
       {
-	demonstration_scene_manager_->loadScene(req.args[0]);
+	int max_mesh = demonstration_scene_manager_->loadScene(req.args[0]);
+	std::stringstream ss; 
+	ss << max_mesh;
+	res.response = ss.str();
       }
     }
     else
@@ -251,6 +254,97 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }    
   } // end LOAD_MESH
+  else if(req.command.compare(dviz_core::Command::Request::BASIC_GRIPPER) == 0)
+  {
+    if(req.args.size() == 0)
+    {
+      // Enable basic gripper controls.
+      simulator_->enableOrientationControl();
+      simulator_->enableUpperArmRollControl();
+    }
+    else if(req.args.size() == 1)
+    {
+      bool disable = req.args[0].compare("true") == 0;
+      if(disable)
+      {
+	simulator_->disableOrientationControl();
+	simulator_->disableUpperArmRollControl();
+      }
+      else
+      {
+	simulator_->enableOrientationControl();
+	simulator_->enableUpperArmRollControl();
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for basic_gripper (%d given, 1 optional).",
+    		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for basic_gripper (" << req.args.size() << " given, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }    
+  } // end BASIC_GRIPPER
+  else if(req.command.compare(dviz_core::Command::Request::RESET_TASK) == 0)
+  {
+    demonstration_scene_manager_->resetTask();
+  } // end RESET_TASK
+  else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      recorder_->beginRecording(req.args[0]);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for begin_recording (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for begin_recording (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end BEGIN_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::BEGIN_REPLAY) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      recorder_->beginReplay(req.args[0]);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for begin_replay (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for begin_replay (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end BEGIN_REPLAY
+  else if(req.command.compare(dviz_core::Command::Request::END_RECORDING) == 0)
+  {
+    recorder_->endRecording();
+  } // end END_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::PROCESS_KEY) == 0)
+  {
+    if(req.args.size() == 2)
+    {
+      int key = atoi(req.args[0].c_str());
+      int type = atoi(req.args[1].c_str());
+      ROS_INFO("[DVizUser%d] Processing key %d, event type %d.", id_, key, type);
+      simulator_->processKeyEvent(key, type);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for process_key (%d given, 2 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for process_key (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end PROCESS_KEY
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -558,6 +652,11 @@ void DemonstrationVisualizerUser::showBasePath(const std::string &filename)
   
   // @todo no marker pub!!!
   // marker_pub_.publish(base_path);
+}
+
+DemonstrationSceneManager *DemonstrationVisualizerUser::getSceneManager()
+{
+  return demonstration_scene_manager_;
 }
 
 bool DemonstrationVisualizerUser::init(int argc, char **argv)
