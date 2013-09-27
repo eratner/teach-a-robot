@@ -85,7 +85,9 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 
 void DemonstrationVisualizerUser::run()
 {
-  ros::Rate rate(10.0);
+  ROS_INFO("[DVizUser%d] Running at %f frames/sec.", id_, 30.0);
+  ros::Rate rate(30.0/*10.0*/);
+  simulator_->setSpeed(0.4/3.0, 0.4);
   while(ros::ok() && ok_)
   {
     // Run the simulator.

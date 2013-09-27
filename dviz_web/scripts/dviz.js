@@ -29,7 +29,7 @@ DVIZ.CameraManager = function(options) {
   this.cameraMode = 0;
   this.lastCameraMode = 1;
 
-  console.log('cm id = ' + this.id + ' topic: /dviz_user_' + this.id + '/base_footprint');
+  console.log('[CameraManager] user_id = ' + this.id + ' topic: /dviz_user_' + this.id + '/base_footprint');
 
   this.tfClient.subscribe('/dviz_user_' + this.id + '/base_footprint', function(message) {
     var tf = new ROSLIB.Transform(message);
@@ -152,6 +152,24 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   });
 }
 
+DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function() {
+  // @todo for now, just load the brownie task.
+  console.log('[DVizClient] Loading brownie task...');
+
+  // Load the task.
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'load_task',
+    args : [this.id.toString(),
+	    'package://dviz_core/tasks/brownie_mix.xml']
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + res.response);
+    } else {
+      console.log('[DVizClient] Loaded brownie task.');
+    }
+  });
+}
+
 var ros = null;
 var dvizCommandClient = null;
 var dvizClient = null;
@@ -186,7 +204,7 @@ function init() {
       ros : ros,
       angularThres : 0.01,
       transThres : 0.01,
-      rate : 10.0,
+      rate : 30.0,
       fixedFrame : '/dviz_user_' + userId + '/map'
     });
     
