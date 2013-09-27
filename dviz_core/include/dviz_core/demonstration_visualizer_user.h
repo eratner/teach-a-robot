@@ -60,6 +60,12 @@ public:
    */
   void showBasePath(const std::string &filename = std::string());
 
+  /**
+   * @brief Returns a pointer to the Demonstration Scene Manager for this 
+   *        DVizUser. (be careful)
+   */
+  DemonstrationSceneManager *getSceneManager();
+
 private:
   /**
    * @brief Initializes ROS and names the DVizUser node with its

@@ -6,17 +6,8 @@
 #define DEMONSTRATION_VISUALIZER_CORE_H
 
 #include <ros/ros.h>
-#include <visualization_msgs/Marker.h>
-#include <interactive_markers/interactive_marker_server.h>
-#include <interactive_markers/tools.h>
-
-#include <dviz_core/Goal.h>
-#include <dviz_core/Task.h>
 #include <dviz_core/Command.h>
-#include <dviz_core/visualization_helpers.h>
-#include <dviz_core/demonstration_scene_manager.h>
-#include <dviz_core/pr2_simulator.h>
-#include <dviz_core/object_manager.h>
+
 #include <cmath>
 
 namespace demonstration_visualizer 
@@ -61,44 +52,6 @@ public:
    * @brief The main run loop of DVizCore.
    */
   void run();
-
-  void setRobotSpeed(double, double);
-
-  void resetRobot();
-  
-  void processKeyEvent(int key, int type);
-  
-  void prepGripperForGoal(int goal_number);
-
-  void setGripperOrientationControl(bool enabled);
-
-  void setIgnoreCollisions(bool ignore);
-
-  /**
-   * Note that all poses are given in the world frame, if not 
-   * otherwise specified.
-   */
-  geometry_msgs::Pose getBasePose();
-
-  geometry_msgs::Pose getEndEffectorPose();
-
-  geometry_msgs::Pose getEndEffectorPoseInBase();
-
-  geometry_msgs::Pose getEndEffectorMarkerPose();
-
-  void setBaseCommand(const geometry_msgs::Pose &);
-
-  bool setEndEffectorGoalPose(const geometry_msgs::Pose &);
-
-  void setBaseVelocity(const geometry_msgs::Twist &);
-
-  void showInteractiveGripper(int goal_number);
-
-  void graspMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
-
-  void disableRobotMarkerControl();
-
-  void enableRobotMarkerControl();
 
 private:
   /**
