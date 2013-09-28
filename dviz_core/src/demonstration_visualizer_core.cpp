@@ -63,7 +63,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = "-1";
       return false;
     }
-  }
+  } // end ADD_USER
   else if(req.command.compare(dviz_core::Command::Request::KILL_USER) == 0)
   {
     if(req.args.size() == 1)
@@ -83,7 +83,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end KILL_USER
   else if(req.command.compare(dviz_core::Command::Request::PLAY) == 0)
   {
     if(req.args.size() == 1)
@@ -103,7 +103,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end PLAY
   else if(req.command.compare(dviz_core::Command::Request::PAUSE_NOW) == 0)
   {
     if(req.args.size() == 1)
@@ -123,7 +123,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end PAUSE_NOW
   else if(req.command.compare(dviz_core::Command::Request::PAUSE_LATER) == 0)
   {
     if(req.args.size() == 1)
@@ -143,7 +143,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end PAUSE_LATER
   else if(req.command.compare(dviz_core::Command::Request::RESET_ROBOT) == 0)
   {
     if(req.args.size() == 1)
@@ -163,7 +163,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end RESET_ROBOT
   else if(req.command.compare(dviz_core::Command::Request::LOAD_TASK) == 0)
   {
     if(req.args.size() == 2)
@@ -185,7 +185,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end LOAD_TASK
   else if(req.command.compare(dviz_core::Command::Request::LOAD_SCENE) == 0)
   {
     if(req.args.size() == 2)
@@ -207,7 +207,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end LOAD_SCENE
   else if(req.command.compare(dviz_core::Command::Request::SHOW_BASE_PATH) == 0)
   {
     if(req.args.size() == 1 || req.args.size() == 2)
@@ -233,7 +233,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }
-  }
+  } // end SHOW_BASE_PATH
   else if(req.command.compare(dviz_core::Command::Request::LOAD_MESH) == 0)
   {
     if(req.args.size() == 3 || req.args.size() == 4)
@@ -260,7 +260,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       res.response = ss.str();
       return false;
     }  
-  }
+  } // end LOAD_MESH
   else if(req.command.compare(dviz_core::Command::Request::BASIC_GRIPPER) == 0)
   {
     // @todo
@@ -284,7 +284,77 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     //   res.response = ss.str();
     //   return false;
     // }
-  }
+  } // end BASIC_GRIPPER
+  else if(req.command.compare(dviz_core::Command::Request::SET_BASE_SPEED) == 0)
+  {
+    if(req.args.size() == 3)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]);
+      args.push_back(req.args[2]);
+
+      if(!passCommandToUser(dviz_core::Command::Request::SET_BASE_SPEED, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in set_base_speed command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for set_base_speed (%d given, 3 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_base_speed (" << req.args.size() << " given, 3 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_BASE_SPEED
+  else if(req.command.compare(dviz_core::Command::Request::SET_ARM_SPEED) == 0)
+  {
+    if(req.args.size() == 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]);
+
+      if(!passCommandToUser(dviz_core::Command::Request::SET_ARM_SPEED, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in set_arm_speed command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for set_arm_speed (%d given, 2 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_arm_speed (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_ARM_SPEED
+  else if(req.command.compare(dviz_core::Command::Request::SET_FRAME_RATE) == 0)
+  {
+    if(req.args.size() == 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]);
+
+      if(!passCommandToUser(dviz_core::Command::Request::SET_FRAME_RATE, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in set_frame_rate command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for set_frame_rate (%d given, 2 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_frame_rate (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_FRAME_RATE
   else
   {
     ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());

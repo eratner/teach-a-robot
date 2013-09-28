@@ -1,8 +1,39 @@
-/**
+/** 
  * @author Ellis Ratner - eratner@bowdoin.edu
  */
-
 var DVIZ = DVIZ || {};
+
+/**
+ * Creates a simple moving average (SMA) filter of size n.
+ */
+var createSMAFilter = function(n) {
+  var pointer = 0;
+  var buffer = [];
+
+  // Initialize the buffer to all zeros.
+  for(var i = 0; i < n; ++i) {
+    buffer.push(0);
+  }
+
+  return {
+    getValue : function() {
+      var mean = 0;
+      for(var i = 0; i < n; ++i) {
+	mean += buffer[i];
+      }
+      return (mean/n);
+    },
+
+    push : function(item) {
+      buffer[pointer] = item;
+      pointer = (pointer + 1) % n;
+    },
+
+    get : function(key) {
+      return buffer[key];
+    }
+  };
+};
 
 /**
  * A camera manager for DViz.
@@ -15,6 +46,8 @@ var DVIZ = DVIZ || {};
  *  * width - the width of the Viewer's canvas
  *  * height - the height of the Viewer's canvas
  *  * id - the ID of the associated DVizUser on the server
+ *  * filter (optional) - filter the TF messages for smoother camera
+ *  * filterBufferSize (optional) - how many TF messages to average over
  */
 DVIZ.CameraManager = function(options) {
   var that = this;
@@ -25,20 +58,34 @@ DVIZ.CameraManager = function(options) {
   this.canvasWidth = options.width;
   this.canvasHeight = options.height;
   this.id = options.id;
+  this.filterTf = options.filter || false;
+  this.filterBufferSize = options.filterBufferSize || 50;
 
   this.cameraMode = 0;
   this.lastCameraMode = 1;
+
+  // Use SMA filters to make the camera smoother.
+  this.xFilter = createSMAFilter(this.filterBufferSize);
+  this.yFilter = createSMAFilter(this.filterBufferSize);
 
   console.log('[CameraManager] user_id = ' + this.id + ' topic: /dviz_user_' + this.id + '/base_footprint');
 
   this.tfClient.subscribe('/dviz_user_' + this.id + '/base_footprint', function(message) {
     var tf = new ROSLIB.Transform(message);
 
+    that.xFilter.push(tf.translation.x);
+    that.yFilter.push(tf.translation.y);
+
     // Center the camera at the base of the robot.
     if(that.cameraMode === 0) {
-      that.viewer.cameraControls.center.x = tf.translation.x;
-      that.viewer.cameraControls.center.y = tf.translation.y;
-      that.viewer.cameraControls.center.z = tf.translation.z;
+      if(that.filterTf) {
+	that.viewer.cameraControls.center.x = that.xFilter.getValue();
+	that.viewer.cameraControls.center.y = that.yFilter.getValue();
+      } else {
+	that.viewer.cameraControls.center.x = tf.translation.x;
+	that.viewer.cameraControls.center.y = tf.translation.y;
+	//that.viewer.cameraControls.center.z = tf.translation.z;
+      }
       that.viewer.cameraControls.update();
     }
   });
@@ -51,12 +98,16 @@ DVIZ.CameraManager = function(options) {
  */
 DVIZ.CameraManager.prototype.setCamera = function(mode) {
   if(mode !== this.cameraMode) {
-    console.log('changing from camera mode ' + this.cameraMode
+    console.log('[DVizClient] Changing from camera mode ' + this.cameraMode
                 + ' to ' + mode + '.');
   }
   this.lastCameraMode = this.cameraMode;
   this.cameraMode = mode;
 };
+
+DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
+  this.filterTf = filter;
+}
 
 /**
  * A web-based demonstration visualizer client.
@@ -160,7 +211,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function() {
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_task',
     args : [this.id.toString(),
-	    'package://dviz_core/tasks/brownie_mix.xml']
+	    'package://dviz_core/tasks/brownie_recipe.xml']
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
@@ -251,4 +302,114 @@ window.onbeforeunload = function removeUser() {
   }), function(response) {
     console.log('[DVizClient] Killed user ' + dvizClient.id.toString() + '.');
   });
+}
+
+// Functions to interface with the user interface front-end.
+function setCameraFollowing() {
+  var follow = document.getElementById('cameraFollowing').checked;
+  if(follow) {
+    console.log('[DVizClient] Enabling camera following.');
+    dvizClient.cameraManager.setCamera(0);
+  } else {
+    console.log('[DVizClient] Disabling camera following.');
+    dvizClient.cameraManager.setCamera(1);
+  }
+}
+
+function setCameraFilter() {
+  var filter = document.getElementById('cameraTfFilter').checked;
+  if(filter) {
+    console.log('[DVizClient] Enabling camera TF filtering.');
+    dvizClient.cameraManager.setFilterTf(filter);
+  } else {
+    console.log('[DVizClient] Disabling camera TF filtering.');
+    dvizClient.cameraManager.setFilterTf(filter);
+  }
+}
+
+function setFrameBufferSize() {
+  var frameBufferSize = parseInt(document.getElementById('frameBuffer').value);
+  if(isNaN(frameBufferSize)) {
+    showAlert('\'' + document.getElementById('frameBuffer').value
+	      + '\' is not a valid integer value!');
+    console.log('[DVizClient] \'' + document.getElementById('frameBuffer').value
+		+ '\' is not a valid integer value!');
+  } else {
+    console.log('[DVizClient] Set frame buffer size to ' + frameBufferSize + '.');
+    dvizClient.cameraManager.xFilter = createSMAFilter(frameBufferSize);
+    dvizClient.cameraManager.yFilter = createSMAFilter(frameBufferSize);
+  }
+}
+
+function setFrameRate() {
+  var frameRate = parseFloat(document.getElementById('frameRate').value);
+  if(isNaN(frameRate)) {
+    showAlert('\'' + document.getElementById('frameRate').value
+	      + '\' is not a valid number!');
+    console.log('[DVizClient] \'' + document.getElementById('frameRate').value
+		+ '\' is not a valid number!');
+  } else {
+    console.log('[DVizClient] Set frame rate to ' + frameRate + '.');
+    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'set_frame_rate',
+      args : [dvizClient.id.toString(),
+	      frameRate.toString()]
+    }), function(response) {
+      if(response.response.length > 0) {
+	console.log('[DVizClient] Error response: ' + response.response);
+      } else {
+	// @todo
+      }
+    });
+  }
+}
+
+function showAlert(message) {
+  var alertDialog = document.getElementById('alertDialog');
+  if(alertDialog === null) {
+    document.getElementById('alerts').innerHTML = '<div id="alertDialog" class="alert alert-warning"></div>';
+  }
+
+  document.getElementById('alertDialog').innerHTML = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>' 
+    + message + '</p>';
+}
+
+function setBaseLinearSpeed() {
+  var linearSpeed = parseFloat(document.getElementById('baseLinearSpeed').value);
+  if(isNaN(linearSpeed)) {
+    showAlert('Not a valid speed!');
+  } else {
+    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'set_base_speed',
+      args : [dvizClient.id.toString(),
+	      linearSpeed.toString(),
+	      "0.0"]
+    }), function(response) {
+      if(response.response.length > 0) {
+	console.log('[DVizClient] Error response: ' + response.response);
+      } else {
+	// @todo
+      }
+    });
+  }
+}
+
+function setBaseAngularSpeed() {
+  var angularSpeed = parseFloat(document.getElementById('baseAngularSpeed').value);
+  if(isNaN(angularSpeed)) {
+    showAlert('Not a valid speed!');
+  } else {
+    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'set_base_speed',
+      args : [dvizClient.id.toString(),
+	      "0.0",
+	      angularSpeed.toString()]
+    }), function(response) {
+      if(response.response.length > 0) {
+	console.log('[DVizClient] Error response: ' + response.response);
+      } else {
+	// @todo
+      }
+    });
+  }
 }

@@ -42,10 +42,6 @@ public:
 
   ~PR2Simulator();
 
-  void setFrameRate(double);
-
-  double getFrameRate() const;
-
   /**
    * @brief Play the simulator.
    */
@@ -106,7 +102,15 @@ public:
 
   void upperArmMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
-  void setSpeed(double, double);
+  /**
+   * @brief Sets the linear and angular speeds of the robot in meters/frame.
+   */
+  void setBaseSpeed(double, double);
+
+  /**
+   * @brief Sets the speed of the (right) end-effector in meters/frame.
+   */
+  void setEndEffectorSpeed(double);
 
   void resetRobot();
 
@@ -215,18 +219,21 @@ public:
   void setTorsoPosition(double position);
 
   void setIgnoreCollisions(bool ignore);
+  
+  void setFrameRate(double);
+
+  double getFrameRate() const;
 
 private:
   bool playing_;
   int user_id_;
+  double frame_rate_;
 
   // @todo find better names for these control modes.
   bool move_end_effector_while_dragging_;
   bool move_base_while_dragging_;
 
   void updateTransforms();
-
-  double frame_rate_;
 
   bool attached_object_;
   int attached_id_;

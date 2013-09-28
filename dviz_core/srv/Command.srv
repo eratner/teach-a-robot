@@ -43,6 +43,15 @@ string END_RECORDING = end_recording
 # PROCESS_KEY: arguments = { id, key, type }
 string PROCESS_KEY = process_key
 
+# SET_BASE_SPEED: arguments = { id, linear, angular }
+string SET_BASE_SPEED = set_base_speed
+
+# SET_ARM_SPEED: arguments = { id, speed }
+string SET_ARM_SPEED = set_arm_speed
+
+# SET_FRAME_RATE: arguments = { id, rate }
+string SET_FRAME_RATE = set_frame_rate
+
 # A valid string command.
 string command
 # A string array of arguments for the given command.

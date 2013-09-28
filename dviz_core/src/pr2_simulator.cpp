@@ -9,10 +9,10 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
                            int user_id)
   : playing_(true), 
     user_id_(user_id),
+    frame_rate_(10.0),
     move_end_effector_while_dragging_(true),
     move_base_while_dragging_(false),
     attached_object_(false),
-    frame_rate_(10.0), 
     pviz_(pviz), 
     int_marker_server_(int_marker_server), 
     object_manager_(object_manager),
@@ -232,16 +232,6 @@ PR2Simulator::~PR2Simulator()
 
 }
 
-void PR2Simulator::setFrameRate(double rate)
-{
-  frame_rate_ = rate;
-}
-
-double PR2Simulator::getFrameRate() const
-{
-  return frame_rate_;
-}
-
 void PR2Simulator::play()
 {
   playing_ = true;
@@ -379,11 +369,11 @@ void PR2Simulator::moveRobot()
 
   // Get the next velocity commands, and apply them to the robot.
   double theta = tf::getYaw(base_pose_.pose.orientation);
-  double dx = (1.0/getFrameRate())*base_vel.linear.x*std::cos(theta) 
-    - (1.0/getFrameRate())*base_vel.linear.y*std::sin(theta);
-  double dy = (1.0/getFrameRate())*base_vel.linear.y*std::cos(theta)
-    + (1.0/getFrameRate())*base_vel.linear.x*std::sin(theta);
-  double dyaw = (1/getFrameRate())*base_vel.angular.z;
+  double dx = /*(1.0/getFrameRate())**/base_vel.linear.x*std::cos(theta) 
+    - /*(1.0/getFrameRate())**/base_vel.linear.y*std::sin(theta);
+  double dy = /*(1.0/getFrameRate())**/base_vel.linear.y*std::cos(theta)
+    + /*(1.0/getFrameRate())**/base_vel.linear.x*std::sin(theta);
+  double dyaw = /*(1/getFrameRate())**/base_vel.angular.z;
 
   double new_x = base_pose_.pose.position.x + dx;
   double new_y = base_pose_.pose.position.y + dy;
@@ -411,9 +401,9 @@ void PR2Simulator::moveRobot()
       end_effector_controller_.moveTo(end_effector_pose_.pose,
 				      end_effector_goal_pose_.pose);
     
-    dx = (1.0/getFrameRate())*end_effector_vel.linear.x + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.x;
-    dy = (1.0/getFrameRate())*end_effector_vel.linear.y + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.y;
-    dz = (1.0/getFrameRate())*end_effector_vel.linear.z + (1.0/getFrameRate())*end_effector_vel_cmd_.linear.z;
+    dx = /*(1.0/getFrameRate())**/end_effector_vel.linear.x + /*(1.0/getFrameRate())**/end_effector_vel_cmd_.linear.x;
+    dy = /*(1.0/getFrameRate())**/end_effector_vel.linear.y + /*(1.0/getFrameRate())**/end_effector_vel_cmd_.linear.y;
+    dz = /*(1.0/getFrameRate())**/end_effector_vel.linear.z + /*(1.0/getFrameRate())**/end_effector_vel_cmd_.linear.z;
 
     // Attempt to find joint angles for the arm using the arm IK solver.
     std::vector<double> r_arm_joints(7, 0);
@@ -829,7 +819,7 @@ void PR2Simulator::upperArmMarkerFeedback(
   }
 }
 
-void PR2Simulator::setSpeed(double linear, double angular)
+void PR2Simulator::setBaseSpeed(double linear, double angular)
 {
   if(linear != 0)
   {
@@ -842,6 +832,11 @@ void PR2Simulator::setSpeed(double linear, double angular)
     ROS_INFO("[PR2Sim] Setting angular speed to %f.", angular);
     base_movement_controller_.setAngularSpeed(angular);
   }
+}
+
+void PR2Simulator::setEndEffectorSpeed(double speed)
+{
+  end_effector_controller_.setSpeed(speed);
 }
 
 void PR2Simulator::resetRobot()
@@ -1186,16 +1181,20 @@ void PR2Simulator::processKeyEvent(int key, int type)
       break;
     }
     case Qt::Key_W:
-      key_vel_cmd_.linear.x = 0.2;
+      // key_vel_cmd_.linear.x = 0.2;
+      key_vel_cmd_.linear.x = base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_A:
-      key_vel_cmd_.linear.y = 0.2;
+      // key_vel_cmd_.linear.y = 0.2;
+      key_vel_cmd_.linear.y = base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_S:
-      key_vel_cmd_.linear.x = -0.2;
+      // key_vel_cmd_.linear.x = -0.2;
+      key_vel_cmd_.linear.x = -base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_D:
-      key_vel_cmd_.linear.y = -0.2;
+      // key_vel_cmd_.linear.y = -0.2;
+      key_vel_cmd_.linear.y = -base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_Up:
     {
@@ -1206,7 +1205,8 @@ void PR2Simulator::processKeyEvent(int key, int type)
       // end_effector_marker_vel_.linear.z = 0.1;
       end_effector_vel_cmd_.linear.x = 0;
       end_effector_vel_cmd_.linear.y = 0;
-      end_effector_vel_cmd_.linear.z = 0.1;
+      // end_effector_vel_cmd_.linear.z = 0.1;
+      end_effector_vel_cmd_.linear.z = end_effector_controller_.getSpeed();
 
       break;
     }
@@ -1219,7 +1219,8 @@ void PR2Simulator::processKeyEvent(int key, int type)
       // end_effector_marker_vel_.linear.z = -0.1;
       end_effector_vel_cmd_.linear.x = 0;
       end_effector_vel_cmd_.linear.y = 0;
-      end_effector_vel_cmd_.linear.z = -0.1;
+      // end_effector_vel_cmd_.linear.z = -0.1;
+      end_effector_vel_cmd_.linear.z = -end_effector_controller_.getSpeed();
 
       break;
     }
@@ -1328,9 +1329,9 @@ void PR2Simulator::updateEndEffectorMarker()
   int_marker_server_->get("r_gripper_marker", marker);
   geometry_msgs::Pose pose = marker.pose;
 
-  pose.position.x += (1/getFrameRate())*end_effector_marker_vel_.linear.x;
-  pose.position.y += (1/getFrameRate())*end_effector_marker_vel_.linear.y;
-  pose.position.z += (1/getFrameRate())*end_effector_marker_vel_.linear.z;
+  pose.position.x += /*(1/getFrameRate())**/end_effector_marker_vel_.linear.x;
+  pose.position.y += /*(1/getFrameRate())**/end_effector_marker_vel_.linear.y;
+  pose.position.z += /*(1/getFrameRate())**/end_effector_marker_vel_.linear.z;
 
   // Update the pose according to the current velocity command.
   int_marker_server_->setPose("r_gripper_marker", pose, end_effector_pose_.header);
@@ -1985,6 +1986,24 @@ void PR2Simulator::setTorsoPosition(double position)
 void PR2Simulator::setIgnoreCollisions(bool ignore)
 {
   ignore_collisions_ = ignore;
+}
+
+void PR2Simulator::setFrameRate(double rate)
+{
+  double c = rate/frame_rate_;
+  frame_rate_ = rate;
+  // @todo basemovementcontroller probably does not need the frame rate.
+  base_movement_controller_.setFrameRate(rate);
+
+  // Adjust the meter/frame speeds for the new frame rate.
+  base_movement_controller_.setLinearSpeed(base_movement_controller_.getLinearSpeed() * c);
+  base_movement_controller_.setAngularSpeed(base_movement_controller_.getAngularSpeed() * c);
+  end_effector_controller_.setSpeed(end_effector_controller_.getSpeed() * c);
+}
+
+double PR2Simulator::getFrameRate() const
+{
+  return frame_rate_;
 }
 
 } // namespace demonstration_visualizer

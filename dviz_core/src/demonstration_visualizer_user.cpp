@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id, bool web)
-  : id_(id), ok_(true), web_(web)
+  : id_(id), ok_(true), web_(web), frame_rate_(10.0), frame_rate_changed_(false)
 {
   ROS_INFO("[DVizUser%d] Constructing user.", id_);
 
@@ -85,11 +85,16 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 
 void DemonstrationVisualizerUser::run()
 {
-  ROS_INFO("[DVizUser%d] Running at %f frames/sec.", id_, 30.0);
-  ros::Rate rate(30.0/*10.0*/);
-  simulator_->setSpeed(0.4/3.0, 0.4);
+  ROS_INFO("[DVizUser%d] Running at %f frames/sec.", id_, frame_rate_);
+  ros::Rate rate(frame_rate_);
   while(ros::ok() && ok_)
   {
+    if(frame_rate_changed_)
+    {
+      rate = ros::Rate(frame_rate_);
+      frame_rate_changed_ = false;
+    }
+
     // Run the simulator.
     simulator_->run();
 
@@ -139,7 +144,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	std::string package = req.args[0].substr(10, i);
 	std::string path = req.args[0].substr(10+i);
 	std::stringstream ss;
-	ss << ros::package::getPath(package) << "/" << path;
+	ss << ros::package::getPath(package) << path;
 	demonstration_scene_manager_->loadTask(ss.str());
       }
       else
@@ -167,7 +172,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	std::string package = req.args[0].substr(10, i);
 	std::string path = req.args[0].substr(10+i);
 	std::stringstream ss;
-	ss << ros::package::getPath(package) << "/" << path;
+	ss << ros::package::getPath(package) << path;
 	demonstration_scene_manager_->loadScene(ss.str());
       }
       else
@@ -198,7 +203,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	std::string package = req.args[0].substr(10, i);
 	std::string path = req.args[0].substr(10+i);
 	std::stringstream ss;
-	ss << ros::package::getPath(package) << "/" << path;
+	ss << ros::package::getPath(package) << path;
 	showBasePath(ss.str());
       }
       else
@@ -347,6 +352,62 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end PROCESS_KEY
+  else if(req.command.compare(dviz_core::Command::Request::SET_BASE_SPEED) == 0)
+  {
+    if(req.args.size() == 2)
+    {
+      double linear = atof(req.args[0].c_str());
+      double angular = atof(req.args[1].c_str());
+      // Speed is given in m/s (or rad/s), must be converted to m/f
+      // (or rad/f).
+      simulator_->setBaseSpeed(linear == 0 ? 0 : linear * (1/getFrameRate()),
+			       angular == 0 ? 0 : angular * (1/getFrameRate()));
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_base_speed (%d given, 2 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_base_speed (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_BASE_SPEED
+  else if(req.command.compare(dviz_core::Command::Request::SET_ARM_SPEED) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      double speed = atof(req.args[0].c_str());
+      // Speed is given in m/s, must be converted to m/f.
+      simulator_->setEndEffectorSpeed(speed * (1/getFrameRate()));
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_arm_speed (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_arm_speed (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_ARM_SPEED
+  else if(req.command.compare(dviz_core::Command::Request::SET_FRAME_RATE) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      double rate = atof(req.args[0].c_str());
+      setFrameRate(rate);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_frame_rate (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_frame_rate (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_FRAME_RATE
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -687,6 +748,18 @@ bool DemonstrationVisualizerUser::init(int argc, char **argv)
   task_pub_ = nh.advertise<dviz_core::Task>("dviz_task", 1);
 
   return true;
+}
+
+void DemonstrationVisualizerUser::setFrameRate(double rate)
+{
+  frame_rate_changed_ = true;
+  simulator_->setFrameRate(rate);
+  frame_rate_ = rate;
+}
+
+double DemonstrationVisualizerUser::getFrameRate() const
+{
+  return frame_rate_;
 }
 
 } // namespace demonstration_visualizer

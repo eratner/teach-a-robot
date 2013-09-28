@@ -1,10 +1,11 @@
 #include <dviz_core/base_movement_controller.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0), frame_rate_(10.0),
-    linear_speed_(0.4), angular_speed_(0.4),
+    linear_speed_(0.4/10.0), angular_speed_(0.4/10.0),
     print_transitions_(false)
 {
 

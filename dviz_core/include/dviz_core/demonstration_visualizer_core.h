@@ -7,6 +7,7 @@
 
 #include <ros/ros.h>
 #include <dviz_core/Command.h>
+#include <dviz_core/common.h>
 
 #include <cmath>
 

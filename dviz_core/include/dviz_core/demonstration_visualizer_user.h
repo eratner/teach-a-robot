@@ -66,6 +66,16 @@ public:
    */
   DemonstrationSceneManager *getSceneManager();
 
+  /**
+   * @brief Set the frame rate at which the main loop runs.
+   */
+  void setFrameRate(double);
+
+  /**
+   * @brief Get the frame rate at which the main loop runs.
+   */
+  double getFrameRate() const;
+
 private:
   /**
    * @brief Initializes ROS and names the DVizUser node with its
@@ -78,6 +88,8 @@ private:
   int id_;
   bool ok_;
   bool web_;
+  double frame_rate_;
+  bool frame_rate_changed_;
   ros::ServiceServer command_service_;
 
   ros::Publisher task_pub_;

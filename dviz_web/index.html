@@ -36,26 +36,76 @@
 	<h1>Teach-A-Robot</h1>
       </div>
 
+      <div id="alerts" class="col-lg-9">
+	<!-- <div id="alertDialog" class="alert alert-warning"></div> -->
+      </div>
+
       <div class="col-lg-9">
 	<div id="dviz"></div>
       </div>
       <div class="col-lg-3">
 	<div class="panel panel-default">
 	  <div class="panel-body">
-	    <h3>Controls</h3>
 
-	    <div class="btn-group-vertical">
-	      <button type="button" class="btn btn-default" onclick="dvizClient.resetRobot()">Reset Robot</button>
-	      <button type="button" class="btn btn-default" onclick="dvizClient.loadScene()">Load Scene</button>
-	      <button type="button" class="btn btn-default" onclick="dvizClient.loadTask()">Load Task</button>
-	    </div>
+            <ul class="nav nav-tabs">
+              <li class="active"> <a href="#gameplay" data-target="#gameplay" data-toggle="tab">Gameplay</a>
+              </li>
+              <li><a href="#tools" data-target="#tools" data-toggle="tab">Tools</a>
+              </li>
+            </ul>
 
-	    <hr />
+            <div class="tab-content">
+                <div class="tab-pane active fade in" id="gameplay">
+		  <h3>Controls</h3>
 
-	    <h3>Task</h3>
+		  <div class="btn-group-vertical">
+		    <button type="button" class="btn btn-default" onclick="dvizClient.resetRobot()">Reset Robot</button>
+		    <button type="button" class="btn btn-default" onclick="dvizClient.loadScene()">Load Scene</button>
+		    <button type="button" class="btn btn-default" onclick="dvizClient.loadTask()">Load Task</button>
+		  </div>
 
-	    <div class="list-group" id="task">
-	    </div>
+		  <hr />
+
+		  <h3>Task</h3>
+
+		  <div class="list-group" id="task">
+		  </div>
+		</div>
+                <div class="tab-pane fade in" id="tools">
+
+		  <h3>DVizClient</h3>
+
+		  <label class="checkbox">
+		    <input type="checkbox" value="option1" checked="checked" id="cameraFollowing" onclick="setCameraFollowing()">Camera Follows Base</input>
+
+		  </label>
+		  <label class="checkbox">
+		    <input type="checkbox" value="option1" id="cameraTfFilter" onclick="setCameraFilter()">Enable Camera TF Filter</input>
+
+		  </label>
+		  <div class="form-horizontal">
+		    <input class="form-control" id="frameBuffer" type="text" placeholder="Frame Buffer Size">
+		    <button class="btn btn-primary" type="button" onclick="setFrameBufferSize()">Set</button>
+		  </div>
+		  <div class="form-horizontal">
+		    <input class="form-control" id="frameRate" type="text" placeholder="Frame Rate">
+		    <button class="btn btn-primary" type="button" onclick="setFrameRate()">Set</button>
+		  </div>
+
+		  <hr />
+
+		  <h3>DVizUser</h3>
+		  <div class="form-horizontal">
+		    <input class="form-control" id="baseLinearSpeed" type="text" placeholder="Base Linear Speed (m/s)">
+		    <button class="btn btn-primary" type="button" onclick="setBaseLinearSpeed()">Set</button>
+		  </div>
+		  <div class="form-horizontal">
+		    <input class="form-control" id="baseAngularSpeed" type="text" placeholder="Base Angular Speed (rad/s)">
+		    <button class="btn btn-primary" type="button" onclick="setBaseAngularSpeed()">Set</button>
+		  </div>
+
+		</div>
+            </div>
 	  </div>
 	</div>
       </div>
