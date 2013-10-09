@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
-  : last_id_(1)
+  : last_id_(1), num_users_(0)
 {
   if(!init(argc, argv))
     ROS_ERROR("[DVizCore] Unable to connect to master!");
@@ -73,6 +73,10 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       {
 	ROS_ERROR("[DVizCore] Error in kill_user command.");
       }
+      else
+      {
+	num_users_--;
+      }
     }
     else
     {
@@ -84,6 +88,13 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end KILL_USER
+  else if(req.command.compare(dviz_core::Command::Request::NUM_USERS) == 0)
+  {
+    std::stringstream ss;
+    ss << num_users_;
+    res.response = ss.str();
+    return true;
+  } // end NUM_USERS
   else if(req.command.compare(dviz_core::Command::Request::PLAY) == 0)
   {
     if(req.args.size() == 1)
@@ -397,6 +408,9 @@ int DemonstrationVisualizerCore::addUser()
     ROS_ERROR("[DVizCore] fork failed in addUser()!");
     return -1;
   }
+
+  num_users_++;
+  ROS_INFO("[DVizCore] Number of users is %d.", num_users_);
 
   // Establish a command service client to issue commands to the newly created user.
   ros::NodeHandle nh;

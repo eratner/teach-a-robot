@@ -65,6 +65,7 @@ private:
                          const std::vector<std::string> &args = std::vector<std::string>());
 
   int last_id_;
+  int num_users_;
   std::map<int, ros::ServiceClient> user_command_services_;
 
   ros::ServiceServer command_service_;

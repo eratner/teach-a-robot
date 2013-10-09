@@ -226,6 +226,8 @@ var dvizCommandClient = null;
 var dvizClient = null;
 
 function init() {
+  //openIntroDialog();
+
   ros = new ROSLIB.Ros({
     url: 'ws://sbpl.net:21891'
   });
@@ -302,6 +304,11 @@ window.onbeforeunload = function removeUser() {
   }), function(response) {
     console.log('[DVizClient] Killed user ' + dvizClient.id.toString() + '.');
   });
+}
+
+// Front-end specific functions.
+function openIntroDialog() {
+  $('#tarIntroDialog').modal('show');
 }
 
 // Functions to interface with the user interface front-end.
@@ -412,4 +419,37 @@ function setBaseAngularSpeed() {
       }
     });
   }
+}
+
+function setEndEffectorSpeed() {
+  var speed = parseFloat(document.getElementById('endEffectorSpeed').value);
+  if(isNaN(speed)) {
+    showAlert('Not a valid speed!');
+  } else {
+    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'set_arm_speed',
+      args : [dvizClient.id.toString(),
+	      speed.toString()]
+    }), function(response) {
+      if(response.response.length > 0) {
+	console.log('[DVizClient] Error response: ' + response.response);
+      } else {
+	// @todo
+      }
+    });
+  }
+}
+
+function numUsers() {
+  dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'num_users',
+    args : []
+  }), function(response) {
+    if(response.response.length > 0) {
+      var numUsers = parseInt(response.response);
+      showAlert('There are currently ' + numUsers.toString() + ' DViz users.');
+    } else {
+      console.log('[DVizClient] Error getting the number of DViz users.');
+    }
+  });
 }
