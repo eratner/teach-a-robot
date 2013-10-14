@@ -118,6 +118,10 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   {
     ok_ = false;
   } // end KILL_USER
+  else if(req.command.compare(dviz_core::Command::Request::USER_INFO) == 0)
+  {
+    getUserProcessInfo();
+  } // end USER_INFO
   else if(req.command.compare(dviz_core::Command::Request::PLAY) == 0)
   {
     simulator_->play();
@@ -760,6 +764,27 @@ void DemonstrationVisualizerUser::setFrameRate(double rate)
 double DemonstrationVisualizerUser::getFrameRate() const
 {
   return frame_rate_;
+}
+
+void DemonstrationVisualizerUser::getUserProcessInfo()
+{
+  std::stringstream ss;
+  ss << "/proc/" << getpid() << "/stat";
+  std::ifstream proc;
+  proc.open(ss.str().c_str(), std::ios::in);
+  std::string buf;
+  if(proc.is_open())
+  {
+    for(int i = 0; i < 23; ++i)
+    {
+      proc >> buf;
+    }
+    ROS_INFO("[DVizUser%d] Virtual memory size = %s bytes", id_, buf.c_str());
+    proc.close();
+    return;
+  }
+  ROS_ERROR("[DVizUser%d] Unable to open file \"%s\"!", id_, ss.str().c_str());
+  return;
 }
 
 } // namespace demonstration_visualizer

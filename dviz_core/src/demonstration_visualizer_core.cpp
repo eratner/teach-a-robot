@@ -108,6 +108,40 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     res.response = ss.str();
     return true;
   } // end NUM_USERS
+  else if(req.command.compare(dviz_core::Command::Request::USER_INFO) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      if(!passCommandToUser(dviz_core::Command::Request::USER_INFO, res.response, user_id))
+      {
+	ROS_ERROR("[DVizCore] Error is user_info (id = %d).", user_id);
+      }
+      // @todo send response string with info
+    }
+    else if(req.args.size() == 0)
+    {
+      // If no DVizUser id is provided, just list stats on all users.
+      ROS_INFO("[DVizCore] Listing stats on %d users.", user_command_services_.size());
+      std::map<int, ros::ServiceClient>::iterator it;
+      for(it = user_command_services_.begin(); it != user_command_services_.end(); ++it)
+      {
+	if(!passCommandToUser(dviz_core::Command::Request::USER_INFO, res.response, it->first))
+	{
+	  ROS_ERROR("[DVizCore] Error is user_info (id = %d).", it->first);
+	}
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for user_info (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for user_info (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end USER_INFO
   else if(req.command.compare(dviz_core::Command::Request::PLAY) == 0)
   {
     if(req.args.size() == 1)
@@ -435,7 +469,7 @@ int DemonstrationVisualizerCore::addUser()
   // Establish a command service client to issue commands to the newly created user.
   ros::NodeHandle nh;
   ROS_INFO("adding %s", resolveName("dviz_command", id).c_str());
-  if(user_command_services_.find(id) != user_command_services_.end())
+  if(user_command_services_.find(id) == user_command_services_.end())
   {
     ROS_INFO("[DVizCore] Adding service %s.", resolveName("dviz_command", id).c_str());
     user_command_services_.insert(std::pair<int, ros::ServiceClient>(

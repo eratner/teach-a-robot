@@ -76,6 +76,11 @@ public:
    */
   double getFrameRate() const;
 
+  /**
+   * @brief Get statistics on this DVizUser process, such as CPU and memory usage.
+   */
+  void getUserProcessInfo();
+
 private:
   /**
    * @brief Initializes ROS and names the DVizUser node with its

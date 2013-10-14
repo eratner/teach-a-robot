@@ -9,6 +9,9 @@ string KILL_USER = kill_user
 # NUM_USERS: arguments = { }
 string NUM_USERS = num_users
 
+# USER_INFO: arguments = { id }
+string USER_INFO = user_info
+
 # PLAY: arguments = { id }
 string PLAY = play
 
