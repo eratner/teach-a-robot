@@ -8,6 +8,14 @@ DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
 {
   if(!init(argc, argv))
     ROS_ERROR("[DVizCore] Unable to connect to master!");
+
+  std::string rarm_filename;
+  std::string larm_filename;
+  ros::NodeHandle nh("~");
+  nh.param<std::string>("left_arm_description_file", larm_filename, "");
+  nh.param<std::string>("right_arm_description_file", rarm_filename, "");
+  object_manager_ = new ObjectManager(rarm_filename, larm_filename, 0, true);
+  demonstration_scene_manager_ = new DemonstrationSceneManager(0, 0, object_manager_, 0);
 }
 
 DemonstrationVisualizerCore::~DemonstrationVisualizerCore()
@@ -17,6 +25,11 @@ DemonstrationVisualizerCore::~DemonstrationVisualizerCore()
     ros::shutdown();
     ros::waitForShutdown();
   }
+
+  delete object_manager_;
+  object_manager_ = 0;
+  delete demonstration_scene_manager_;
+  demonstration_scene_manager_ = 0;
 }
 
 bool DemonstrationVisualizerCore::init(int argc, char **argv)
@@ -204,6 +217,13 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       int user_id = atoi(req.args[0].c_str());
       std::vector<std::string> args;
       args.push_back(req.args[1]);
+
+      // First load the appropriate scene into shared memory.
+      if(demonstration_scene_manager_->loadScene(req.args[1]) > -1)
+      {
+	object_manager_->initSharedDistanceField();
+      }
+
       if(!passCommandToUser(dviz_core::Command::Request::LOAD_SCENE, res.response, user_id, args))
       {
 	ROS_ERROR("[DVizCore] Error in load_scene command.");

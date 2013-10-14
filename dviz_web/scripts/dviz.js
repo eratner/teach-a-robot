@@ -171,6 +171,30 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   });
 };
 
+DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
+  console.log('[DVizClient] Playing simulator...');
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'play',
+    args : [this.id.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.pause = function() {
+  console.log('[DVizClient] Pausing simulator...');
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'pause_now',
+    args : [this.id.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
+}
+
 DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
   console.log('[DVizClient] Resetting robot...');
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
@@ -188,12 +212,26 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   console.log('[DVizClient] Loading kitchen...');
 
   // Load the kitchen scene to start with.
+  /*
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_mesh',
     args : [this.id.toString(), 
 	    'package://dviz_core/meshes/max_webgl_kitchen/max_webgl_kitchen.dae',
 	    'false', 
 	    'kitchen']
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + res.response);
+    } else {
+      console.log('[DVizClient] Loaded kitchen mesh.');
+    }
+  });
+  */
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'load_scene',
+    args : [this.id.toString(), 
+	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/web_kitchen.xml']
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);

@@ -42,7 +42,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
 
   std::string larm_filename;
   std::string rarm_filename;
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh("/dviz_core_node");
   nh.param<std::string>("left_arm_description_file", larm_filename, "");
   nh.param<std::string>("right_arm_description_file", rarm_filename, "");
   object_manager_ = new ObjectManager(rarm_filename, larm_filename, id_);

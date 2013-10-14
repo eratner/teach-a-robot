@@ -8,6 +8,8 @@
 #include <ros/ros.h>
 #include <dviz_core/Command.h>
 #include <dviz_core/common.h>
+#include <dviz_core/object_manager.h>
+#include <dviz_core/demonstration_scene_manager.h>
 
 #include <cmath>
 
@@ -69,6 +71,11 @@ private:
   std::map<int, ros::ServiceClient> user_command_services_;
 
   ros::ServiceServer command_service_;
+
+  // For reading scenes from file and storing them in shared memory.
+  ObjectManager *object_manager_;
+  DemonstrationSceneManager *demonstration_scene_manager_;
+
 };
 
 } // namespace demonstration_visualizer

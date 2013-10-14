@@ -70,12 +70,12 @@ void DemonstrationSceneManager::updateScene()
       {
 	if((*it)->getGoalNumber() == current_goal_)
 	{
-	  ROS_INFO("Drawing goal %d", (*it)->getGoalNumber());
+	  ROS_INFO("[SceneManager%d] Drawing goal %d", user_id_, (*it)->getGoalNumber());
 	  drawGoal(*it, false);
 	}
 	else
 	{
-	  ROS_INFO("Hiding goal %d", (*it)->getGoalNumber());
+	  ROS_INFO("[SceneManager%d] Hiding goal %d", user_id_, (*it)->getGoalNumber());
 	  hideGoal(*it);
 	}
       }
@@ -109,6 +109,12 @@ void DemonstrationSceneManager::updateScene()
     }
     else
     {
+      if(int_marker_server_ == 0)
+      {
+	ROS_WARN("[SceneManager%d] Interactive marker server is null.", user_id_);
+	return;
+      }
+      
       std::vector<visualization_msgs::Marker>::iterator it;
       // For each mesh, first remove all the interactive markers from the meshes.
       // Then, re-visualize each marker without an attached interactive marker.
@@ -138,33 +144,41 @@ void DemonstrationSceneManager::updateScene()
 
 int DemonstrationSceneManager::loadScene(const std::string &filename)
 {
-  ROS_INFO("scene = %s", filename.c_str());
+  ROS_INFO("[SceneManager%d] Loading scene from \"%s\"", user_id_, filename.c_str());
 
   ros::Time t_start_load = ros::Time::now();
 
   // Clear existing meshes.
-  std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
-  std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = meshes.begin(); it != meshes.end(); ++it)
+  if(int_marker_server_ != 0)
   {
-    std::stringstream int_marker_name;
-    int_marker_name << "mesh_marker_" << it->id;
-
-    if(!int_marker_server_->erase(int_marker_name.str()))
+    std::vector<visualization_msgs::Marker> meshes = object_manager_->getMarkers();
+    std::vector<visualization_msgs::Marker>::iterator it;
+    for(it = meshes.begin(); it != meshes.end(); ++it)
     {
-      ROS_ERROR("[SceneManager] Failed to remove interactive marker on mesh %d!", it->id);
+      std::stringstream int_marker_name;
+      int_marker_name << "mesh_marker_" << it->id;
+
+      if(!int_marker_server_->erase(int_marker_name.str()))
+      {
+	ROS_ERROR("[SceneManager%d] Failed to remove interactive marker on mesh %d!", user_id_, it->id);
+      }
+      int_marker_server_->applyChanges();
+
+      it->header.frame_id = resolveName("map", user_id_);
+      it->header.stamp = ros::Time();
+      it->action = visualization_msgs::Marker::DELETE;
+      it->type = visualization_msgs::Marker::MESH_RESOURCE;
+      it->color.r = it->color.g = it->color.b = it->color.a = 0;
+      it->mesh_use_embedded_materials = true;
+
+      marker_pub_.publish(*it);
     }
-    int_marker_server_->applyChanges();
-
-    it->header.frame_id = resolveName("map", user_id_);
-    it->header.stamp = ros::Time();
-    it->action = visualization_msgs::Marker::DELETE;
-    it->type = visualization_msgs::Marker::MESH_RESOURCE;
-    it->color.r = it->color.g = it->color.b = it->color.a = 0;
-    it->mesh_use_embedded_materials = true;
-
-    marker_pub_.publish(*it);
   }
+  else
+  {
+    ROS_WARN("[SceneManager%d] Interactive marker server is null.", user_id_);
+  }
+
   object_manager_->clearObjects();
 
   // Load the demonstration scene from the specified file.
@@ -172,7 +186,7 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   TiXmlDocument doc(filename.c_str());
   if(!doc.LoadFile())
   {
-    ROS_ERROR("[SceneManager] Failed to load file %s!", filename.c_str());
+    ROS_ERROR("[SceneManager%d] Failed to load file \"%s\"!", user_id_, filename.c_str());
     return max_mesh_id;
   }
 
@@ -260,7 +274,8 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   TiXmlElement *initial_element = element->NextSiblingElement("initial_configuration");
   if(initial_element == NULL)
   {
-    ROS_WARN("[SceneManager] Found no initial robot configuration in the scene file (default = origin)!");
+    ROS_WARN("[SceneManager%d] Found no initial robot configuration in the scene file (default = origin)!",
+      user_id_);
     // If this element does not exist, assume the initial pose of the robot is 
     // at the origin.
     initial_robot_pose_.position.x = 0;
@@ -275,27 +290,27 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   {
     if(initial_element->QueryDoubleAttribute("x", &initial_robot_pose_.position.x) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Could not read the initial x position of the robot!");
+      ROS_ERROR("[SceneManager%d] Could not read the initial x position of the robot!", user_id_);
       return -1;
     }
 
     if(initial_element->QueryDoubleAttribute("y", &initial_robot_pose_.position.y) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Could not read the initial y position of the robot!");
+      ROS_ERROR("[SceneManager%d] Could not read the initial y position of the robot!", user_id_);
       return -1;
     }
     
     double yaw = 0;
     if(initial_element->QueryDoubleAttribute("yaw", &yaw) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Could not read the initial yaw of the robot!");
+      ROS_ERROR("[SceneManager%d] Could not read the initial yaw of the robot!", user_id_);
       return -1;
     }
     initial_robot_pose_.orientation = tf::createQuaternionMsgFromYaw(yaw);
 
     if(initial_element->QueryDoubleAttribute("torso_position", &initial_torso_position_) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Could not read the initial torso position of the robot!");
+      ROS_ERROR("[SceneManager%d] Could not read the initial torso position of the robot!", user_id_);
       return -1;
     }
   }
@@ -454,7 +469,7 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
     // Add the collision model file, if it does not already exist.
     std::stringstream ss;
     ss << ros::package::getPath("dviz_core") << "/collision_models/" << it->label << ".xml";
-    ROS_INFO("[SceneManager] Checking if %s exists...", ss.str().c_str());
+    ROS_INFO("[SceneManager%d] Checking if %s exists...", user_id_, ss.str().c_str());
     if(!boost::filesystem::exists(ss.str()))
     {
       ROS_INFO("...it doesn't.");
@@ -490,7 +505,7 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
     }
     else
     {
-      ROS_WARN("[SceneManager] Collision model file \"%s\" already exists!", ss.str().c_str());
+      ROS_WARN("[SceneManager%d] Collision model file \"%s\" already exists!", user_id_, ss.str().c_str());
     }
   }
 
@@ -512,7 +527,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
   TiXmlDocument doc(filename.c_str());
   if(!doc.LoadFile())
   {
-    ROS_ERROR("[SceneManager] Failed to load file %s!", filename.c_str());
+    ROS_ERROR("[SceneManager%d] Failed to load file \"%s\"!", user_id_, filename.c_str());
     return false;
   }
 
@@ -538,7 +553,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
   TiXmlElement *scene_file = root_handle.FirstChild("scene_file").Element();
   if(scene_file == NULL)
   {
-    ROS_WARN("[SceneManager] No scene file specified for the given task.");
+    ROS_WARN("[SceneManager%d] No scene file specified for the given task.", user_id_);
   }
   else
   {
@@ -546,13 +561,13 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
     std::string scene_filename = "";
     if(scene_file->QueryStringAttribute("path", &scene_filename) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Failed to read scene file path for this task!");
+      ROS_ERROR("[SceneManager%d] Failed to read scene file path for this task!", user_id_);
       return false;
     }
 
     if(loadScene(scene_filename) < 0)
     {
-      ROS_ERROR("[SceneManager] Failed to load scene associated with this task!");
+      ROS_ERROR("[SceneManager%d] Failed to load scene associated with this task!", user_id_);
       return false;
     }
   }
@@ -568,119 +583,119 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
   {
     if(element->QueryIntAttribute("type", &goal_type) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Failed to read goal type!");
+      ROS_ERROR("[SceneManager%d] Failed to read goal type!", user_id_);
       return false;
     }
     if(element->QueryIntAttribute("number", &goal_number) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Failed to read goal number!");
+      ROS_ERROR("[SceneManager%d] Failed to read goal number!", user_id_);
       return false;
     }
     if(element->QueryStringAttribute("desc", &goal_description) != TIXML_SUCCESS)
     {
-      ROS_ERROR("[SceneManager] Failed to read goal description!");
+      ROS_ERROR("[SceneManager%d] Failed to read goal description!", user_id_);
       return false;
     }
 
     switch(goal_type)
     {
     case Goal::PICK_UP:
+    {
+      PickUpGoal *goal = new PickUpGoal(goal_number, goal_description);
+
+      int object_id = 0;
+      if(element->QueryIntAttribute("object_id", &object_id) != TIXML_SUCCESS)
       {
-	PickUpGoal *goal = new PickUpGoal(goal_number, goal_description);
-
-	int object_id = 0;
-	if(element->QueryIntAttribute("object_id", &object_id) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read object ID!");
-	  delete goal;
-	  return false;
-	}
-
-	geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
-	goal->setGraspPose(object_pose);
-	goal->setInitialObjectPose(object_pose);
-	goal->setObjectID(object_id);
-
-	goals_.push_back(goal);
-
-	break;
+	ROS_ERROR("[SceneManager%d] Failed to read object ID!", user_id_);
+	delete goal;
+	return false;
       }
+
+      geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
+      goal->setGraspPose(object_pose);
+      goal->setInitialObjectPose(object_pose);
+      goal->setObjectID(object_id);
+
+      goals_.push_back(goal);
+
+      break;
+    }
     case Goal::PLACE:
+    {
+      PlaceGoal *goal = new PlaceGoal(goal_number, goal_description);
+
+      int object_id = 0;
+      if(element->QueryIntAttribute("object_id", &object_id) != TIXML_SUCCESS)
       {
-	PlaceGoal *goal = new PlaceGoal(goal_number, goal_description);
-
-	int object_id = 0;
-	if(element->QueryIntAttribute("object_id", &object_id) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read object ID!");
-	  delete goal;
-	  return false;
-	}
-	goal->setObjectID(object_id);
-
-	int ignore_yaw = 0;
-	if(element->QueryIntAttribute("ignore_yaw", &ignore_yaw) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read ignore yaw!");
-	  // return false;
-	}
-	goal->setIgnoreYaw((bool)ignore_yaw);
-
-	geometry_msgs::Pose place_pose;
-	if(element->QueryDoubleAttribute("position_x", &place_pose.position.x) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place position x!");
-	  delete goal;
-	  return false;	  
-	}
-	if(element->QueryDoubleAttribute("position_y", &place_pose.position.y) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place position y!");
-	  delete goal;
-	  return false;	  
-	}
-	if(element->QueryDoubleAttribute("position_z", &place_pose.position.z) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place position z!");
-	  delete goal;
-	  return false;	  
-	}
-	if(element->QueryDoubleAttribute("orientation_x", &place_pose.orientation.x) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place orientation x!");
-	  delete goal;
-	  return false;	  
-	}
-	if(element->QueryDoubleAttribute("orientation_y", &place_pose.orientation.y) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place orientation y!");
-	  delete goal;
-	  return false;	  
-	}
-	if(element->QueryDoubleAttribute("orientation_z", &place_pose.orientation.z) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place orientation z!");
-	  delete goal;
-	  return false;	  
-	}
-	if(element->QueryDoubleAttribute("orientation_w", &place_pose.orientation.w) != TIXML_SUCCESS)
-	{
-	  ROS_ERROR("[SceneManager] Failed to read place orientation w!");
-	  delete goal;
-	  return false;	  
-	}
-	goal->setPlacePose(place_pose);
-
-	goals_.push_back(goal);
-
-	break;
+	ROS_ERROR("[SceneManager%d] Failed to read object ID!", user_id_);
+	delete goal;
+	return false;
       }
+      goal->setObjectID(object_id);
+
+      int ignore_yaw = 0;
+      if(element->QueryIntAttribute("ignore_yaw", &ignore_yaw) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read ignore yaw!", user_id_);
+	// return false;
+      }
+      goal->setIgnoreYaw((bool)ignore_yaw);
+
+      geometry_msgs::Pose place_pose;
+      if(element->QueryDoubleAttribute("position_x", &place_pose.position.x) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place position x!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      if(element->QueryDoubleAttribute("position_y", &place_pose.position.y) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place position y!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      if(element->QueryDoubleAttribute("position_z", &place_pose.position.z) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place position z!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      if(element->QueryDoubleAttribute("orientation_x", &place_pose.orientation.x) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place orientation x!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      if(element->QueryDoubleAttribute("orientation_y", &place_pose.orientation.y) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place orientation y!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      if(element->QueryDoubleAttribute("orientation_z", &place_pose.orientation.z) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place orientation z!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      if(element->QueryDoubleAttribute("orientation_w", &place_pose.orientation.w) != TIXML_SUCCESS)
+      {
+	ROS_ERROR("[SceneManager%d] Failed to read place orientation w!", user_id_);
+	delete goal;
+	return false;	  
+      }
+      goal->setPlacePose(place_pose);
+
+      goals_.push_back(goal);
+
+      break;
+    }
     default:
       break;
     }
   }
 
-  ROS_INFO("[SceneManager] Read %d goals.", (int)goals_.size());
+  ROS_INFO("[SceneManager%d] Read %d goals.", user_id_, (int)goals_.size());
 
   for(int i = 0; i < int(goals_.size()); ++i)
   {
@@ -810,8 +825,6 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
 					const std::string &label,
 					bool movable)
 {
-  ROS_INFO("2");
- 
   if(movable)
   {
     ROS_INFO("adding movable");
@@ -837,10 +850,14 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
 void DemonstrationSceneManager::visualizeMesh(const visualization_msgs::Marker &marker, 
 					      bool attach_interactive_marker)
 {
-  ROS_INFO("3");
-
   if(attach_interactive_marker)
   {
+    if(int_marker_server_ == 0)
+    {
+      ROS_WARN("[SceneManager] Interactive marker server is null.");
+      return;
+    }
+
     // Attach an interactive marker to control this marker.
     visualization_msgs::InteractiveMarker int_marker;
     int_marker.header.frame_id = resolveName("map", user_id_);
@@ -1534,6 +1551,3 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
 }
 
 } // namespace demonstration_visualizer
-
-
-

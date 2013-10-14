@@ -20,7 +20,8 @@
 #include <cmath>
 #include <boost/filesystem.hpp>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 /**
  * @brief This manages the demonstration scene and current task. Demonstration
