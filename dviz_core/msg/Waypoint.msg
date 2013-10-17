@@ -1,0 +1,2 @@
+sensor_msgs/JointState joint_states
+geometry_msgs/Pose base_pose
