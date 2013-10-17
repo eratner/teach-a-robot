@@ -2,5 +2,4 @@ uint32 goal_number
 string action
 string object_type
 geometry_msgs/Pose grasp
-sensor_msgs/JointState joint_states
-geometry_msgs/Pose base_pose
+dviz_core/Waypoint[] waypoints
