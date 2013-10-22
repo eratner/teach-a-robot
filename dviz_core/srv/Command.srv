@@ -58,6 +58,9 @@ string SET_ARM_SPEED = set_arm_speed
 # SET_FRAME_RATE: arguments = { id, rate }
 string SET_FRAME_RATE = set_frame_rate
 
+# CHANGE_GOAL: arguments = { id, new-goal-number }
+string CHANGE_GOAL = change_goal
+
 # A valid string command.
 string command
 # A string array of arguments for the given command.

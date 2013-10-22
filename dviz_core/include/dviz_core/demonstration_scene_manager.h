@@ -60,7 +60,9 @@ public:
 
   void resetTask();
 
-  void addMeshFromFile(const std::string &filename, int mesh_id, const std::string &label = "", bool movable = false);
+  void addMeshFromFile(const std::string &filename, int mesh_id, 
+		       const std::string &label = "", bool movable = false,
+                       bool attach_interactive_marker = true);
 
   void addMesh(const visualization_msgs::Marker &marker,
   	       bool attach_interactive_marker = false,

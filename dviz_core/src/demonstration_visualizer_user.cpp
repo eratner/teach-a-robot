@@ -253,7 +253,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       }
 
       ROS_INFO("[DVizUser%d] Adding mesh %s from file %s.", id_, name.c_str(), req.args[0].c_str());
-      demonstration_scene_manager_->addMeshFromFile(req.args[0], 20, name, movable);
+      demonstration_scene_manager_->addMeshFromFile(req.args[0], 20, name, movable, false);
     }
     else
     {
@@ -412,6 +412,24 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end SET_FRAME_RATE
+  else if(req.command.compare(dviz_core::Command::Request::CHANGE_GOAL) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int new_goal = atoi(req.args[0].c_str());
+      ROS_INFO("[DVizUser%d] Changing goal number %d to the current goal.", id_, new_goal);
+      demonstration_scene_manager_->setCurrentGoal(new_goal);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for change_goal (%d given, 1 required).",
+		id_, req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for change_goal (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end CHANGE_GOAL
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());

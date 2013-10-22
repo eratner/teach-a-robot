@@ -350,6 +350,30 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     //   return false;
     // }
   } // end BASIC_GRIPPER
+  else if(req.command.compare(dviz_core::Command::Request::PROCESS_KEY) == 0)
+  {
+    if(req.args.size() == 3)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]); // key
+      args.push_back(req.args[2]); // type (i.e. key down, key up, etc.)
+
+      if(!passCommandToUser(dviz_core::Command::Request::PROCESS_KEY, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in process_key command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for process_key (%d given, 3 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for process_key (" << req.args.size() << " given, 3 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end PROCESS_KEY
   else if(req.command.compare(dviz_core::Command::Request::SET_BASE_SPEED) == 0)
   {
     if(req.args.size() == 3)
@@ -420,6 +444,29 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end SET_FRAME_RATE
+  else if(req.command.compare(dviz_core::Command::Request::CHANGE_GOAL) == 0)
+  {
+    if(req.args.size() == 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]);
+
+      if(!passCommandToUser(dviz_core::Command::Request::CHANGE_GOAL, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in change_goal command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for change_goal (%d given, 2 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for change_goal (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end CHANGE_GOAL
   else
   {
     ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());

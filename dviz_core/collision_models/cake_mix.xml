@@ -1,5 +1,5 @@
 <collision_model>
-    <object label="cake_mix" mesh_resource="package://dviz_core/meshes/cake_mix/cake_mix.dae" />
+    <object label="cake_mix" mesh_resource="package://dviz_core/meshes/web/cake_mix/cake_mix.dae" />
     <sphere id="1" x="0.01" y="0" z="0.01" radius="0.03" />
     <sphere id="2" x="0.01" y="0" z="-0.02" radius="0.03" />
     <sphere id="3" x="0.01" y="0" z="-0.05" radius="0.03" />

@@ -129,6 +129,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   var width = options.viewerWidth;
   var height = options.viewerHeight;
   this.goals = [];
+  this.currentGoal = -1;
   this.id = options.id;
 
   console.log('id = ' + this.id);
@@ -161,13 +162,19 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     }
     that.goals = message.goals;
     var currentGoal = message.current_goal;
-    var html = '';
-    for(var i = 0; i < message.goals.length; ++i) {
-      html = html + '<a href="#" class="list-group-item' + 
-	(message.goals[i].number == currentGoal ? ' active' : '') + 
-	'">' + message.goals[i].description + '</a>';
+    // @todo find a better way to decide when to update the task list...
+    //       maybe there should be a flag: has the task changed?
+    if(that.currentGoal != currentGoal) {
+      that.currentGoal = currentGoal;
+      var html = '';
+      for(var i = 0; i < message.goals.length; ++i) {
+	html = html + '<a href="#" onclick="dvizClient.changeGoal(' +
+	  message.goals[i].number + ')" class="list-group-item' + 
+	  (message.goals[i].number == currentGoal ? ' active' : '') + 
+	  '">' + message.goals[i].description + '</a>';
+      }
+      document.getElementById('task').innerHTML = html;
     }
-    document.getElementById('task').innerHTML = html;
   });
 };
 
@@ -211,27 +218,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   // @todo for now, just load the kitchen mesh.
   console.log('[DVizClient] Loading kitchen...');
 
-  // Load the kitchen scene to start with.
-  /*
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'load_mesh',
-    args : [this.id.toString(), 
-	    'package://dviz_core/meshes/max_webgl_kitchen/max_webgl_kitchen.dae',
-	    'false', 
-	    'kitchen']
-  }), function(response) {
-    if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + res.response);
-    } else {
-      console.log('[DVizClient] Loaded kitchen mesh.');
-    }
-  });
-  */
-
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
     args : [this.id.toString(), 
-	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/web_kitchen.xml']
+	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen.xml']
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
@@ -257,6 +247,54 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function() {
       console.log('[DVizClient] Loaded brownie task.');
     }
   });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
+  console.log('[DVizClient] Handling key press event: ' + e.which + '.');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'process_key',
+    args : [this.id.toString(),
+	    e.which.toString(),
+	    '6'] // Qt code for KeyPress, @todo make a constant
+  }), function(response) {
+    // @todo report errors
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
+  console.log('[DVizClient] Handling key release event: ' + e.which + '.');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'process_key',
+    args : [this.id.toString(),
+	    e.which.toString(),
+	    '7'] // Qt code for KeyRelease, @todo make a constant
+  }), function(response) {
+    // @todo report errors
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
+  // @todo first alert the user, and confirm that they want to switch goals.
+
+  console.log('[DVizClient] Changing goal to ' + num + '.');
+  // @todo check if valid goal number?
+  this.currentGoal = num;
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'change_goal',
+    args : [this.id.toString(),
+	    num.toString()]
+  }), function(response) {
+    // @todo report errors
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
+  console.log('[DVizClient] Accepting grasp.');
+
+  // @todo
 }
 
 var ros = null;
@@ -299,7 +337,7 @@ function init() {
       fixedFrame : '/dviz_user_' + userId + '/map'
     });
     
-    var meshClient = new ROS3D.MarkerClient({
+    var meshClient = new ROS3D.MultiMarkerClient({
       ros : ros,
       topic : '/dviz_user_' + userId + '/visualization_marker',
       tfClient : tfClient,
@@ -330,6 +368,15 @@ function init() {
       viewerWidth : 800,
       viewerHeight : 600,
       id : userId
+    });
+
+    // Add keyboard bindings.
+    $(window).bind('keydown', function(e) {
+      dvizClient.handleKeyPress(e);
+    });
+
+    $(window).bind('keyup', function(e) {
+      dvizClient.handleKeyRelease(e);
     });
   });
 }

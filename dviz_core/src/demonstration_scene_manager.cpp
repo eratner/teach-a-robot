@@ -791,7 +791,8 @@ void DemonstrationSceneManager::resetTask()
 void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, 
 						int mesh_id, 
 						const std::string &label,
-                                                bool movable)
+                                                bool movable,
+                                                bool attach_interactive_marker)
 {
   // Spawn the mesh at the origin.
   geometry_msgs::PoseStamped pose_stamped;
@@ -807,8 +808,6 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename,
   geometry_msgs::Vector3 scale;
   scale.x = scale.y = scale.z = 1;
 
-  ROS_INFO("1");
-
   visualization_msgs::Marker marker = makeMeshMarker(filename,
 						     "demonstration_visualizer",
 						     mesh_id,
@@ -817,7 +816,7 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename,
 						     0.0,
 						     true);
 
-  addMesh(marker, true, label, movable);
+  addMesh(marker, attach_interactive_marker, label, movable);
 }
 
 void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker, 
@@ -1429,6 +1428,8 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
       for(int i = 0; i < int(gripper_markers.size()); ++i)
       {
 	gripper_markers[i].header.frame_id = resolveName("map", user_id_);
+	ROS_INFO("[SceneManager%d] Gripper marker path = \"%s\"", user_id_, 
+		 gripper_markers[i].mesh_resource.c_str());
 	gripper_markers[i].color.a = 0.3;
 	marker_pub_.publish(gripper_markers[i]);
       }
