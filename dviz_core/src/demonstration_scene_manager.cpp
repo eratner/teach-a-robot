@@ -1425,10 +1425,17 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 				       5*pick_up_goal->getGoalNumber(), 
 				       pick_up_goal->getGripperJointPosition(), gripper_markers);
 
+      ROS_INFO("[SceneManager%d] PICK UP GOAL.", user_id_);
+
       for(int i = 0; i < int(gripper_markers.size()); ++i)
       {
 	gripper_markers[i].header.frame_id = resolveName("map", user_id_);
-	ROS_INFO("[SceneManager%d] Gripper marker path = \"%s\"", user_id_, 
+	// @todo for the web version, we must change the path of the gripper meshes.
+	// Eliminate the "package://pr2_description/" prefix and replace with 
+	// "http://resources.robotwebtools.org/" to make the meshes web-compatible.
+	gripper_markers[i].mesh_resource = "http://resources.robotwebtools.org/"
+	  + gripper_markers[i].mesh_resource.substr(10);
+	ROS_WARN("[SceneManager%d] Gripper marker path = %s", user_id_,
 		 gripper_markers[i].mesh_resource.c_str());
 	gripper_markers[i].color.a = 0.3;
 	marker_pub_.publish(gripper_markers[i]);

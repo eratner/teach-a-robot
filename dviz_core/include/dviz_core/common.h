@@ -12,6 +12,7 @@ namespace demonstration_visualizer
     std::stringstream ss;
     ss << "/dviz_user_" << id << (relative_name.substr(0, 1).compare("/") == 0 ? "" : "/")
        << relative_name;
+    //ROS_INFO("resolveName(%s, %d): %s", relative_name.c_str(), id, ss.str().c_str());
     return ss.str();    
   }
 } // namespace demonstration_visualizer

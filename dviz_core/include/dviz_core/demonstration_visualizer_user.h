@@ -81,6 +81,19 @@ public:
    */
   void getUserProcessInfo();
 
+  /**
+   * @brief Encapsulates a series of steps that must be taken once a goal has completed.
+   */
+  void goalCompleted();
+
+  /**
+   * @brief Shows a gripper marker centered at the given goal (if that goal is of type
+   *        PICK_UP), which a user may interact with via interactive markers.
+   */
+  bool showInteractiveGripper(int);
+
+  void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+
 private:
   /**
    * @brief Initializes ROS and names the DVizUser node with its

@@ -313,8 +313,10 @@ void PR2Simulator::run()
     // Record motion.
     if(recorder_->isRecording())
     {
-      recorder_->recordBasePose(base_pose_);
-      recorder_->recordJoints(joint_states_);
+      dviz_core::Waypoint waypoint;
+      waypoint.joint_states = joint_states_;
+      waypoint.base_pose = base_pose_.pose;
+      recorder_->recordWaypoint(waypoint);
     }
 
     // Replay motion.
@@ -323,7 +325,8 @@ void PR2Simulator::run()
       if(recorder_->getJointsRemaining() == 0 && recorder_->getPosesRemaining() == 0)
       {
 	recorder_->endReplay();
-	marker_pub_.publish(recorder_->getBasePath());
+	// @todo fix the base path
+	//marker_pub_.publish(recorder_->getBasePath());
 	ROS_INFO("[PR2Sim] Done replaying.");
       }
 
@@ -332,7 +335,7 @@ void PR2Simulator::run()
 
       if(recorder_->getPosesRemaining() > 0)
       {
-	base_pose_ = recorder_->getNextBasePose();
+	base_pose_.pose = recorder_->getNextBasePose();
 
 	int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
 	int_marker_server_->applyChanges();

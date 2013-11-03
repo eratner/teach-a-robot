@@ -38,7 +38,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   std::stringstream ss;
   ss << "dviz_user_" << id_;
   pviz_ = new PViz(ss.str());
-  recorder_ = new MotionRecorder();
+  recorder_ = new MotionRecorder(id_);
 
   std::string larm_filename;
   std::string rarm_filename;
@@ -305,7 +305,21 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   {
     if(req.args.size() == 1)
     {
-      recorder_->beginRecording(req.args[0]);
+      if(demonstration_scene_manager_->getNumGoals() > 0)
+      {
+	int current_goal = demonstration_scene_manager_->getCurrentGoal();
+	Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
+	recorder_->addStep(Goal::GoalTypeNames[goal->getType()], "?",  // @todo object type?
+			   demonstration_scene_manager_->getGraspPose(current_goal));
+      }
+      else
+      {
+	ROS_WARN("[DVizUser%d] No task loaded, so recording with no user demonstration information.", id_);
+	recorder_->addStep("?", "?", geometry_msgs::Pose());
+      }
+
+      // @todo we need to get the task name
+      recorder_->beginRecording(req.args[0], "kitchen");
     }
     else
     {
@@ -430,6 +444,46 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end CHANGE_GOAL
+  else if(req.command.compare(dviz_core::Command::Request::ACCEPT_GRASP) == 0)
+  {
+    // @todo accept grasp
+    int current_goal = demonstration_scene_manager_->getCurrentGoal();
+    Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
+    if(goal->getType() == Goal::PICK_UP)
+    {
+      PickUpGoal *g = static_cast<PickUpGoal *>(goal);
+      g->setGraspDone(true);
+      demonstration_scene_manager_->setGoalsChanged();
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Goal must be of type PICK_UP to accept grasp!", id_);
+      res.response = "Goal must be of type PICK_UP to accept grasp!";
+      return false;
+    }
+  } // end ACCEPT_GRASP
+  else if(req.command.compare(dviz_core::Command::Request::SHOW_INTERACTIVE_GRIPPER) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int goal_number = atoi(req.args[0].c_str());
+
+      if(!showInteractiveGripper(goal_number))
+      {
+	ROS_ERROR("[DVizUser%d] Cannot show interactive gripper for goal number %d.", id_, goal_number);
+	return false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for show_interactive_gripper (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for show_interactive_gripper (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SHOW_INTERACTIVE_GRIPPER
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -614,6 +668,8 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 	// Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
 	demonstration_scene_manager_->setCurrentGoal(demonstration_scene_manager_->getCurrentGoal() + 1);
+
+	goalCompleted();
       }
       else
       {
@@ -704,6 +760,8 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 	// Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
 
 	demonstration_scene_manager_->setCurrentGoal(demonstration_scene_manager_->getCurrentGoal() + 1);
+
+	goalCompleted();
       }
       else
       {
@@ -803,6 +861,111 @@ void DemonstrationVisualizerUser::getUserProcessInfo()
   }
   ROS_ERROR("[DVizUser%d] Unable to open file \"%s\"!", id_, ss.str().c_str());
   return;
+}
+
+void DemonstrationVisualizerUser::goalCompleted()
+{
+  ROS_INFO("[DVizUser%d] Goal completed!", id_);
+
+  if(recorder_->isRecording())
+  {
+    if(demonstration_scene_manager_->getNumGoals() > 0)
+    {
+      int current_goal = demonstration_scene_manager_->getCurrentGoal();
+      Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
+      recorder_->addStep(Goal::GoalTypeNames[goal->getType()], "?",  // @todo object type?
+			 demonstration_scene_manager_->getGraspPose(current_goal));
+    }
+    else
+    {
+      ROS_WARN("[DVizUser%d] No task loaded, so recording with no user demonstration information.", id_);
+      recorder_->addStep("?", "?", geometry_msgs::Pose());
+    }
+  }
+}
+
+bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
+{
+  if(demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
+  {
+    ROS_ERROR("[DVizUser%d] Cannot show a gripper for a goal that is not of type PICK_UP.", id_);
+    return false;
+  }
+
+  PickUpGoal *goal = static_cast<PickUpGoal *>(demonstration_scene_manager_->getGoal(goal_number));
+
+  geometry_msgs::Pose gripper_pose = goal->getGraspPose();
+
+  visualization_msgs::InteractiveMarker int_marker;
+  int_marker.header.frame_id = resolveName("/map", id_);
+  std::stringstream s;
+  s << "grasp_marker_goal_" << goal_number;
+  int_marker.name = s.str();
+  int_marker.description = "";
+  int_marker.pose = gripper_pose;
+
+  visualization_msgs::InteractiveMarkerControl control;
+  std::vector<visualization_msgs::Marker> markers;
+  geometry_msgs::Pose origin;
+  // @todo compute this based on the goal object.
+  origin.position.x = -(goal->getGraspDistance());
+  origin.position.y = origin.position.z = 0;
+  origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
+  origin.orientation.w = 1;
+  pviz_->getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, goal->getGripperJointPosition(), markers);
+
+  for(int i = 0; i < int(markers.size()); ++i)
+  {
+    markers.at(i).header.frame_id = "";
+    control.markers.push_back(markers.at(i));
+  }
+  control.always_visible = true;
+  int_marker.controls.push_back(control);
+
+  control.markers.clear();
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 1;
+  control.orientation.z = 0;
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::ROTATE_AXIS;
+  int_marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 1;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
+  int_marker.controls.push_back(control);
+
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 1;
+  int_marker.controls.push_back(control);
+
+  int_marker_server_->insert(int_marker,
+			     boost::bind(
+			       &DemonstrationVisualizerUser::gripperMarkerFeedback,
+			       this,
+			       _1)
+			     );
+  int_marker_server_->applyChanges();
+  
+  return true;
+}
+
+void DemonstrationVisualizerUser::gripperMarkerFeedback(
+    const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
+  )
+{
+  int i = feedback->marker_name.size()-1;
+  for(; i >= 0; --i)
+  {
+    if(feedback->marker_name.at(i) == '_')
+      break;
+  }
+
+  demonstration_scene_manager_->setGraspPose(atoi(feedback->marker_name.substr(i+1).c_str()),
+					     feedback->pose);
 }
 
 } // namespace demonstration_visualizer

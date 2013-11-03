@@ -10,8 +10,12 @@
 #include <rosbag/view.h>
 
 #include <sensor_msgs/JointState.h>
-#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
+
+#include <dviz_core/UserDemonstration.h>
+#include <dviz_core/Step.h>
+#include <dviz_core/Waypoint.h>
 
 #include <string>
 #include <sstream>
@@ -19,21 +23,24 @@
 
 #define foreach BOOST_FOREACH
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 class MotionRecorder
 {
 public:
-  MotionRecorder();
+  MotionRecorder(int user_id = 0);
 
   virtual ~MotionRecorder();
 
   /**
    * @brief Creates a bagfile for recording motion at the specified 
    *        file path. 
-   * @param[in] path
+   * @param path The path indicating where to save the bagfile.
+   * @param task_name (optional) The name of the task that is being recorded.
+   * @param start_goal (optional) The goal number to begin with. 
    */
-  bool beginRecording(const std::string &path);
+  bool beginRecording(const std::string &path, const std::string &task_name = "");
 
   void endRecording();
 
@@ -51,9 +58,11 @@ public:
 
   visualization_msgs::Marker getBasePath();
 
-  void recordJoints(const sensor_msgs::JointState &msg);
+  void recordWaypoint(const dviz_core::Waypoint &waypoint);
 
-  void recordBasePose(const geometry_msgs::PoseStamped &msg);
+  void addStep(const std::string &action, const std::string &object_type, const geometry_msgs::Pose &grasp);
+
+  bool changeCurrentStep(int goal_number);
 
   bool isRecording() const;
 
@@ -73,9 +82,11 @@ public:
    * @brief If replaying from a bagfile, this will return the next
    *        base pose from the recorded trajectory.
    */
-  geometry_msgs::PoseStamped getNextBasePose();
+  geometry_msgs::Pose getNextBasePose();
 
 private:
+  void flush();
+
   bool is_recording_;
   bool is_replaying_;
   int bag_count_;
@@ -83,7 +94,12 @@ private:
   rosbag::Bag write_bag_;
   rosbag::Bag read_bag_;
 
-  std::vector<geometry_msgs::PoseStamped> poses_;
+  int user_id_;
+  int current_goal_;
+
+  dviz_core::UserDemonstration demo_;
+
+  std::vector<geometry_msgs::Pose> poses_;
   int pose_count_;
 
   std::vector<sensor_msgs::JointState> joint_states_;

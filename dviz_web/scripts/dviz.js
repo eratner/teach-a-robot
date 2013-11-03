@@ -64,6 +64,8 @@ DVIZ.CameraManager = function(options) {
   this.cameraMode = 0;
   this.lastCameraMode = 1;
 
+  this.zMode = false;
+
   // Use SMA filters to make the camera smoother.
   this.xFilter = createSMAFilter(this.filterBufferSize);
   this.yFilter = createSMAFilter(this.filterBufferSize);
@@ -129,7 +131,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   var width = options.viewerWidth;
   var height = options.viewerHeight;
   this.goals = [];
-  this.currentGoal = -1;
+  this.currentGoalNumber = -1;
   this.id = options.id;
 
   console.log('id = ' + this.id);
@@ -164,8 +166,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     var currentGoal = message.current_goal;
     // @todo find a better way to decide when to update the task list...
     //       maybe there should be a flag: has the task changed?
-    if(that.currentGoal != currentGoal) {
-      that.currentGoal = currentGoal;
+    if(that.currentGoalNumber != currentGoal) {
+      that.currentGoalNumber = currentGoal;
       var html = '';
       for(var i = 0; i < message.goals.length; ++i) {
 	html = html + '<a href="#" onclick="dvizClient.changeGoal(' +
@@ -174,6 +176,18 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	  '">' + message.goals[i].description + '</a>';
       }
       document.getElementById('task').innerHTML = html;
+
+      // Check if we need to change the state of the camera (e.g. if the 
+      // next goal is a pick up goal, we need to focus the camera at the 
+      // grasp pose).
+      if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
+	// @todo switch camera to focus on that gripper pose
+	console.log('[DVizClient] Current goal is of type pick-up.');
+	that.showInteractiveGripper(that.currentGoal);
+      } else {
+	// @todo switch camera back to original pose
+	
+      }
     }
   });
 };
@@ -221,7 +235,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
     args : [this.id.toString(), 
-	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen.xml']
+	    //'/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen.xml']
+	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen_lite.xml']
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
@@ -250,7 +265,17 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function() {
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
-  console.log('[DVizClient] Handling key press event: ' + e.which + '.');
+  //console.log('[DVizClient] Handling key press event: ' + e.which + '.');
+
+  // Filter certain keys depending on the client state.
+  if(e.which === 90) {
+    if(!this.zMode) {
+      console.log('[DVizClient] Enabling z-mode.');
+      this.zMode = true;
+    } else {
+      return;
+    }
+  }
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'process_key',
@@ -263,7 +288,16 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
-  console.log('[DVizClient] Handling key release event: ' + e.which + '.');
+  //console.log('[DVizClient] Handling key release event: ' + e.which + '.');
+
+  if(e.which === 90) {
+    if(this.zMode) {
+        console.log('[DVizClient] Disabling z-mode.');
+        this.zMode = false;
+      } else {
+	return;
+      }
+  }
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'process_key',
@@ -291,10 +325,27 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
   });
 }
 
+DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(goalNumber) {
+  console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString() + '.');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'show_interactive_gripper',
+    args : [this.id.toString(),
+	    goalNumber.toString()]
+  }), function(response) {
+    // @todo report erros
+  });
+}
+
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   console.log('[DVizClient] Accepting grasp.');
 
-  // @todo
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'accept_grasp',
+    args : [this.id.toString()]
+  }), function(response) {
+    // @todo report errors
+  });
 }
 
 var ros = null;

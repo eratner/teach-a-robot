@@ -61,6 +61,12 @@ string SET_FRAME_RATE = set_frame_rate
 # CHANGE_GOAL: arguments = { id, new-goal-number }
 string CHANGE_GOAL = change_goal
 
+# ACCEPT_GRASP: arguments = { id }
+string ACCEPT_GRASP = accept_grasp
+
+# SHOW_INTERACTIVE_GRIPPER = { id, goal-number }
+string SHOW_INTERACTIVE_GRIPPER = show_interactive_gripper
+
 # A valid string command.
 string command
 # A string array of arguments for the given command.

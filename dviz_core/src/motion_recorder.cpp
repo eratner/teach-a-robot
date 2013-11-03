@@ -1,8 +1,9 @@
 #include <dviz_core/motion_recorder.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
-MotionRecorder::MotionRecorder()
+MotionRecorder::MotionRecorder(int user_id)
   : is_recording_(false),
     is_replaying_(false),
     bag_count_(0), 
@@ -10,7 +11,9 @@ MotionRecorder::MotionRecorder()
     write_bag_(),
     read_bag_(),
     pose_count_(0),
-    joint_states_count_(0)
+    joint_states_count_(0),
+    user_id_(user_id),
+    current_goal_(-1)
 {
 
 }
@@ -20,16 +23,18 @@ MotionRecorder::~MotionRecorder()
 
 }
 
-bool MotionRecorder::beginRecording(const std::string &path)
+bool MotionRecorder::beginRecording(const std::string &path,
+				    const std::string &task_name)
 {
   if(!is_recording_)
   {
     is_recording_ = true;
     // Start recording to a new bag file.
     std::stringstream file_path;
-    file_path << path << "/motion" << bag_count_ << ".bag";
+    // @todo append user id to the name of the file.
+    file_path << path << "/demonstration" << bag_count_ << ".bag";
     write_bag_path_ = file_path.str();
-    bag_count_++;
+
     try
     {
       write_bag_.open(file_path.str(), rosbag::bagmode::Write);
@@ -39,6 +44,17 @@ bool MotionRecorder::beginRecording(const std::string &path)
       ROS_ERROR("[MotionRec] Failed to open bagfile %s: %s", file_path.str().c_str(), e.what());
       return false;
     }
+
+    // Initialize the user demonstration message that will be written to the bagfile.
+    demo_.user_id = user_id_;
+    //demo_.time = ...;
+    //demo_.date = ...;
+    demo_.task_name = task_name;
+    demo_.demo_id = bag_count_;
+
+    demo_.steps.clear();
+
+    bag_count_++;
 
     ROS_INFO("[MotionRec] Beginning to record motion to %s.", file_path.str().c_str());
   }
@@ -57,6 +73,9 @@ void MotionRecorder::endRecording()
   {
     is_recording_ = false;
 
+    // Record the demonstration to a bag file.
+    flush();
+
     // Stop recording.
     ROS_INFO("[MotionRec] Recording finished with %d messages.", write_bag_.getSize());
     write_bag_.close();
@@ -70,14 +89,14 @@ void MotionRecorder::endRecording()
 
 bool MotionRecorder::beginReplay(const std::string &file)
 {
-  if(!getBasePath(file, base_path_))
-  {
-    ROS_ERROR("[MotionRec] Error constructing the base path from bagfile %s!", file.c_str());
-    return false;
-  }
+  // @todo fix the base path
+  // if(!getBasePath(file, base_path_))
+  // {
+  //   ROS_ERROR("[MotionRec] Error constructing the base path from bagfile %s!", file.c_str());
+  //   return false;
+  // }
 
-  // Load appropriate bag file, and populate a vector of PoseStamped messages to 
-  // send to the robot simulator.
+  // Load appropriate bag file, and get the user demonstration data. 
   try
   {
     read_bag_.open(file, rosbag::bagmode::Read);
@@ -88,34 +107,35 @@ bool MotionRecorder::beginReplay(const std::string &file)
     return false;
   }
 
-  rosbag::View poses_view(read_bag_, rosbag::TopicQuery("/base_pose"));
+  rosbag::View view(read_bag_, rosbag::TopicQuery("/demonstration"));
+  rosbag::View::iterator iter = view.begin();
+  dviz_core::UserDemonstration::ConstPtr loaded_demo = (*iter).instantiate<dviz_core::UserDemonstration>();
+  if(loaded_demo == NULL)
+  {
+    ROS_ERROR("[MotionRec] Failed to load user demonstration from bag file!");
+    return false;
+  }
+
   poses_.clear();
   pose_count_ = 0;
-
-  foreach(rosbag::MessageInstance const m, poses_view)
-  {
-    geometry_msgs::PoseStamped::ConstPtr base_pose = m.instantiate<geometry_msgs::PoseStamped>();
-    if(base_pose != NULL)
-    {
-      poses_.push_back(*base_pose);
-    }
-  }
-  ROS_INFO("[MotionRec] Added %d poses.", poses_.size());
-
-  // Populate a vector of joint states to send to the robot simulator.
-  rosbag::View joints_view(read_bag_, rosbag::TopicQuery("/joint_states"));
   joint_states_.clear();
   joint_states_count_ = 0;
-  
-  foreach(rosbag::MessageInstance const m, joints_view)
+
+  // Populate a vector of poses and joint states from the waypoints.
+  for(std::vector<dviz_core::Step>::const_iterator s_it = loaded_demo->steps.begin();
+      s_it != loaded_demo->steps.end(); ++s_it)
   {
-    sensor_msgs::JointState::ConstPtr joint_state = m.instantiate<sensor_msgs::JointState>();
-    if(joint_state != NULL)
+    for(std::vector<dviz_core::Waypoint>::const_iterator w_it = s_it->waypoints.begin();
+	w_it != s_it->waypoints.end(); ++w_it)
     {
-      joint_states_.push_back(*joint_state);
+      poses_.push_back(w_it->base_pose);
+      pose_count_++;
+      joint_states_.push_back(w_it->joint_states);
+      joint_states_count_++;
     }
   }
-  ROS_INFO("[MotionRec] Added %d joints states.", joint_states_.size());
+
+  ROS_INFO("[MotionRec] Added %d poses and %d joint states messages.", pose_count_, joint_states_count_);
 
   read_bag_.close();
 
@@ -132,6 +152,7 @@ void MotionRecorder::endReplay()
 
 bool MotionRecorder::getBasePath(const std::string &file, visualization_msgs::Marker &base_path)
 {
+  // @todo fix this.
   // visualization_msgs::Marker base_path;
   base_path.header.frame_id = "/map";
   base_path.header.stamp = ros::Time::now();
@@ -155,32 +176,32 @@ bool MotionRecorder::getBasePath(const std::string &file, visualization_msgs::Ma
     return false;
   }
 
-  rosbag::View poses_view(bag, rosbag::TopicQuery("/base_pose"));
+  // rosbag::View poses_view(bag, rosbag::TopicQuery("/base_pose"));
 
-  geometry_msgs::Point last;
-  int skipped = 0;
+  // geometry_msgs::Point last;
+  // int skipped = 0;
 
-  foreach(rosbag::MessageInstance const m, poses_view)
-  {
-    geometry_msgs::PoseStamped::ConstPtr base_pose = m.instantiate<geometry_msgs::PoseStamped>();
-    if(base_pose != NULL)
-    {
-      geometry_msgs::Point p;
-      p.x = base_pose->pose.position.x;
-      p.y = base_pose->pose.position.y;
-      p.z = base_pose->pose.position.z;
+  // foreach(rosbag::MessageInstance const m, poses_view)
+  // {
+  //   geometry_msgs::PoseStamped::ConstPtr base_pose = m.instantiate<geometry_msgs::PoseStamped>();
+  //   if(base_pose != NULL)
+  //   {
+  //     geometry_msgs::Point p;
+  //     p.x = base_pose->pose.position.x;
+  //     p.y = base_pose->pose.position.y;
+  //     p.z = base_pose->pose.position.z;
 
-      if(p.x == last.x && p.y == last.y && p.z == last.z)
-	skipped++;
-      else
-      {
-	last = p;
-	base_path.points.push_back(p);
-      }
-    }
-  }
-  ROS_INFO("[MotionRec] Added %d points to the base path (skipped %d).", base_path.points.size(),
-	   skipped);
+  //     if(p.x == last.x && p.y == last.y && p.z == last.z)
+  // 	skipped++;
+  //     else
+  //     {
+  // 	last = p;
+  // 	base_path.points.push_back(p);
+  //     }
+  //   }
+  // }
+  // ROS_INFO("[MotionRec] Added %d points to the base path (skipped %d).", base_path.points.size(),
+  // 	   skipped);
 
   bag.close();
 
@@ -190,24 +211,52 @@ bool MotionRecorder::getBasePath(const std::string &file, visualization_msgs::Ma
 
 visualization_msgs::Marker MotionRecorder::getBasePath()
 {
-  // return getBasePath(write_bag_path_);
   return base_path_;
 }
 
-void MotionRecorder::recordJoints(const sensor_msgs::JointState &msg)
+void MotionRecorder::recordWaypoint(const dviz_core::Waypoint &waypoint)
 {
-  if(is_recording_)
+  if(isRecording())
   {
-    write_bag_.write("/joint_states", ros::Time::now(), msg);
+    if(demo_.steps.size() <= current_goal_)
+    {
+      ROS_ERROR("[MotionRec] Not enough steps in the current demonstration!");
+    }
+    else
+    {
+      demo_.steps[current_goal_].waypoints.push_back(waypoint);
+    }
   }
 }
 
-void MotionRecorder::recordBasePose(const geometry_msgs::PoseStamped &msg)
+void MotionRecorder::addStep(const std::string &action,
+			     const std::string &object_type,
+			     const geometry_msgs::Pose &grasp)
 {
-  if(is_recording_)
+  current_goal_++;
+  
+  dviz_core::Step step;
+  step.goal_number = current_goal_;
+  step.action = action;
+  step.object_type = object_type;
+  step.grasp = grasp;
+
+  demo_.steps.push_back(step);
+}
+
+bool MotionRecorder::changeCurrentStep(int goal_number)
+{
+  if(goal_number >= 0 && goal_number < demo_.steps.size())
   {
-    write_bag_.write("/base_pose", ros::Time::now(), msg);
+    current_goal_ = goal_number;
   }
+  else
+  {
+    ROS_ERROR("[MotionRec] Invalid goal number %d!", goal_number);
+    return false;
+  }
+
+  return true;
 }
 
 bool MotionRecorder::isRecording() const
@@ -242,16 +291,24 @@ sensor_msgs::JointState MotionRecorder::getNextJoints()
   return joint_states_.at(joint_states_count_-1);
 }
 
-geometry_msgs::PoseStamped MotionRecorder::getNextBasePose()
+geometry_msgs::Pose MotionRecorder::getNextBasePose()
 {
   if(pose_count_ >= poses_.size())
   {
     ROS_INFO("[MotionRec] Done replaying poses.");
-    return geometry_msgs::PoseStamped();
+    return geometry_msgs::Pose();
   }
   
   pose_count_++;
   return poses_.at(pose_count_-1);
+}
+
+void MotionRecorder::flush()
+{
+  if(isRecording())
+  {
+    write_bag_.write("/demonstration", ros::Time::now(), demo_);
+  }
 }
 
 } // namespace demonstration_visualizer

@@ -467,6 +467,52 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end CHANGE_GOAL
+  else if(req.command.compare(dviz_core::Command::Request::ACCEPT_GRASP) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      
+      if(!passCommandToUser(dviz_core::Command::Request::ACCEPT_GRASP, res.response, user_id, 
+			    std::vector<std::string>()))
+      {
+	ROS_ERROR("[DVizCore] Error in accept_grasp command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for accept_grasp (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for accept_grasp (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end ACCEPT_GRASP
+  else if(req.command.compare(dviz_core::Command::Request::SHOW_INTERACTIVE_GRIPPER) == 0)
+  {
+    if(req.args.size() == 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]);
+      
+      if(!passCommandToUser(dviz_core::Command::Request::SHOW_INTERACTIVE_GRIPPER, res.response, user_id, 
+			    args))
+      {
+	ROS_ERROR("[DVizCore] Error in show_interactive_gripper command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for show_interactive_gripper (%d given, 2 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for show_interactive_gripper (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SHOW_INTERACTIVE_GRIPPER
   else
   {
     ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());
