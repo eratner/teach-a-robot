@@ -1,6 +1,7 @@
 #include <dviz_core/goal.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 const char *Goal::GoalTypeNames[] = { "Pick Up", "Place" };
 

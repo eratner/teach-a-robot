@@ -3,6 +3,9 @@
 namespace demonstration_visualizer
 {
 
+// @todo this should be set to a better location. 
+const std::string MotionRecorder::DEFAULT_DEMONSTRATION_PATH = "/home/eratner/demonstrations";
+
 MotionRecorder::MotionRecorder(int user_id)
   : is_recording_(false),
     is_replaying_(false),
@@ -80,10 +83,10 @@ void MotionRecorder::endRecording()
     ROS_INFO("[MotionRec] Recording finished with %d messages.", write_bag_.getSize());
     write_bag_.close();
 
-    if(!getBasePath(write_bag_path_, base_path_))
-    {
-      ROS_ERROR("[MotionRec] Error constructing the base path for the latest recording!");
-    }
+    // if(!getBasePath(write_bag_path_, base_path_))
+    // {
+    //   ROS_ERROR("[MotionRec] Error constructing the base path for the latest recording!");
+    // }
   }
 }
 
@@ -220,7 +223,8 @@ void MotionRecorder::recordWaypoint(const dviz_core::Waypoint &waypoint)
   {
     if(demo_.steps.size() <= current_goal_)
     {
-      ROS_ERROR("[MotionRec] Not enough steps in the current demonstration!");
+      ROS_ERROR("[MotionRec] Not enough steps in the current demonstration! (current goal = %d, number of steps = %d)",
+	current_goal_, (int)demo_.steps.size());
     }
     else
     {
@@ -305,10 +309,9 @@ geometry_msgs::Pose MotionRecorder::getNextBasePose()
 
 void MotionRecorder::flush()
 {
-  if(isRecording())
-  {
-    write_bag_.write("/demonstration", ros::Time::now(), demo_);
-  }
+  ROS_INFO("[MotionRec] Flushing user demonstration to file: %d steps.", (int)demo_.steps.size());
+
+  write_bag_.write("/demonstration", ros::Time::now(), demo_);
 }
 
 } // namespace demonstration_visualizer

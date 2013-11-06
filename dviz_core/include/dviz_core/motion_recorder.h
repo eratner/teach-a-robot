@@ -19,9 +19,6 @@
 
 #include <string>
 #include <sstream>
-#include <boost/foreach.hpp>
-
-#define foreach BOOST_FOREACH
 
 namespace demonstration_visualizer
 {
@@ -29,6 +26,8 @@ namespace demonstration_visualizer
 class MotionRecorder
 {
 public:
+  static const std::string DEFAULT_DEMONSTRATION_PATH;
+
   MotionRecorder(int user_id = 0);
 
   virtual ~MotionRecorder();

@@ -333,7 +333,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
     args : [this.id.toString(),
 	    goalNumber.toString()]
   }), function(response) {
-    // @todo report erros
+    // @todo report errors
   });
 }
 
@@ -342,6 +342,34 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'accept_grasp',
+    args : [this.id.toString()]
+  }), function(response) {
+    // @todo report errors
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
+  console.log('[DVizClient] Begin recording.');
+
+  $('#rrButton').html(
+    '<button type="button" class="btn btn-default" onclick="dvizClient.endRecording()">End Recording</button>');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'begin_recording',
+    args : [this.id.toString()]
+  }), function(response) {
+    // @todo report errors
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
+  console.log('[DVizClient] End recording.');
+
+  $('#rrButton').html(
+    '<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'end_recording',
     args : [this.id.toString()]
   }), function(response) {
     // @todo report errors

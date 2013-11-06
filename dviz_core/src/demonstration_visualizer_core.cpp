@@ -374,6 +374,67 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end PROCESS_KEY
+  else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
+  {
+    if(req.args.size() == 1 || req.args.size() == 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      if(req.args.size() == 2)
+      {
+	// Optional: the path to record the user demonstration to.
+	args.push_back(req.args[1]);
+      }
+
+      if(!passCommandToUser(dviz_core::Command::Request::BEGIN_RECORDING, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in begin_recording command.");
+	return false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for begin_recording (%d given, 1 required, 1 optional).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for begin_recording (" << req.args.size() << " given, 1 required, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end BEGIN_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::BEGIN_REPLAY) == 0)
+  {
+    // @todo
+    return true;
+  } // end BEGIN_REPLAY
+  else if(req.command.compare(dviz_core::Command::Request::END_RECORDING) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int user_id = atoi(req.args[0].c_str());
+
+      if(!passCommandToUser(dviz_core::Command::Request::END_RECORDING, res.response, user_id, std::vector<std::string>()))
+      {
+	ROS_ERROR("[DVizCore] Error in end_recording command.");
+	return false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for end_recording (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for end_recording (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end END_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::END_REPLAY) == 0)
+  {
+    // (right now, there is no mechanism to end replays).
+    return true;
+  } // end END_REPLAY
+
   else if(req.command.compare(dviz_core::Command::Request::SET_BASE_SPEED) == 0)
   {
     if(req.args.size() == 3)
@@ -593,7 +654,7 @@ bool DemonstrationVisualizerCore::passCommandToUser(const std::string &command,
 
     if(user_command_services_[id].call(srv))
     {
-      ROS_INFO("[DVizCore] Passed %s command to user ID %d.", command.c_str(), id);
+      //ROS_INFO("[DVizCore] Passed %s command to user ID %d.", command.c_str(), id);
     }
     else
     {

@@ -42,9 +42,16 @@ string BASIC_GRIPPER = basic_gripper
 # RESET_TASK: arguments = { id }
 string RESET_TASK = reset_task
 
+# BEGIN_RECORDING: arguments = { id, [path] }
 string BEGIN_RECORDING = begin_recording
+
+# BEGIN_REPLAY: arguments = { id, file }
 string BEGIN_REPLAY = begin_replay
+
+# END_RECORDING: arguments = { id }
 string END_RECORDING = end_recording
+
+string END_REPLAY = end_replay
 
 # PROCESS_KEY: arguments = { id, key, type }
 string PROCESS_KEY = process_key

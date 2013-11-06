@@ -112,7 +112,7 @@ void DemonstrationVisualizerUser::run()
 bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &req,
 						 dviz_core::Command::Response &res)
 {
-  ROS_INFO("[DVizUser%d] Processing command %s with %d arguments.", id_, req.command.c_str(), req.args.size());
+  //ROS_INFO("[DVizUser%d] Processing command %s with %d arguments.", id_, req.command.c_str(), req.args.size());
 
   if(req.command.compare(dviz_core::Command::Request::KILL_USER) == 0)
   {
@@ -303,8 +303,19 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   } // end RESET_TASK
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
   {
-    if(req.args.size() == 1)
+    if(req.args.size() == 0 || req.args.size() == 1)
     {
+      // @todo we need to get the scene name-- this should probably be part of the scene file
+      if(req.args.size() == 0)
+      {
+	// No path provided; use the default demonstrations path.
+	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, "kitchen");
+      }
+      else
+      {
+	recorder_->beginRecording(req.args[0], "kitchen");
+      }
+
       if(demonstration_scene_manager_->getNumGoals() > 0)
       {
 	int current_goal = demonstration_scene_manager_->getCurrentGoal();
@@ -314,19 +325,16 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       }
       else
       {
-	ROS_WARN("[DVizUser%d] No task loaded, so recording with no user demonstration information.", id_);
+	ROS_WARN("[DVizUser%d] Recording user demonstration, but no task information loaded.", id_);
 	recorder_->addStep("?", "?", geometry_msgs::Pose());
       }
-
-      // @todo we need to get the task name
-      recorder_->beginRecording(req.args[0], "kitchen");
     }
     else
     {
-      ROS_ERROR("[DVizUser%d] Invalid number of arguments for begin_recording (%d given, 1 required).",
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for begin_recording (%d given, 1 optional).",
 		id_, req.args.size());
       std::stringstream ss;
-      ss << "Invalid number of arguments for begin_recording (" << req.args.size() << " given, 1 required).";
+      ss << "Invalid number of arguments for begin_recording (" << req.args.size() << " given, 1 optional).";
       res.response = ss.str();
       return false;
     }
@@ -357,7 +365,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     {
       int key = atoi(req.args[0].c_str());
       int type = atoi(req.args[1].c_str());
-      ROS_INFO("[DVizUser%d] Processing key %d, event type %d.", id_, key, type);
+      //ROS_INFO("[DVizUser%d] Processing key %d, event type %d.", id_, key, type);
       simulator_->processKeyEvent(key, type);
     }
     else
