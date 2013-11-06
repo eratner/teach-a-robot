@@ -376,6 +376,26 @@ DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
   });
 }
 
+DVIZ.DemonstrationVisualizerClient.prototype.beginReplay = function() {
+  console.log('[DVizClient] Begin replay.');
+
+  // Reset the robot before replaying a user demonstration.
+  this.resetRobot();
+
+  // @todo query a database of user demonstrations to replay the 
+  // desired one.
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'begin_replay',
+    args : [this.id.toString(),
+	   '/home/eratner/demonstrations/demonstration0.bag'] // hack!! the user should somehow input which demonstration to replay
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error: ' + response.response);
+    }
+  });
+}
+
 var ros = null;
 var dvizCommandClient = null;
 var dvizClient = null;

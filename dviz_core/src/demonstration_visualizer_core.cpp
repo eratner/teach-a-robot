@@ -404,8 +404,27 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
   } // end BEGIN_RECORDING
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_REPLAY) == 0)
   {
-    // @todo
-    return true;
+    if(req.args.size() == 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::vector<std::string> args;
+      args.push_back(req.args[1]);
+
+      if(!passCommandToUser(dviz_core::Command::Request::BEGIN_REPLAY, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in begin_replay command.");
+	return false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for begin_replay (%d given, 2 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for begin_replay (" << req.args.size() << " given, 2 required).";
+      res.response = ss.str();
+      return false;
+    }
   } // end BEGIN_REPLAY
   else if(req.command.compare(dviz_core::Command::Request::END_RECORDING) == 0)
   {

@@ -50,8 +50,8 @@ bool MotionRecorder::beginRecording(const std::string &path,
 
     // Initialize the user demonstration message that will be written to the bagfile.
     demo_.user_id = user_id_;
-    //demo_.time = ...;
-    //demo_.date = ...;
+    demo_.time = ros::Time::now();
+    //demo_.date = ...; // @todo
     demo_.task_name = task_name;
     demo_.demo_id = bag_count_;
 
@@ -75,6 +75,9 @@ void MotionRecorder::endRecording()
   if(is_recording_)
   {
     is_recording_ = false;
+
+    // Compute the total time taken for the user demonstration.
+    // @todo
 
     // Record the demonstration to a bag file.
     flush();
@@ -110,6 +113,8 @@ bool MotionRecorder::beginReplay(const std::string &file)
     return false;
   }
 
+  ROS_INFO("[MotionRec] Beginning replay from file %s.", file.c_str());
+
   rosbag::View view(read_bag_, rosbag::TopicQuery("/demonstration"));
   rosbag::View::iterator iter = view.begin();
   dviz_core::UserDemonstration::ConstPtr loaded_demo = (*iter).instantiate<dviz_core::UserDemonstration>();
@@ -117,6 +122,21 @@ bool MotionRecorder::beginReplay(const std::string &file)
   {
     ROS_ERROR("[MotionRec] Failed to load user demonstration from bag file!");
     return false;
+  }
+
+  // Get information about the user demonstration.
+  ROS_INFO("[MotionRec] Replaying user demonstration from user %d performing task \"%s\" on the date %s with the following steps:",
+	   loaded_demo->user_id,
+	   loaded_demo->task_name.c_str(),
+	   loaded_demo->date.c_str());
+  for(int i = 0; i < loaded_demo->steps.size(); i++)
+  {
+    ROS_INFO("\t [Step %d] goal number: %d; action: \"%s\"; object type: \"%s\"; waypoints: %d",
+	     i,
+	     loaded_demo->steps[i].goal_number,
+	     loaded_demo->steps[i].action.c_str(),
+	     loaded_demo->steps[i].object_type.c_str(),
+	     (int)loaded_demo->steps[i].waypoints.size());
   }
 
   poses_.clear();
@@ -132,13 +152,11 @@ bool MotionRecorder::beginReplay(const std::string &file)
 	w_it != s_it->waypoints.end(); ++w_it)
     {
       poses_.push_back(w_it->base_pose);
-      pose_count_++;
       joint_states_.push_back(w_it->joint_states);
-      joint_states_count_++;
     }
   }
 
-  ROS_INFO("[MotionRec] Added %d poses and %d joint states messages.", pose_count_, joint_states_count_);
+  ROS_INFO("[MotionRec] Added %d poses and %d joint states messages.", (int)poses_.size(), (int)joint_states_.size());
 
   read_bag_.close();
 
