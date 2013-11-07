@@ -492,6 +492,28 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end SHOW_INTERACTIVE_GRIPPER
+  else if(req.command.compare(dviz_core::Command::Request::HIDE_INTERACTIVE_GRIPPER) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int goal_number = atoi(req.args[0].c_str());
+
+      if(!hideInteractiveGripper(goal_number))
+      {
+	ROS_ERROR("[DVizUser%d] Cannot hide interactive gripper for goal number %d.", id_, goal_number);
+	return false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for hide_interactive_gripper (%d given, 1 required).",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for hide_interactive_gripper (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end HIDE_INTERACTIVE_GRIPPER
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -958,6 +980,23 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 			     );
   int_marker_server_->applyChanges();
   
+  return true;
+}
+
+bool DemonstrationVisualizerUser::hideInteractiveGripper(int goal_number)
+{
+  if(demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
+  {
+    ROS_ERROR("[DVizUser%d] Cannot hide a gripper for a goal that is not of type PICK_UP.", id_);
+    return false;
+  }
+
+  std::stringstream ss;
+  ss << "grasp_marker_goal_" << goal_number;
+
+  int_marker_server_->erase(ss.str());
+  int_marker_server_->applyChanges();
+
   return true;
 }
 

@@ -477,6 +477,7 @@ void PR2Simulator::moveRobot()
   }
   else
   {
+    // Snap motion is not done.
     for(int i = 0; i < 7; ++i)
     {
       solution[i] = snap_motion_[snap_motion_count_].position[i];
@@ -560,9 +561,12 @@ void PR2Simulator::moveRobot()
 
     // Next, set the new joint angles of the right arm and the new 
     // (right) end-effector pose.
-    for(int i = 7; i < 14; ++i)
+    if(!recorder_->isReplaying())
     {
-      joint_states_.position[i] = solution[i-7];
+      for(int i = 7; i < 14; ++i)
+      {
+	joint_states_.position[i] = solution[i-7];
+      }
     }
 
     end_effector_pose_.pose.position.x = end_effector_pose[0];

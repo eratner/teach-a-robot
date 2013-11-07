@@ -92,6 +92,8 @@ public:
    */
   bool showInteractiveGripper(int);
 
+  bool hideInteractiveGripper(int);
+
   void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
 private:

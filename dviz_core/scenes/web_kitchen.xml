@@ -1,0 +1,5 @@
+<scene>
+    <collision_models path="/collision_models" />
+    <size origin_x="-2.0" origin_y="-2.0" origin_z="0" size_x="7.5" size_y="6.25" size_z="2" />
+    <mesh id="0" label="max_webgl_kitchen" position_x="1.0" position_y="1.0" position_z="-0.10" orientation_x="0" orientation_y="0" orientation_z="0" orientation_w="1" scale_x="1" scale_y="1" scale_z="1" movable="0" />
+</scene>
