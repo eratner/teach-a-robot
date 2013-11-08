@@ -59,6 +59,8 @@ class ObjectManager{
 
     std::vector<Object> getObjects() const;
 
+    std::string getObjectLabel(int id);
+
     bool addObjectsFromOccupiedVoxelsFile(std::string filename);
 
     bool writeObjectsToOccupiedVoxelsFile(std::string filename);

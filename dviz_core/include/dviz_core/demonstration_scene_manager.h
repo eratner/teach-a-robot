@@ -137,6 +137,10 @@ public:
 
   double getInitialTorsoPosition() const;
 
+  std::string getTaskName() const;
+
+  void setTaskName(const std::string &);
+
 private:
   int user_id_;
 
@@ -144,6 +148,8 @@ private:
   bool edit_goals_mode_;
   bool edit_meshes_mode_;
   int current_goal_;
+
+  std::string task_name_;
 
   geometry_msgs::Pose initial_robot_pose_;
   double initial_torso_position_;

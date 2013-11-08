@@ -159,7 +159,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_task (%d given, 1 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for load_task (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -190,7 +190,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_scene (%d given, 1 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for load_scene (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -222,7 +222,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for show_base_path (%d given, 1 optional).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for show_base_path (" << req.args.size() << " given, 1 optional).";
       res.response = ss.str();
@@ -258,7 +258,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_mesh (%d given, 2 required, 1 optional).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for load_mesh (" << req.args.size() << " given, 2 required, 1 optional).";
       res.response = ss.str();
@@ -290,7 +290,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizCore] Invalid number of arguments for basic_gripper (%d given, 1 optional).",
-    		req.args.size());
+    		(int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for basic_gripper (" << req.args.size() << " given, 1 optional).";
       res.response = ss.str();
@@ -305,22 +305,28 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   {
     if(req.args.size() == 0 || req.args.size() == 1)
     {
-      // @todo we need to get the scene name-- this should probably be part of the scene file
       if(req.args.size() == 0)
       {
 	// No path provided; use the default demonstrations path.
-	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, "kitchen");
+	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName());
       }
       else
       {
-	recorder_->beginRecording(req.args[0], "kitchen");
+	recorder_->beginRecording(req.args[0], demonstration_scene_manager_->getTaskName());
       }
 
       if(demonstration_scene_manager_->getNumGoals() > 0)
       {
 	int current_goal = demonstration_scene_manager_->getCurrentGoal();
 	Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
-	recorder_->addStep(Goal::GoalTypeNames[goal->getType()], "?",  // @todo object type?
+
+	std::string object_label = "";
+	// Object type is only relevant if the the goal type is PICK_UP.
+	if(goal->getType() == Goal::PICK_UP)
+	{
+	  object_label = object_manager_->getObjectLabel(static_cast<PickUpGoal *>(goal)->getObjectID());
+	}
+	recorder_->addStep(Goal::GoalTypeNames[goal->getType()], object_label,
 			   demonstration_scene_manager_->getGraspPose(current_goal));
       }
       else
@@ -332,7 +338,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for begin_recording (%d given, 1 optional).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for begin_recording (" << req.args.size() << " given, 1 optional).";
       res.response = ss.str();
@@ -348,7 +354,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for begin_replay (%d given, 1 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for begin_replay (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -371,7 +377,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for process_key (%d given, 2 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for process_key (" << req.args.size() << " given, 2 required).";
       res.response = ss.str();
@@ -392,7 +398,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_base_speed (%d given, 2 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for set_base_speed (" << req.args.size() << " given, 2 required).";
       res.response = ss.str();
@@ -410,7 +416,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_arm_speed (%d given, 1 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for set_arm_speed (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -427,7 +433,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_frame_rate (%d given, 1 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for set_frame_rate (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -445,7 +451,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for change_goal (%d given, 1 required).",
-		id_, req.args.size());
+		id_, (int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for change_goal (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -485,7 +491,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for show_interactive_gripper (%d given, 1 required).",
-		req.args.size());
+		(int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for show_interactive_gripper (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -507,7 +513,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for hide_interactive_gripper (%d given, 1 required).",
-		req.args.size());
+		(int)req.args.size());
       std::stringstream ss;
       ss << "Invalid number of arguments for hide_interactive_gripper (" << req.args.size() << " given, 1 required).";
       res.response = ss.str();
@@ -903,8 +909,15 @@ void DemonstrationVisualizerUser::goalCompleted()
     {
       int current_goal = demonstration_scene_manager_->getCurrentGoal();
       Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
-      recorder_->addStep(Goal::GoalTypeNames[goal->getType()], "?",  // @todo object type?
-			 demonstration_scene_manager_->getGraspPose(current_goal));
+      std::string object_label = "";
+      geometry_msgs::Pose grasp_pose;
+      // Object type and grasp pose is only relevant if the the goal type is PICK_UP.
+      if(goal->getType() == Goal::PICK_UP)
+      {
+	object_label = object_manager_->getObjectLabel(static_cast<PickUpGoal *>(goal)->getObjectID());
+	grasp_pose = demonstration_scene_manager_->getGraspPose(current_goal);
+      }
+      recorder_->addStep(Goal::GoalTypeNames[goal->getType()], object_label, grasp_pose);
     }
     else
     {

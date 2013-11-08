@@ -183,7 +183,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
 	// @todo switch camera to focus on that gripper pose
 	console.log('[DVizClient] Current goal is of type pick-up.');
-	that.showInteractiveGripper(that.currentGoal);
+	that.showInteractiveGripper(that.currentGoalNumber);
       } else {
 	// @todo switch camera back to original pose
 	
@@ -337,14 +337,47 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   });
 }
 
+DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(goalNumber) {
+  console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString() + '.');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'show_interactive_gripper',
+    args : [this.id.toString(),
+	    goalNumber.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizCore] Error: ' + response.response);
+    }
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
+  console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString() + '.');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'hide_interactive_gripper',
+    args : [this.id.toString(),
+	    goalNumber.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizCore] Error: ' + response.response);
+    }
+  });
+}
+
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   console.log('[DVizClient] Accepting grasp.');
+
+  // Hide the interactive gripper of the current goal. 
+  this.hideInteractiveGripper(this.currentGoalNumber);
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'accept_grasp',
     args : [this.id.toString()]
   }), function(response) {
-    // @todo report errors
+    if(reponse.response.length > 0) {
+      console.log('[DVizCore] Error: ' + response.response);
+    }
   });
 }
 
@@ -358,7 +391,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
     command : 'begin_recording',
     args : [this.id.toString()]
   }), function(response) {
-    // @todo report errors
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error: ' + response.response);
+    }
   });
 }
 
@@ -372,7 +407,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
     command : 'end_recording',
     args : [this.id.toString()]
   }), function(response) {
-    // @todo report errors
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error: ' + response.response);
+    }
   });
 }
 

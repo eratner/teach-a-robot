@@ -572,6 +572,26 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
     }
   }
 
+  // There is also an optional task info tag specified at the top of the task file; right now, this only contains the name of the task.
+  TiXmlElement *task_info = root_handle.FirstChild("task_info").Element();
+  if(task_info == NULL)
+  {
+    ROS_WARN("[SceneManager%d] No task info specified for the given task.", user_id_);
+  }
+  else
+  {
+    std::string task_name = "";
+    if(task_info->QueryStringAttribute("name", &task_name) != TIXML_SUCCESS)
+    {
+      ROS_WARN("[SceneManager%d] No task name specified.", user_id_);
+    }
+    else
+    {
+      ROS_INFO("[SceneManager%d] Loading task \"%s\".", user_id_, task_name.c_str());
+      task_name_ = task_name;
+    }
+  }
+
   // Read each goal.
   element = root_handle.FirstChild("goal").Element();
 
@@ -1556,6 +1576,16 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
   default:
     break;
   }
+}
+
+std::string DemonstrationSceneManager::getTaskName() const
+{
+  return task_name_;
+}
+
+void DemonstrationSceneManager::setTaskName(const std::string &name)
+{
+  task_name_ = name;
 }
 
 } // namespace demonstration_visualizer

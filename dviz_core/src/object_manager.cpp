@@ -456,7 +456,8 @@ void ObjectManager::scaleObject(int id, double x, double y, double z) {
   }
 }
 
-int ObjectManager::getNumObjects() const {
+int ObjectManager::getNumObjects() const
+{
   return objects_.size();
 }
 
@@ -470,6 +471,11 @@ vector<Object> ObjectManager::getObjects() const
   }
 
   return objects;
+}
+
+std::string ObjectManager::getObjectLabel(int id)
+{
+  return objects_[id].label;
 }
 
 bool ObjectManager::addObjectsFromOccupiedVoxelsFile(std::string filename)
