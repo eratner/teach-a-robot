@@ -38,6 +38,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   std::stringstream ss;
   ss << "dviz_user_" << id_;
   pviz_ = new PViz(ss.str());
+  pviz_->setReferenceFrame(resolveName("map", id_));
   recorder_ = new MotionRecorder(id_);
 
   std::string larm_filename;
@@ -265,38 +266,40 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }    
   } // end LOAD_MESH
-  else if(req.command.compare(dviz_core::Command::Request::BASIC_GRIPPER) == 0)
+  else if(req.command.compare(dviz_core::Command::Request::GRIPPER_CONTROLS) == 0)
   {
     if(req.args.size() == 0)
     {
-      // Enable basic gripper controls.
+      // Enable advanced gripper and arm controls.
       simulator_->enableOrientationControl();
       simulator_->enableUpperArmRollControl();
     }
     else if(req.args.size() == 1)
     {
-      bool disable = req.args[0].compare("true") == 0;
-      if(disable)
+      bool basic = req.args[0].compare("true") == 0;
+      if(basic)
       {
+	// Disable advanced gripper and arm controls
 	simulator_->disableOrientationControl();
 	simulator_->disableUpperArmRollControl();
       }
       else
       {
+	// Enable advanced gripper and arm controls
 	simulator_->enableOrientationControl();
 	simulator_->enableUpperArmRollControl();
       }
     }
     else
     {
-      ROS_ERROR("[DVizCore] Invalid number of arguments for basic_gripper (%d given, 1 optional).",
+      ROS_ERROR("[DVizCore] Invalid number of arguments for gripper_controls (%d given, 1 optional).",
     		(int)req.args.size());
       std::stringstream ss;
-      ss << "Invalid number of arguments for basic_gripper (" << req.args.size() << " given, 1 optional).";
+      ss << "Invalid number of arguments for gripper_controls (" << req.args.size() << " given, 1 optional).";
       res.response = ss.str();
       return false;
     }    
-  } // end BASIC_GRIPPER
+  } // end GRIPPER_CONTROLS
   else if(req.command.compare(dviz_core::Command::Request::RESET_TASK) == 0)
   {
     demonstration_scene_manager_->resetTask();

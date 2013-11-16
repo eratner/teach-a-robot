@@ -909,6 +909,7 @@ void DemonstrationSceneManager::visualizeMesh(const visualization_msgs::Marker &
   }
   else
   {
+    ROS_WARN("[DSM] marker frame_id = %s", marker.header.frame_id.c_str());
     marker_pub_.publish(marker);
   }
 }
@@ -1544,6 +1545,13 @@ void DemonstrationSceneManager::hideGoal(Goal *goal)
 
     for(int i = 0; i < int(gripper_markers.size()); ++i)
     {
+      gripper_markers[i].header.frame_id = resolveName("map", user_id_);
+      // @todo for the web version, we must change the path of the gripper meshes.
+      // Eliminate the "package://pr2_description/" prefix and replace with 
+      // "http://resources.robotwebtools.org/" to make the meshes web-compatible.
+      gripper_markers[i].mesh_resource = "http://resources.robotwebtools.org/"
+	+ gripper_markers[i].mesh_resource.substr(10);
+
       gripper_markers[i].action = visualization_msgs::Marker::DELETE;
       marker_pub_.publish(gripper_markers[i]);
     }

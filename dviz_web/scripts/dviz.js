@@ -133,6 +133,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.goals = [];
   this.currentGoalNumber = -1;
   this.id = options.id;
+  this.basicGripperControls = true;
 
   console.log('id = ' + this.id);
   
@@ -209,6 +210,21 @@ DVIZ.DemonstrationVisualizerClient.prototype.pause = function() {
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'pause_now',
     args : [this.id.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.toggleGripperControls = function() {
+  console.log('[DVizClient] Toggling gripper controls to ' +
+	      (!this.basicGripperControls).toString() + '.');
+  this.basicGripperControls = !this.basicGripperControls;
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'gripper_controls',
+    args : [this.id.toString(),
+	    this.basicGripperControls.toString()]
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
@@ -375,7 +391,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     command : 'accept_grasp',
     args : [this.id.toString()]
   }), function(response) {
-    if(reponse.response.length > 0) {
+    if(response.response.length > 0) {
       console.log('[DVizCore] Error: ' + response.response);
     }
   });

@@ -326,30 +326,30 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }  
   } // end LOAD_MESH
-  else if(req.command.compare(dviz_core::Command::Request::BASIC_GRIPPER) == 0)
+  else if(req.command.compare(dviz_core::Command::Request::GRIPPER_CONTROLS) == 0)
   {
-    // @todo
-    ROS_WARN("[DVizCore] Not implemented!");
-    // if(req.args.size() == 0)
-    // {
-    //   // Enable basic gripper controls.
-    //   setGripperOrientationControl(false);
-    // }
-    // else if(req.args.size() == 1)
-    // {
-    //   bool basic_gripper = req.args[0].compare("true") == 0;
-    //   setGripperOrientationControl(!basic_gripper);
-    // }
-    // else
-    // {
-    //   ROS_ERROR("[DVizCore] Invalid number of arguments for basic_gripper (%d given, 1 optional).",
-    // 		req.args.size());
-    //   std::stringstream ss;
-    //   ss << "Invalid number of arguments for basic_gripper (" << req.args.size() << " given, 1 optional).";
-    //   res.response = ss.str();
-    //   return false;
-    // }
-  } // end BASIC_GRIPPER
+    if(req.args.size() == 1 || req.args.size() == 2)
+    {
+      std::vector<std::string> args;
+      int user_id = atoi(req.args[0].c_str());
+      if(req.args.size() == 2)
+	args.push_back(req.args[1]);
+       
+      if(!passCommandToUser(dviz_core::Command::Request::GRIPPER_CONTROLS, res.response, user_id, args))
+      {
+	ROS_ERROR("[DVizCore] Error in gripper_controls command.");
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for gripper_controls (%d given, 1 optional).",
+    		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for gripper_controls (" << req.args.size() << " given, 1 optional).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end GRIPPER_CONTROLS
   else if(req.command.compare(dviz_core::Command::Request::PROCESS_KEY) == 0)
   {
     if(req.args.size() == 3)

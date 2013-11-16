@@ -51,9 +51,14 @@ bool MotionRecorder::beginRecording(const std::string &path,
     // Initialize the user demonstration message that will be written to the bagfile.
     demo_.user_id = user_id_;
     demo_.time = ros::Time::now();
-    //demo_.date = ...; // @todo
+
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    std::stringstream ss;
+    ss << (int)(now.date().month()) << "/" << now.date().day()
+       << "/" << now.date().year();
+    demo_.date = ss.str();
     demo_.task_name = task_name;
-    demo_.demo_id = bag_count_;
+    demo_.demo_id = bag_count_; // @todo
 
     demo_.steps.clear();
 
