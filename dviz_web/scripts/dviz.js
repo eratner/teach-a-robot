@@ -97,6 +97,11 @@ DVIZ.CameraManager = function(options) {
  * Sets the camera mode. @todo
  *
  * @param mode
+ *
+ * Note: Currently:
+ *   0 -- Follows the base of the robot
+ *   1 -- Does not follow the base of the robot (used for 
+ *        focusing the camera at a particular position)
  */
 DVIZ.CameraManager.prototype.setCamera = function(mode) {
   if(mode !== this.cameraMode) {
@@ -105,6 +110,9 @@ DVIZ.CameraManager.prototype.setCamera = function(mode) {
   }
   this.lastCameraMode = this.cameraMode;
   this.cameraMode = mode;
+
+  // Update the camera controls
+  this.viewer.cameraControls.update();
 };
 
 DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
@@ -173,21 +181,22 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       for(var i = 0; i < message.goals.length; ++i) {
 	html = html + '<a href="#" onclick="dvizClient.changeGoal(' +
 	  message.goals[i].number + ')" class="list-group-item' + 
-	  (message.goals[i].number == currentGoal ? ' active' : '') + 
+	  (message.goals[i].number === currentGoal ? ' active' : '') + 
 	  '">' + message.goals[i].description + '</a>';
       }
       document.getElementById('task').innerHTML = html;
 
       // Check if we need to change the state of the camera (e.g. if the 
       // next goal is a pick up goal, we need to focus the camera at the 
-      // grasp pose).
+      // grasp pose)
+      that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
 	// @todo switch camera to focus on that gripper pose
 	console.log('[DVizClient] Current goal is of type pick-up.');
 	that.showInteractiveGripper(that.currentGoalNumber);
       } else {
 	// @todo switch camera back to original pose
-	
+
       }
     }
   });
@@ -195,6 +204,11 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 
 DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   console.log('[DVizClient] Playing simulator...');
+  
+  // Disable the play button
+  $('#play').prop('disabled', true)
+  $('#pause').prop('disabled', false)
+
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'play',
     args : [this.id.toString()]
@@ -207,6 +221,11 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
 
 DVIZ.DemonstrationVisualizerClient.prototype.pause = function() {
   console.log('[DVizClient] Pausing simulator...');
+
+  // Disable the pause button
+  $('#pause').prop('disabled', true)
+  $('#play').prop('disabled', false)
+
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'pause_now',
     args : [this.id.toString()]
@@ -247,6 +266,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
 DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   // @todo for now, just load the kitchen mesh.
   console.log('[DVizClient] Loading kitchen...');
+
+  // @todo bring up a loading message until the scene has fully loaded into the browser.
+  // then, need to figure out how to wait until the collada meshes have been fully rendered.
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
@@ -344,17 +366,19 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
 DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(goalNumber) {
   console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString() + '.');
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'show_interactive_gripper',
-    args : [this.id.toString(),
-	    goalNumber.toString()]
-  }), function(response) {
-    // @todo report errors
-  });
-}
+  // Disable marker control of the robot (so the user cannot move 
+  // the robot while selecting a grasp)
+  this.robotMarkerControl(false);
 
-DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(goalNumber) {
-  console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString() + '.');
+  this.cameraManager.setCamera(1);
+  // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
+  this.cameraManager.viewer.cameraControls.center.x = 
+    this.goals[this.currentGoalNumber].initial_object_pose.position.x;
+  this.cameraManager.viewer.cameraControls.center.y = 
+    this.goals[this.currentGoalNumber].initial_object_pose.position.y;
+  this.cameraManager.viewer.cameraControls.center.z = 
+    this.goals[this.currentGoalNumber].initial_object_pose.position.z;
+  this.cameraManager.viewer.cameraControls.update();
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'show_interactive_gripper',
@@ -369,6 +393,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
 
 DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
   console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString() + '.');
+
+  this.robotMarkerControl(true);
+  this.cameraManager.setCamera(0);
 
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'hide_interactive_gripper',
@@ -441,12 +468,49 @@ DVIZ.DemonstrationVisualizerClient.prototype.beginReplay = function() {
   this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'begin_replay',
     args : [this.id.toString(),
-	   '/home/eratner/demonstrations/demonstration0.bag'] // hack!! the user should somehow input which demonstration to replay
+	    '/home/eratner/demonstrations/last_demonstration_' + this.id.toString() + '.bag']
+    // hack!! the user should somehow input which demonstration to replay
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error: ' + response.response);
     }
   });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber) {
+  console.log('[DVizClient] Goal ' + goalNumber.toString() + ' completed!');
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.robotMarkerControl = function(enabled) {
+  console.log('[DVizClient] Robot marker control is ' +
+	      (enabled ? 'enabled' : 'disabled') + '.');
+
+  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'robot_marker_control',
+    args : [this.id.toString(),
+	    enabled.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error: ' + response.response);
+    }
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.displayStatusText = function(text) {
+  console.log('adding status: ' + text);
+  if(this.statusText == null) {
+    this.statusText = document.createElement('div');
+    this.statusText.style.position = 'absolute';
+    this.statusText.style.width = 100;
+    this.statusText.height = 100;
+    this.statusText.style.backgroundColor = 'black';
+    this.statusText.style.color = 'white';
+    this.statusText.style.top = $('#dviz').offset().top + 'px';
+    this.statusText.style.left = $('#dviz').offset().left + 'px';
+    this.statusText.innerHTML = '...';
+    document.body.appendChild(this.statusText);
+  }
+  this.statusText.innerHTML = text;
 }
 
 var ros = null;
@@ -522,6 +586,8 @@ function init() {
       id : userId
     });
 
+    dvizClient.displayStatusText('Connected to DVizServer!');
+
     // Add keyboard bindings.
     $(window).bind('keydown', function(e) {
       dvizClient.handleKeyPress(e);
@@ -531,6 +597,9 @@ function init() {
       dvizClient.handleKeyRelease(e);
     });
   });
+
+  // Initialize all tooltips.
+  $('.tip').tooltip();
 }
 
 // Kill the DVizUser when the user exits the page

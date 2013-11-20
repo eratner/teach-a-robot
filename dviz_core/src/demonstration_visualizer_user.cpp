@@ -187,6 +187,8 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	ss << max_mesh;
 	res.response = ss.str();
       }
+
+      res.response = "Done loading scene.";
     }
     else
     {
@@ -512,7 +514,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	ROS_ERROR("[DVizUser%d] Cannot hide interactive gripper for goal number %d.", id_, goal_number);
 	return false;
       }
-    }
+    } 
     else
     {
       ROS_ERROR("[DVizUser%d] Invalid number of arguments for hide_interactive_gripper (%d given, 1 required).",
@@ -523,6 +525,25 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end HIDE_INTERACTIVE_GRIPPER
+  else if(req.command.compare(dviz_core::Command::Request::ROBOT_MARKER_CONTROL) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      bool enabled = (req.args[0].compare("true") == 0);
+      
+      // Enable or disable control of the robot via interactive markers
+      simulator_->setMoveRobotMarkers(enabled);
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for robot_marker_control (%d given, 1 required).",
+		(int)req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for robot_marker_control (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end ROBOT_MARKER_CONTROL
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -965,6 +986,8 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
     markers.at(i).header.frame_id = "";
     control.markers.push_back(markers.at(i));
   }
+  // ***EXPERIMENTAL***
+  //control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   control.always_visible = true;
   int_marker.controls.push_back(control);
 

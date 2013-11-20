@@ -51,6 +51,8 @@ string ACCEPT_GRASP = accept_grasp
 string SHOW_INTERACTIVE_GRIPPER = show_interactive_gripper
 # HIDE_INTERACTIVE_GRIPPER = { id, goal-number }
 string HIDE_INTERACTIVE_GRIPPER = hide_interactive_gripper
+# ROBOT_MARKER_CONTROL = { id, enabled }
+string ROBOT_MARKER_CONTROL = robot_marker_control
 
 # A valid string command.
 string command

@@ -78,12 +78,20 @@
 		  <h3>Controls</h3>
 
 		  <div class="btn-group-vertical">
-		    <button type="button" class="btn btn-default" onclick="dvizClient.play()">
-		      Play
+		    <button id="play" data-toggle="tooltip" data-placement="left" 
+			    title="When you're ready, click here to start the task!" 
+			    type="button" class="tip btn btn-default" 
+			    onclick="dvizClient.play()" disabled>Play
 		    </button>
-		    <button type="button" class="btn btn-default" onclick="dvizClient.pause()">Pause</button>
-		    <button type="button" class="btn btn-default" onclick="dvizClient.toggleGripperControls()">
-		      Advanced Gripper Controls
+		    <button id="pause" data-toggle="tooltip" data-placement="left" 
+			    title="You can pause at any time without any time penalty." 
+			    type="button" class="btn btn-default" 
+			    onclick="dvizClient.pause()">Pause
+		    </button>
+		    <button type="button" data-toggle="tooltip" data-placement="left"
+			    title="Advnaced controls give you more control over the arm and gripper."
+			    class="btn btn-default" data-toggle="button" 
+			    onclick="dvizClient.toggleGripperControls()">Advanced Gripper Controls
 		    </button>
 		    <button type="button" class="btn btn-default" onclick="dvizClient.acceptGrasp()">Accept Grasp</button>
 		    <button type="button" class="btn btn-default" onclick="dvizClient.resetRobot()">Reset Robot</button>
@@ -94,8 +102,8 @@
 		  <hr />
 
 		  <div class="btn-group-vertical">
-		    <div id="rrButton"
->		      <button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>
+		    <div id="rrButton">		      
+		      <button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>
 		    </div>
 		    <button type="button" class="btn btn-default" onclick="dvizClient.beginReplay()">Begin Replay</button>
 		  </div>
