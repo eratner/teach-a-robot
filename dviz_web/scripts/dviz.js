@@ -191,11 +191,14 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       // grasp pose)
       that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
-	// @todo switch camera to focus on that gripper pose
+	// Show an interactive gripper marker at the current goal
 	console.log('[DVizClient] Current goal is of type pick-up.');
 	that.showInteractiveGripper(that.currentGoalNumber);
+	$('#acceptGrasp').prop('disabled', false)
+	// Switch the camera back to follow the base of the robot
+	that.cameraManager.setCamera(0);
       } else {
-	// @todo switch camera back to original pose
+	// The goal is not of type pick up
 
       }
     }

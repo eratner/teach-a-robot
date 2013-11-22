@@ -88,7 +88,7 @@ public:
 
   /**
    * @brief Shows a gripper marker centered at the given goal (if that goal is of type
-   *        PICK_UP), which a user may interact with via interactive markers.
+   *        PICK_UP), which a user may interact with via interactive markers
    */
   bool showInteractiveGripper(int);
 
@@ -96,12 +96,19 @@ public:
 
   void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
+  /**
+   * @brief Process key events sent from the client
+   * @param key The key code associated with the event
+   * @param type The type of key event (e.g. press or release)
+   */
+  void processKeyEvent(int key, int type);
+
 private:
   /**
    * @brief Initializes ROS and names the DVizUser node with its
-   *        unique identifier.
+   *        unique identifier
    *
-   * @return true on success; false on failure.
+   * @return true on success; false on failure
    */
   bool init(int argc, char **argv);
 

@@ -376,8 +376,8 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     {
       int key = atoi(req.args[0].c_str());
       int type = atoi(req.args[1].c_str());
-      //ROS_INFO("[DVizUser%d] Processing key %d, event type %d.", id_, key, type);
-      simulator_->processKeyEvent(key, type);
+
+      processKeyEvent(key, type);
     }
     else
     {
@@ -904,6 +904,7 @@ double DemonstrationVisualizerUser::getFrameRate() const
 
 void DemonstrationVisualizerUser::getUserProcessInfo()
 {
+  // Interested primarily in RES (physical memory) and SHR (shared memory)
   std::stringstream ss;
   ss << "/proc/" << getpid() << "/stat";
   std::ifstream proc;
@@ -986,8 +987,12 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
     markers.at(i).header.frame_id = "";
     control.markers.push_back(markers.at(i));
   }
-  // ***EXPERIMENTAL***
-  //control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+  // Users are able to move the gripper marker in the plane
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+  control.orientation.w = 1;
+  control.orientation.x = 0;
+  control.orientation.y = 0;
+  control.orientation.z = 0;
   control.always_visible = true;
   int_marker.controls.push_back(control);
 
@@ -1050,8 +1055,104 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
       break;
   }
 
-  demonstration_scene_manager_->setGraspPose(atoi(feedback->marker_name.substr(i+1).c_str()),
-					     feedback->pose);
+  int goal_number = atoi(feedback->marker_name.substr(i+1).c_str());
+
+  Goal *goal = demonstration_scene_manager_->getGoal(goal_number);
+  if(goal->getType() == Goal::PICK_UP)
+  {
+    PickUpGoal *p = static_cast<PickUpGoal *>(goal);
+    // Check if the gripper is too far from the object
+    geometry_msgs::Pose object_pose = p->getInitialObjectPose();
+    double dx = object_pose.position.x - feedback->pose.position.x;
+    double dy = object_pose.position.y - feedback->pose.position.y;
+    double dz = object_pose.position.z - feedback->pose.position.z;
+    double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+    // If the gripper marker has been moved too far from the 
+    // position of the object, do not do anything
+    if(distance > 1.5)
+    {
+      ROS_WARN("[DVizUser%d] Too grasp is too far from object", id_);
+      return;
+    }
+  }
+
+  demonstration_scene_manager_->setGraspPose(goal_number, feedback->pose);
+}
+
+void DemonstrationVisualizerUser::processKeyEvent(int key, int type)
+{
+  //ROS_INFO("[DVizUser%d] Processing key %d, event type %d.", id_, key, type);
+
+  switch(type)
+  {
+  case QEvent::KeyPress:
+  {
+    switch(key)
+    {
+    case Qt::Key_Z:
+    {
+      // Allow the user to move any interacive gripper along the z-axis
+      std::vector<Goal *> goals = demonstration_scene_manager_->getGoals();
+      std::vector<Goal *>::const_iterator it = goals.begin();
+      for(; it != goals.end(); ++it)
+      {
+	std::stringstream ss;
+	// All interactive gripper markers have a name which is 
+	// uniquely identified with the goal number
+	ss << "grasp_marker_goal_" << (*it)->getGoalNumber();
+	visualization_msgs::InteractiveMarker gripper_marker;
+	if(int_marker_server_->get(ss.str(), gripper_marker))
+	{
+	  gripper_marker.controls.at(0).interaction_mode = 
+	    visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+
+	  int_marker_server_->insert(gripper_marker);
+	  int_marker_server_->applyChanges();
+	}
+      }
+      break;
+    }
+    default:
+      break;
+    }
+    break;
+  }
+  case QEvent::KeyRelease:
+  {
+    switch(key)
+    {
+    case Qt::Key_Z:
+    {
+      std::vector<Goal *> goals = demonstration_scene_manager_->getGoals();
+      std::vector<Goal *>::const_iterator it = goals.begin();
+      for(; it != goals.end(); ++it)
+      {
+	std::stringstream ss;
+	ss << "grasp_marker_goal_" << (*it)->getGoalNumber();
+	visualization_msgs::InteractiveMarker gripper_marker;
+	if(int_marker_server_->get(ss.str(), gripper_marker))
+	{
+	  gripper_marker.controls.at(0).interaction_mode = 
+	    visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+
+	  int_marker_server_->insert(gripper_marker);
+	  int_marker_server_->applyChanges();
+	}
+      }
+      break;
+    }
+    default:
+      break;
+    }
+    break;
+  }
+  default:
+    ROS_ERROR("[DVizUser%d] Unrecognized key event type: %d", id_, type);
+    return;
+  }
+
+  // Pass key events to the simulator
+  simulator_->processKeyEvent(key, type);
 }
 
 } // namespace demonstration_visualizer
