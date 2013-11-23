@@ -29,6 +29,10 @@ var createSMAFilter = function(n) {
       pointer = (pointer + 1) % n;
     },
 
+    back : function() {
+      return buffer[n-1];
+    },
+
     get : function(key) {
       return buffer[key];
     }
@@ -94,7 +98,7 @@ DVIZ.CameraManager = function(options) {
 };
 
 /**
- * Sets the camera mode. @todo
+ * Sets the camera mode
  *
  * @param mode
  *
@@ -143,7 +147,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.id = options.id;
   this.basicGripperControls = true;
 
-  console.log('id = ' + this.id);
+  console.log('[DVizClient] Assigned id ' + this.id);
   
   this.cameraManager = new DVIZ.CameraManager({
     ros : ros,
@@ -154,9 +158,15 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     id : this.id
   });
   
-  this.dvizCommandClient = new ROSLIB.Service({
+  this.coreCommandClient = new ROSLIB.Service({
     ros : ros,
     name : '/dviz_command',
+    serviceType : 'dviz_core/Command'
+  });
+
+  this.commandClient = new ROSLIB.Service({
+    ros : ros,
+    name : '/dviz_user_' + this.id + '/dviz_command',
     serviceType : 'dviz_core/Command'
   });
 
@@ -212,9 +222,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   $('#play').prop('disabled', true)
   $('#pause').prop('disabled', false)
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'play',
-    args : [this.id.toString()]
+    args : []
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
@@ -229,9 +239,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.pause = function() {
   $('#pause').prop('disabled', true)
   $('#play').prop('disabled', false)
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'pause_now',
-    args : [this.id.toString()]
+    args : []
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
@@ -243,10 +253,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.toggleGripperControls = function() 
   console.log('[DVizClient] Toggling gripper controls to ' +
 	      (!this.basicGripperControls).toString() + '.');
   this.basicGripperControls = !this.basicGripperControls;
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'gripper_controls',
-    args : [this.id.toString(),
-	    this.basicGripperControls.toString()]
+    args : [this.basicGripperControls.toString()]
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
@@ -256,9 +265,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.toggleGripperControls = function() 
 
 DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
   console.log('[DVizClient] Resetting robot...');
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'reset_robot',
-    args : [this.id.toString()]
+    args : []
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
@@ -273,7 +282,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   // @todo bring up a loading message until the scene has fully loaded into the browser.
   // then, need to figure out how to wait until the collada meshes have been fully rendered.
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.coreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
     args : [this.id.toString(), 
 	    //'/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen.xml']
@@ -282,25 +291,28 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
     } else {
-      console.log('[DVizClient] Loaded kitchen mesh.');
+      console.log('[DVizClient] Loaded kitchen mesh');
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function() {
-  // @todo for now, just load the brownie task.
+  // @todo for now, just load the brownie task
   console.log('[DVizClient] Loading brownie task...');
 
-  // Load the task.
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  // Pause the game, and show the user how to play
+  this.pause();
+  $('#play').tooltip('show');
+
+  // Load the task
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_task',
-    args : [this.id.toString(),
-	    'package://dviz_core/tasks/brownie_recipe.xml']
+    args : ['package://dviz_core/tasks/brownie_recipe.xml']
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
     } else {
-      console.log('[DVizClient] Loaded brownie task.');
+      console.log('[DVizClient] Loaded brownie task');
     }
   });
 }
@@ -318,13 +330,14 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
     }
   }
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'process_key',
-    args : [this.id.toString(),
-	    e.which.toString(),
+    args : [e.which.toString(),
 	    '6'] // Qt code for KeyPress, @todo make a constant
   }), function(response) {
-    // @todo report errors
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
   });
 }
 
@@ -340,34 +353,34 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
       }
   }
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'process_key',
-    args : [this.id.toString(),
-	    e.which.toString(),
+    args : [e.which.toString(),
 	    '7'] // Qt code for KeyRelease, @todo make a constant
   }), function(response) {
-    // @todo report errors
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
-  // @todo first alert the user, and confirm that they want to switch goals.
+  // @todo first alert the user, and confirm that they want to switch goals
 
-  console.log('[DVizClient] Changing goal to ' + num + '.');
+  console.log('[DVizClient] Changing goal to ' + num);
   // @todo check if valid goal number?
   this.currentGoal = num;
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'change_goal',
-    args : [this.id.toString(),
-	    num.toString()]
+    args : [num.toString()]
   }), function(response) {
-    // @todo report errors
+    console.log('[DVizClient] Error response: ' + response.response);
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(goalNumber) {
-  console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString() + '.');
+  console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString());
 
   // Disable marker control of the robot (so the user cannot move 
   // the robot while selecting a grasp)
@@ -383,118 +396,122 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
     this.goals[this.currentGoalNumber].initial_object_pose.position.z;
   this.cameraManager.viewer.cameraControls.update();
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'show_interactive_gripper',
-    args : [this.id.toString(),
-	    goalNumber.toString()]
+    args : [goalNumber.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizCore] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
-  console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString() + '.');
+  console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
 
   this.robotMarkerControl(true);
   this.cameraManager.setCamera(0);
+  this.cameraManager.viewer.cameraControls.center.x =
+    this.cameraManager.xFilter.back();
+  this.cameraManager.viewer.cameraControls.center.y =
+    this.cameraManager.yFilter.back();
+  this.cameraManager.viewer.cameraControls.center.z = 0.0;
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'hide_interactive_gripper',
-    args : [this.id.toString(),
-	    goalNumber.toString()]
+    args : [goalNumber.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizCore] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
-  console.log('[DVizClient] Accepting grasp.');
+  console.log('[DVizClient] Accepting grasp');
 
-  // Hide the interactive gripper of the current goal. 
+  // Hide the interactive gripper of the current goal
   this.hideInteractiveGripper(this.currentGoalNumber);
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'accept_grasp',
-    args : [this.id.toString()]
+    args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizCore] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
-  console.log('[DVizClient] Begin recording.');
+  console.log('[DVizClient] Begin recording');
 
   $('#rrButton').html(
     '<button type="button" class="btn btn-default" onclick="dvizClient.endRecording()">End Recording</button>');
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'begin_recording',
-    args : [this.id.toString()]
+    args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
-  console.log('[DVizClient] End recording.');
+  console.log('[DVizClient] End recording');
 
   $('#rrButton').html(
     '<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>');
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'end_recording',
-    args : [this.id.toString()]
+    args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.beginReplay = function() {
-  console.log('[DVizClient] Begin replay.');
+  console.log('[DVizClient] Begin replay');
 
-  // Reset the robot before replaying a user demonstration.
+  // Reset the robot before replaying a user demonstration
   this.resetRobot();
 
   // @todo query a database of user demonstrations to replay the 
-  // desired one.
+  // desired one
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'begin_replay',
-    args : [this.id.toString(),
-	    '/home/eratner/demonstrations/last_demonstration_' + this.id.toString() + '.bag']
-    // hack!! the user should somehow input which demonstration to replay
+    args : ['/home/eratner/demonstrations/last_demonstration_'
+	    + this.id.toString() + '.bag']
+    // hack! the user should somehow input which demonstration to replay
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber) {
   console.log('[DVizClient] Goal ' + goalNumber.toString() + ' completed!');
+
+  // @todo notify the user through some user interface element
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.robotMarkerControl = function(enabled) {
   console.log('[DVizClient] Robot marker control is ' +
-	      (enabled ? 'enabled' : 'disabled') + '.');
+	      (enabled ? 'enabled' : 'disabled'));
 
-  this.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'robot_marker_control',
-    args : [this.id.toString(),
-	    enabled.toString()]
+    args : [enabled.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error: ' + response.response);
+      console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
@@ -517,7 +534,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.displayStatusText = function(text) 
 }
 
 var ros = null;
-var dvizCommandClient = null;
+var dvizCoreCommandClient = null;
 var dvizClient = null;
 
 function init() {
@@ -534,14 +551,14 @@ function init() {
     antialias : true
   });
 
-  // Request a new DVizUser from the server.
-  dvizCommandClient = new ROSLIB.Service({
+  // Request a new DVizUser from the core
+  dvizCoreCommandClient = new ROSLIB.Service({
     ros : ros,
     name : '/dviz_command',
     serviceType : 'dviz_core/Command'
   });
 
-  dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'add_user',
     args : []
   }), function(response) {
@@ -603,15 +620,19 @@ function init() {
 
   // Initialize all tooltips.
   $('.tip').tooltip();
+
+  //$(window).scroll(function() {
+  //console.log('scrolling');
+  //});
 }
 
 // Kill the DVizUser when the user exits the page
 window.onbeforeunload = function removeUser() {
-  dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'kill_user',
     args : [dvizClient.id.toString()]
   }), function(response) {
-    console.log('[DVizClient] Killed user ' + dvizClient.id.toString() + '.');
+    console.log('[DVizClient] Killed user ' + dvizClient.id.toString());
   });
 }
 
@@ -665,11 +686,10 @@ function setFrameRate() {
     console.log('[DVizClient] \'' + document.getElementById('frameRate').value
 		+ '\' is not a valid number!');
   } else {
-    console.log('[DVizClient] Set frame rate to ' + frameRate + '.');
-    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    console.log('[DVizClient] Set frame rate to ' + frameRate);
+    dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_frame_rate',
-      args : [dvizClient.id.toString(),
-	      frameRate.toString()]
+      args : [frameRate.toString()]
     }), function(response) {
       if(response.response.length > 0) {
 	console.log('[DVizClient] Error response: ' + response.response);
@@ -695,11 +715,10 @@ function setBaseLinearSpeed() {
   if(isNaN(linearSpeed)) {
     showAlert('Not a valid speed!');
   } else {
-    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_base_speed',
-      args : [dvizClient.id.toString(),
-	      linearSpeed.toString(),
-	      "0.0"]
+      args : [linearSpeed.toString(),
+	      '0.0']
     }), function(response) {
       if(response.response.length > 0) {
 	console.log('[DVizClient] Error response: ' + response.response);
@@ -715,10 +734,9 @@ function setBaseAngularSpeed() {
   if(isNaN(angularSpeed)) {
     showAlert('Not a valid speed!');
   } else {
-    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_base_speed',
-      args : [dvizClient.id.toString(),
-	      "0.0",
+      args : ['0.0',
 	      angularSpeed.toString()]
     }), function(response) {
       if(response.response.length > 0) {
@@ -735,10 +753,9 @@ function setEndEffectorSpeed() {
   if(isNaN(speed)) {
     showAlert('Not a valid speed!');
   } else {
-    dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+    dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_arm_speed',
-      args : [dvizClient.id.toString(),
-	      speed.toString()]
+      args : [speed.toString()]
     }), function(response) {
       if(response.response.length > 0) {
 	console.log('[DVizClient] Error response: ' + response.response);
@@ -750,15 +767,15 @@ function setEndEffectorSpeed() {
 }
 
 function numUsers() {
-  dvizClient.dvizCommandClient.callService(new ROSLIB.ServiceRequest({
+  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'num_users',
     args : []
   }), function(response) {
     if(response.response.length > 0) {
       var numUsers = parseInt(response.response);
-      showAlert('There are currently ' + numUsers.toString() + ' DViz users.');
+      showAlert('There are currently ' + numUsers.toString() + ' DViz users');
     } else {
-      console.log('[DVizClient] Error getting the number of DViz users.');
+      console.log('[DVizClient] Error getting the number of DViz users');
     }
   });
 }

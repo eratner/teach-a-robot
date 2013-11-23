@@ -55,9 +55,6 @@
       </div>
       -->
 
-      <div id="alerts" class="col-lg-9">
-	<!-- <div id="alertDialog" class="alert alert-warning"></div> -->
-      </div>
 
       <div class="col-lg-9">
 	<div id="dviz"></div>
@@ -95,7 +92,7 @@
 		    </button>
 		    <button id="acceptGrasp" type="button" data-toggle="tooltip" data-placement="left"
 			    title="Click here when you're done choosing a good grasp for the object."
-			    class="btn btn-default" onclick="dvizClient.acceptGrasp()" disabled>Accept Grasp
+			    class="tip btn btn-default" onclick="dvizClient.acceptGrasp()" disabled>Accept Grasp
 		    </button>
 		  </div>
 
@@ -151,18 +148,20 @@
 		    <button class="btn btn-primary" type="button" onclick="setBaseAngularSpeed()">Set</button>
 		  </div>
 		  <div class="form-horizontal">
-		    <input class="form-control" id="endEffectorSpeed" type="text" placeholder="End-Effector Speed">
+		    <input id="endEffectorSpeed" type="text" placeholder="End-Effector Speed">
 		    <button class="btn btn-primary" type="button" onclick="setEndEffectorSpeed()">Set</button>
 		  </div>
-		  <div class="form-horizontal">
-		    <button class="btn btn-primary" type="button" onclick="numUsers()">Get Number of Users</button>
-		  </div>
+		  <button class="btn btn-primary" type="button" onclick="numUsers()">Get Number of Users</button>
 		</div>
             </div>
 	  </div>
 	</div>
       </div>
 
+      <div id="alerts" class="col-lg-9">
+	<!-- This is where DVizClient-generated alerts will be placed --->
+	<!-- <div id="alertDialog" class="alert alert-warning"></div> -->
+      </div>
     </div>
 
     <div id="footer">

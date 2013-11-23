@@ -45,21 +45,21 @@ public:
   bool processCommand(const std::string &command, const std::vector<std::string> &args);
 
   /**
-   * @brief Add a new DVizUser by spawning a new process running a DVizUser with unique ID.
+   * @brief Add a new DVizUser by spawning a new process running a DVizUser with unique ID
    *
-   * @return ID of the newly created DVizUser.
+   * @return ID of the newly created DVizUser
    */
   int addUser();
 
   /**
-   * @brief The main run loop of DVizCore.
+   * @brief The main run loop of DVizCore
    */
   void run();
 
 private:
   /**
    * @brief A helper method that simply passes the Command service call
-   *        along to the specified DVizUser.
+   *        along to the specified DVizUser
    */
   bool passCommandToUser(const std::string &command, 
 			 std::string &response, 
@@ -72,7 +72,7 @@ private:
 
   ros::ServiceServer command_service_;
 
-  // For reading scenes from file and storing them in shared memory.
+  // For reading scenes from file and storing them in shared memory
   ObjectManager *object_manager_;
   DemonstrationSceneManager *demonstration_scene_manager_;
 
