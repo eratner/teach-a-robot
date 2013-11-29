@@ -1544,6 +1544,11 @@ void PR2Simulator::detach()
   attached_object_ = false;
 }
 
+bool PR2Simulator::isObjectAttached() const
+{
+  return attached_object_;
+}
+
 KDL::Frame PR2Simulator::getAttachedTransform() const
 {
   return attached_transform_;

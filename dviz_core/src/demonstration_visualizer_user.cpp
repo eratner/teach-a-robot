@@ -13,7 +13,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
     ROS_ERROR("[DVizUser%d] Unable to connect to ROS master!", id_);
   }
 
-  // For web purposes, we need to fork a process to run an interactive marker proxy node.
+  // For web purposes, we need to fork a process to run an interactive marker proxy node
   if(web_)
   {
     int rosrun = fork();
@@ -86,7 +86,7 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 
 void DemonstrationVisualizerUser::run()
 {
-  ROS_INFO("[DVizUser%d] Running at %f frames/sec.", id_, frame_rate_);
+  ROS_INFO("[DVizUser%d] Running at %f frames/sec", id_, frame_rate_);
   ros::Rate rate(frame_rate_);
   while(ros::ok() && ok_)
   {
@@ -304,7 +304,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   } // end GRIPPER_CONTROLS
   else if(req.command.compare(dviz_core::Command::Request::RESET_TASK) == 0)
   {
-    demonstration_scene_manager_->resetTask();
+    resetTask();
   } // end RESET_TASK
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
   {
@@ -465,7 +465,6 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   } // end CHANGE_GOAL
   else if(req.command.compare(dviz_core::Command::Request::ACCEPT_GRASP) == 0)
   {
-    // @todo accept grasp
     int current_goal = demonstration_scene_manager_->getCurrentGoal();
     Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
     if(goal->getType() == Goal::PICK_UP)
@@ -912,11 +911,11 @@ void DemonstrationVisualizerUser::getUserProcessInfo()
   std::string buf;
   if(proc.is_open())
   {
-    for(int i = 0; i < 23; ++i)
+    for(int i = 0; i < 24; ++i)
     {
       proc >> buf;
     }
-    ROS_INFO("[DVizUser%d] Virtual memory size = %s bytes", id_, buf.c_str());
+    ROS_INFO("[DVizUser%d] Resident memory size = %s bytes", id_, buf.c_str());
     proc.close();
     return;
   }
@@ -991,7 +990,7 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   control.orientation.w = 1;
   control.orientation.x = 0;
-  control.orientation.y = 0;
+  control.orientation.y = 1;
   control.orientation.z = 0;
   control.always_visible = true;
   int_marker.controls.push_back(control);
@@ -1067,11 +1066,32 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
     double dy = object_pose.position.y - feedback->pose.position.y;
     double dz = object_pose.position.z - feedback->pose.position.z;
     double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+
+    // Adjust the control orientation of the gripper appropriately
+    // visualization_msgs::InteractiveMarker gripper_marker;
+    // int_marker_server_->get(feedback->marker_name, gripper_marker);
+    // tf::Quaternion rot(feedback->pose.orientation.x,
+    // 		       feedback->pose.orientation.y,
+    // 		       feedback->pose.orientation.z,
+    // 		       feedback->pose.orientation.w);
+    // tf::Quaternion rot2(tf::Vector3(0, 1, 0), M_PI/2.0);
+    // tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+
+    // int_marker_server_->insert(gripper_marker);
+    // int_marker_server_->applyChanges();
+
     // If the gripper marker has been moved too far from the 
     // position of the object, do not do anything
-    if(distance > 1.5)
+    if(distance > 0.3)
     {
-      ROS_WARN("[DVizUser%d] Too grasp is too far from object", id_);
+      ROS_WARN("[DVizUser%d] The grasp is too far from object", id_);
+      // Reset the pose of the interactive gripper
+      if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP)
+      {
+	geometry_msgs::Pose last_pose = demonstration_scene_manager_->getGraspPose(goal_number);
+	int_marker_server_->setPose(feedback->marker_name, last_pose);
+	int_marker_server_->applyChanges();
+      }
       return;
     }
   }
@@ -1153,6 +1173,42 @@ void DemonstrationVisualizerUser::processKeyEvent(int key, int type)
 
   // Pass key events to the simulator
   simulator_->processKeyEvent(key, type);
+}
+
+// @todo move this to demonstration scene manager
+void DemonstrationVisualizerUser::resetTask()
+{
+  ROS_INFO("[DVizUser%d] Resetting task.", id_);
+  if(demonstration_scene_manager_->getNumGoals() > 0)
+  {
+    // Reset to the first goal
+    demonstration_scene_manager_->setCurrentGoal(0);
+
+    // If the robot is holding an object, detach it
+    if(simulator_->isObjectAttached())
+      simulator_->detach();
+
+    // Reset all the objects to their initial positions
+    std::vector<Goal *> goals = demonstration_scene_manager_->getGoals();
+    std::vector<Goal *>::const_iterator it;
+    geometry_msgs::Pose default_pose;
+    default_pose.position.x = default_pose.position.y = default_pose.position. z = 0;
+    default_pose.orientation.x = default_pose.orientation. y = default_pose.orientation.z = 0;
+    default_pose.orientation.w = 1;
+    for(it = goals.begin(); it != goals.end(); ++it)
+    {
+      if((*it)->getType() == Goal::PICK_UP)
+      {
+	PickUpGoal *g = static_cast<PickUpGoal *>(*it);
+	geometry_msgs::Pose initial_pose = g->getInitialObjectPose();
+	int object_id = g->getObjectID();
+	object_manager_->moveObject(object_id, initial_pose);
+	g->setGraspPose(default_pose);
+	g->setGraspDone(false);
+	g->setGripperJointPosition(EndEffectorController::GRIPPER_OPEN_ANGLE);
+      }
+    }
+  }
 }
 
 } // namespace demonstration_visualizer

@@ -169,6 +169,11 @@ public:
   void detach();
 
   /**
+   * @brief Returns true if an object is attached to the end-effector of the robot
+   */
+  bool isObjectAttached() const;
+
+  /**
    * @brief If an object is attached to the (right) end-effector, this will
    *        return the object_in_gripper transform (i.e. the gripper to 
    *        object transform.)

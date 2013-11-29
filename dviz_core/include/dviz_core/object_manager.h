@@ -15,8 +15,9 @@
 namespace demonstration_visualizer 
 {
 
-class ObjectManager{
-  public:
+class ObjectManager
+{
+public:
     /**
      * @brief Constructs an object manager, where the distance field is stored in shared memory.
      *        Only the DVizCore is allowed to write to shared memory, so unless core is true,

@@ -9,12 +9,13 @@
 
 #include <dviz_core/end_effector_controller.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 /**
  * @brief A base class for all goal types. All goals must have a 
  *        (unique) goal number, a string description (may be empty)
- *        and a goal type.
+ *        and a goal type
  */
 class Goal
 {

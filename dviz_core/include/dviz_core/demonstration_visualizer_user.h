@@ -102,6 +102,12 @@ public:
    * @param type The type of key event (e.g. press or release)
    */
   void processKeyEvent(int key, int type);
+  
+  /**
+   * @brief If a task has been loaded, reset the task (move the
+   *        objects back to their initial locations
+   */
+  void resetTask();
 
 private:
   /**
