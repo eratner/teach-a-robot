@@ -36,25 +36,21 @@
 	<h1>Teach-A-Robot</h1>
       </div>
 
-      <!--
-      <div class="modal fade" id="tarIntroDialog" tabindex="-1" role="dialog" aria-labelledby="tarIntroDialog" aria-hidden="true">
-	<div class="modal-dialog">
-	  <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-              <h4 class="modal-title">Welcome to Teach-A-Robot</h4>
-            </div>
-            <div class="modal-body">
-              ...
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-default" data-dismiss="modal">Go!</button>
-            </div>
+      <!-- Alert modal -->
+      <div id="alertModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="alertModalHeader" aria-hidden="true">\
+	<div class="modal-content">
+	  <div class="modal-header">
+	    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+	    <h4 class="modal-title" id="alertModalHeader">Header</h4>
+	  </div>
+	  <div class="modal-body">
+	    <p>Body</p>
+	  </div>
+	  <div class="modal-footer">
+	    <button class="btn" data-dismiss="modal" aria-hidden="true">Done</button>
 	  </div>
 	</div>
       </div>
-      -->
-
 
       <div class="col-lg-9">
 	<div id="dviz"></div>
@@ -96,19 +92,22 @@
 		    </button>
 		  </div>
 
-		  <hr />
+		  <div id="debugControls">
+		    <hr />
 
-		  <div class="btn-group-vertical">
-		    <button type="button" class="btn btn-default" onclick="dvizClient.resetRobot()">Reset Robot</button>
-		    <button type="button" class="btn btn-default" onclick="dvizClient.loadScene()">Load Scene</button>
-		    <button type="button" class="btn btn-default" onclick="dvizClient.loadTask()">Load Task</button>
-		    <div id="rrButton">		      
-		      <button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>
+		    <div class="btn-group-vertical">
+		      <button type="button" class="btn btn-default" onclick="dvizClient.resetRobot()">Reset Robot</button>
+		      <button type="button" class="btn btn-default" onclick="dvizClient.resetTask()">Reset Task</button>
+		      <button type="button" class="btn btn-default" onclick="dvizClient.loadScene()">Load Scene</button>
+		      <button type="button" class="btn btn-default" onclick="dvizClient.loadTask()">Load Task</button>
+		      <div id="rrButton">		      
+			<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>
+		      </div>
+		      <button type="button" class="btn btn-default" onclick="dvizClient.beginReplay()">Begin Replay</button>
 		    </div>
-		    <button type="button" class="btn btn-default" onclick="dvizClient.beginReplay()">Begin Replay</button>
-		  </div>
 
-		  <hr />
+		    <hr />
+		  </div>
 
 		  <h3>Task</h3>
 
@@ -125,6 +124,10 @@
 		  </label>
 		  <label class="checkbox">
 		    <input type="checkbox" value="option1" id="cameraTfFilter" onclick="setCameraFilter()">Enable Camera TF Filter</input>
+
+		  </label>
+		  <label class="checkbox">
+		    <input type="checkbox" value="option1" id="showDebugControls" onclick="showDebugControls()">Show Debug Controls</input>
 
 		  </label>
 		  <div class="form-horizontal">

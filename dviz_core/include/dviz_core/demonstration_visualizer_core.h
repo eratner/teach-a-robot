@@ -11,6 +11,7 @@
 #include <dviz_core/object_manager.h>
 #include <dviz_core/demonstration_scene_manager.h>
 
+#include <boost/thread.hpp>
 #include <cmath>
 
 namespace demonstration_visualizer 
@@ -66,6 +67,17 @@ private:
 			 int id,
                          const std::vector<std::string> &args = std::vector<std::string>());
 
+  /**
+   * @brief Same as passCommandToUser, but upon failure, will repeat the
+   *        command until success at a given rate (note that a rate of 0
+   *        will cause the command to be passed only once).
+   */
+  void passCommandToUserThreaded(const std::string &command,
+				 std::string &response,
+				 int id,
+				 const std::vector<std::string> &args = std::vector<std::string>(),
+				 float rate = 10.0f);
+
   int last_id_;
   int num_users_;
   std::map<int, ros::ServiceClient> user_command_services_;
@@ -75,6 +87,15 @@ private:
   // For reading scenes from file and storing them in shared memory
   ObjectManager *object_manager_;
   DemonstrationSceneManager *demonstration_scene_manager_;
+
+  // @todo replace this with some sort of lookup table to indicate
+  //       which scenes have been loaded into shared memory
+  //       e.g. a mapping from string name of scene to string
+  //       identifier of shared memory location: 
+  //            "kitchen" --> "df1"
+  //            "warehouse" --> "df2"
+  //            ...
+  bool scene_loaded_;
 
 };
 

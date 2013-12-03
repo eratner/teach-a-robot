@@ -40,7 +40,7 @@ var createSMAFilter = function(n) {
 };
 
 /**
- * A camera manager for DViz.
+ * A camera manager for DViz
  *
  * @constructor
  * @param options - object with the following keys:
@@ -69,6 +69,7 @@ DVIZ.CameraManager = function(options) {
   this.lastCameraMode = 1;
 
   this.zMode = false;
+  this.gameStarted = false;
 
   // Use SMA filters to make the camera smoother.
   this.xFilter = createSMAFilter(this.filterBufferSize);
@@ -124,7 +125,7 @@ DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
 }
 
 /**
- * A web-based demonstration visualizer client.
+ * A web-based demonstration visualizer client
  * 
  * @constructor
  * @param options - object with the following keys:
@@ -204,12 +205,12 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	// Show an interactive gripper marker at the current goal
 	console.log('[DVizClient] Current goal is of type pick-up.');
 	that.showInteractiveGripper(that.currentGoalNumber);
-	$('#acceptGrasp').prop('disabled', false)
+	$('#acceptGrasp').prop('disabled', false);
 	// Switch the camera back to follow the base of the robot
 	that.cameraManager.setCamera(0);
       } else {
 	// The goal is not of type pick up
-
+	$('#acceptGrasp').prop('disabled', true);
       }
     }
   });
@@ -219,8 +220,14 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   console.log('[DVizClient] Playing simulator...');
   
   // Disable the play button
-  $('#play').prop('disabled', true)
-  $('#pause').prop('disabled', false)
+  $('#play').prop('disabled', true);
+  $('#pause').prop('disabled', false);
+
+  // If the user has not started the game yet, load the task
+  if(!this.gameStarted) {
+    this.loadTask();
+    this.gameStarted = true;
+  }
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'play',
@@ -236,8 +243,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.pause = function() {
   console.log('[DVizClient] Pausing simulator...');
 
   // Disable the pause button
-  $('#pause').prop('disabled', true)
-  $('#play').prop('disabled', false)
+  $('#pause').prop('disabled', true);
+  $('#play').prop('disabled', false);
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'pause_now',
@@ -275,9 +282,27 @@ DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
   });
 };
 
-DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
-  // @todo for now, just load the kitchen mesh.
-  console.log('[DVizClient] Loading kitchen...');
+DVIZ.DemonstrationVisualizerClient.prototype.resetTask = function() {
+  console.log('[DVizClient] Resetting task...');
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'reset_task',
+    args : []
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
+  //showAlertModal('Loading the kitchen...', 'This might take a minute or two!');
+  var sceneName = scene || 'kitchen_lite.xml';
+
+  console.log('[DVizClient] Loading scene ' + sceneName);
+
+  // Pause the game, and show the user how to play
+  this.pause();
+  $('#play').tooltip('show');
 
   // @todo bring up a loading message until the scene has fully loaded into the browser.
   // then, need to figure out how to wait until the collada meshes have been fully rendered.
@@ -285,34 +310,31 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function() {
   this.coreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
     args : [this.id.toString(), 
-	    //'/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen.xml']
-	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/kitchen_lite.xml']
+	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/' + sceneName]
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
     } else {
-      console.log('[DVizClient] Loaded kitchen mesh');
+      console.log('[DVizClient] Loaded the scene ' + sceneName);
     }
   });
 }
 
-DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function() {
-  // @todo for now, just load the brownie task
-  console.log('[DVizClient] Loading brownie task...');
+DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function(task) {
+  var taskName = task || 'brownie_recipe.xml';
 
-  // Pause the game, and show the user how to play
-  this.pause();
-  $('#play').tooltip('show');
+  console.log('[DVizClient] Loading task ' + taskName);
+
 
   // Load the task
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_task',
-    args : ['package://dviz_core/tasks/brownie_recipe.xml']
+    args : ['package://dviz_core/tasks/' + taskName]
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + res.response);
     } else {
-      console.log('[DVizClient] Loaded brownie task');
+      console.log('[DVizClient] Loaded the task ' + taskName);
     }
   });
 }
@@ -323,7 +345,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
   // Filter certain keys depending on the client state.
   if(e.which === 90) {
     if(!this.zMode) {
-      console.log('[DVizClient] Enabling z-mode.');
+      console.log('[DVizClient] Enabling z-mode');
       this.zMode = true;
     } else {
       return;
@@ -346,7 +368,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
 
   if(e.which === 90) {
     if(this.zMode) {
-        console.log('[DVizClient] Disabling z-mode.');
+        console.log('[DVizClient] Disabling z-mode');
         this.zMode = false;
       } else {
 	return;
@@ -538,7 +560,7 @@ var dvizCoreCommandClient = null;
 var dvizClient = null;
 
 function init() {
-  //openIntroDialog();
+  $('#debugControls').hide();
 
   ros = new ROSLIB.Ros({
     url: 'ws://sbpl.net:21891'
@@ -580,6 +602,7 @@ function init() {
       rootObject : viewer.scene
     });
 
+    // Client to handle interactive markers
     var imClient = new ROS3D.InteractiveMarkerClient({
       ros : ros,
       tfClient : tfClient,
@@ -589,11 +612,20 @@ function init() {
       rootObject : viewer.selectableObjects
     });
 
+    // Client to handle the robot visualization markers
     var rmClient = new ROS3D.RobotMarkerArrayClient({
       ros : ros,
       tfClient : tfClient,
       topic : '/dviz_user_' + userId + '/visualization_marker_array',
       path : 'http://resources.robotwebtools.org/',
+      rootObject : viewer.scene
+    });
+
+    // Client to display spheres to indicate robot collisions
+    var rcClient = new ROS3D.MultiMarkerClient({
+      ros : ros,
+      topic : '/dviz_user_' + userId + '/collisions/visualization_marker',
+      tfClient : tfClient,
       rootObject : viewer.scene
     });
 
@@ -605,6 +637,8 @@ function init() {
       viewerHeight : 600,
       id : userId
     });
+
+    dvizClient.loadScene();
 
     dvizClient.displayStatusText('Connected to DVizServer!');
 
@@ -637,8 +671,10 @@ window.onbeforeunload = function removeUser() {
 }
 
 // Front-end specific functions.
-function openIntroDialog() {
-  $('#tarIntroDialog').modal('show');
+function showAlertModal(header, body) {
+  $('#alertModalHeader').html(header);
+  $('#alertModalBody').html(body);
+  $('#alertModal').modal('show');
 }
 
 // Functions to interface with the user interface front-end.
@@ -661,6 +697,15 @@ function setCameraFilter() {
   } else {
     console.log('[DVizClient] Disabling camera TF filtering.');
     dvizClient.cameraManager.setFilterTf(filter);
+  }
+}
+
+function showDebugControls() {
+  var show = $('#showDebugControls').checked;
+  if(show) {
+    $('#debugControls').show();
+  } else {
+    $('#debugControls').hide();
   }
 }
 
@@ -700,7 +745,10 @@ function setFrameRate() {
   }
 }
 
-function showAlert(message) {
+function showAlert(message, timeout) {
+  // Default argument for timeout is 2 s (2000 ms)
+  timeout = (typeof timeout === 'undefined') ? 2000 : timeout;
+
   var alertDialog = document.getElementById('alertDialog');
   if(alertDialog === null) {
     document.getElementById('alerts').innerHTML = '<div id="alertDialog" class="alert alert-warning"></div>';
@@ -708,6 +756,10 @@ function showAlert(message) {
 
   document.getElementById('alertDialog').innerHTML = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>' 
     + message + '</p>';
+
+  // Set automatic timeout
+  window.setTimeout(function() {
+    $('#alertDialog').alert('close'); }, timeout);
 }
 
 function setBaseLinearSpeed() {

@@ -602,7 +602,8 @@ void PR2Simulator::moveRobot()
   }
   else
   {
-    ROS_ERROR("[PR2Sim] Invalid movement!");
+    //ROS_ERROR("[PR2Sim] Invalid movement!");
+    // @todo indicate that the robot is in an invalid state
   }
 }
 

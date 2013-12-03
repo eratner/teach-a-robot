@@ -1203,7 +1203,8 @@ void DemonstrationVisualizerUser::resetTask()
 	geometry_msgs::Pose initial_pose = g->getInitialObjectPose();
 	int object_id = g->getObjectID();
 	object_manager_->moveObject(object_id, initial_pose);
-	g->setGraspPose(default_pose);
+	g->setGraspPose(initial_pose);
+	g->setGraspDistance(0.25);
 	g->setGraspDone(false);
 	g->setGripperJointPosition(EndEffectorController::GRIPPER_OPEN_ANGLE);
       }

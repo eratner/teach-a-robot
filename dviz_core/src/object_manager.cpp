@@ -5,7 +5,8 @@ using namespace std;
 using namespace visualization_msgs;
 using namespace geometry_msgs;
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename, int user_id, bool core)
   : user_id_(user_id), bounding_box_dimensions_(3, 0), bounding_box_origin_(3, 0), is_core_(core)
@@ -44,12 +45,12 @@ ObjectManager::~ObjectManager()
 
   if(is_core_)
   {
-    // Remove distance fields from shared memory.
+    // Remove distance fields from shared memory
     boost::interprocess::managed_shared_memory segment(boost::interprocess::open_only, "SharedDistanceField");
     ROS_INFO("[ObjectManager] DVizCore removing distance field data from shared memory.");
     segment.destroy<ShmemVectorVectorVector>("df");
 
-    // Remove the shared memory.
+    // Remove the shared memory
     boost::interprocess::shared_memory_object::remove("SharedDistanceField");
   }
 }
@@ -126,9 +127,12 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 
   ROS_INFO("[ObjectManager%d] Constructing the collision checker.", user_id_);
 
+  std::stringstream visualization_ns;
+  visualization_ns << "dviz_user_" << user_id_ << "/collisions";
   collision_checker_ = new pr2_collision_checker::PR2CollisionSpace(r_arm_model,
 								    l_arm_model,
-								    shared_occupancy_grid_);
+								    shared_occupancy_grid_,
+    visualization_ns.str());
 
   ROS_INFO("[ObjectManager%d] Initializing the collision checker.", user_id_);
 

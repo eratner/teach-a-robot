@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
-  : last_id_(1), num_users_(0)
+  : last_id_(1), num_users_(0), scene_loaded_(false)
 {
   if(!init(argc, argv))
     ROS_ERROR("[DVizCore] Unable to connect to master!");
@@ -150,16 +150,24 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       std::vector<std::string> args;
       args.push_back(req.args[1]);
 
+      if(scene_loaded_)
+	ROS_WARN("[DVizCore] Scene already loaded, skipping this step");
+
       // First load the appropriate scene into shared memory.
-      if(demonstration_scene_manager_->loadScene(req.args[1]) > -1)
+      if(!scene_loaded_ && demonstration_scene_manager_->loadScene(req.args[1]) > -1)
       {
 	object_manager_->initSharedDistanceField();
+	scene_loaded_ = true;
       }
 
-      if(!passCommandToUser(dviz_core::Command::Request::LOAD_SCENE, res.response, user_id, args))
-      {
-	ROS_ERROR("[DVizCore] Error in load_scene command.");
-      }
+      boost::thread worker = boost::thread(
+	&DemonstrationVisualizerCore::passCommandToUserThreaded,
+	this,
+	dviz_core::Command::Request::LOAD_SCENE,
+	res.response,
+	user_id,
+	args,
+	10.0f);
     }
     else
     {
@@ -272,6 +280,35 @@ bool DemonstrationVisualizerCore::passCommandToUser(const std::string &command,
   }
 
   return true;
+}
+
+void DemonstrationVisualizerCore::passCommandToUserThreaded(
+  const std::string &command,
+  std::string &response,
+  int id,
+  const std::vector<std::string> &args,
+  float rate)
+{
+  // First, check if the user exists
+  if(user_command_services_.find(id) == user_command_services_.end())
+  {
+    ROS_ERROR("[DVizCore] In threaded pass command, user with id %d does not exist", id);
+    return;
+  }
+
+  bool success = false;
+
+  ros::Rate r(rate);
+
+  // Try until success
+  while(!success)
+  {
+    success = passCommandToUser(command, response, id, args);
+
+    if(rate == 0) break;
+
+    r.sleep();
+  }
 }
 
 void DemonstrationVisualizerCore::run()
