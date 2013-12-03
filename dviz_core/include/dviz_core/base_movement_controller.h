@@ -1,4 +1,7 @@
 /**
+ * @brief A finite-state automata (FSA) based carrot-controller for
+ *        generating velocity commands to move the base of the robot
+ *        from a start pose to a goal pose.
  * @author Ellis Ratner
  * @date June 2013
  */
@@ -13,7 +16,8 @@
 #include <angles/angles.h>
 #include <cmath>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 static const char *STATE_NAMES[] = { "INITIAL",
                                      "READY",
@@ -92,7 +96,7 @@ private:
 
   bool print_transitions_;
   
-  // States.
+  // States
   geometry_msgs::Twist rotateToGoalPosition(double current_angle,
 					    double goal_angle);
 
