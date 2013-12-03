@@ -812,13 +812,13 @@ void PR2Simulator::upperArmMarkerFeedback(
 							  r_upper_arm_roll_pose_.orientation.w);
     current_rot.GetRPY(r, p, y);
     current_roll = r;
-    // ROS_INFO("Current RPY: (%f, %f, %f)", r, p, y);
+    ROS_INFO("Current RPY: (%f, %f, %f)", r, p, y);
 
     // ROS_INFO("Current r_upper_arm_roll_joint value = %f", joint_states_.position[9]);
 
     double angle = next_roll - current_roll;
 
-    delta_arm_roll_ = -1.0 * angles::normalize_angle(angle);
+    delta_arm_roll_ = /*-1.0 * */ angles::normalize_angle(angle);
 
     break;
   }
@@ -1407,8 +1407,8 @@ void PR2Simulator::updateUpperArmMarker()
   //   marker_pose.orientation.x, marker_pose.orientation.y, marker_pose.orientation.z,
   //   marker_pose.orientation.w);
 
-  int_marker_server_->setPose("r_upper_arm_marker", marker_pose);
-  int_marker_server_->applyChanges();
+  // int_marker_server_->setPose("r_upper_arm_marker", marker_pose);
+  // int_marker_server_->applyChanges();
 }
 
 void PR2Simulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
@@ -1964,6 +1964,26 @@ void PR2Simulator::enableUpperArmRollControl()
   visualization_msgs::InteractiveMarkerControl control;
   control.always_visible = true;
   control.markers.clear();
+
+  // *** FOR DEBUGGING ***
+  visualization_msgs::Marker arrow;
+  arrow.header.frame_id = "";
+  arrow.header.stamp = ros::Time();
+  arrow.ns = "debug";
+  arrow.id = 0;
+  arrow.type = visualization_msgs::Marker::ARROW;
+  arrow.action = visualization_msgs::Marker::ADD;
+  arrow.pose.orientation.y = 1;
+  arrow.pose.orientation.w = 1;
+  arrow.scale.x = 0.35;
+  arrow.scale.y = 0.35;
+  arrow.scale.z = 1.5;
+  arrow.color.a = 1;
+  arrow.color.r = 1;
+  arrow.color.g = 0;
+  arrow.color.b = 0;
+  control.markers.push_back(arrow);
+
   control.orientation.x = 0;
   control.orientation.y = 0;
   control.orientation.z = 0;
