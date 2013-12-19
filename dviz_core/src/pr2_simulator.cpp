@@ -134,6 +134,7 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   end_effector_pose_.pose = robot_markers_.markers.at(11).pose;
 
   end_effector_goal_pose_ = end_effector_pose_;
+  end_effector_goal_orientation_ = end_effector_pose_.pose.orientation;
 
   visualization_msgs::InteractiveMarker int_marker;
   int_marker.header.frame_id = resolveName("map", user_id_);
@@ -757,7 +758,9 @@ void PR2Simulator::gripperMarkerFeedback(
       // 	     feedback->pose.position.y, feedback->pose.position.z);
       setEndEffectorGoalPose(feedback->pose);
       end_effector_goal_pose_.pose = feedback->pose;
+      end_effector_goal_orientation_ = feedback->pose.orientation;
     }
+
     break;
   }
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
@@ -770,8 +773,24 @@ void PR2Simulator::gripperMarkerFeedback(
        feedback->control_name.compare("YAW") == 0)
     {
       // snapEndEffectorTo(feedback->pose, EndEffectorController::GRIPPER_OPEN_ANGLE,
-      // 		  false, false, true);
+      // 			false, false, true);
+      ROS_INFO("[PR2Sim] Gripper orientation changed in %s",
+      	       feedback->control_name.c_str());
       goal_orientation_changed_ = true;
+      
+      double r, p, y;
+      KDL::Rotation next_rot = KDL::Rotation::Quaternion(feedback->pose.orientation.x,
+    							 feedback->pose.orientation.y,
+    							 feedback->pose.orientation.z,
+    							 feedback->pose.orientation.w);
+      next_rot.GetRPY(r, p, y);
+      ROS_INFO("Next RPY: (%f, %f, %f)", r, p, y);
+      KDL::Rotation current_rot = KDL::Rotation::Quaternion(end_effector_pose_.pose.orientation.x,
+    							    end_effector_pose_.pose.orientation.y,
+    							    end_effector_pose_.pose.orientation.z,
+    							    end_effector_pose_.pose.orientation.w);
+      current_rot.GetRPY(r, p, y);
+      ROS_INFO("Current RPY: (%f, %f, %f)", r, p, y);
     }
 
     if(!move_end_effector_while_dragging_ && canMoveRobotMarkers())
@@ -1314,7 +1333,7 @@ void PR2Simulator::updateEndEffectorMarker()
 {
   if((end_effector_controller_.getState() == EndEffectorController::DONE ||
      end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL ||
-     recorder_->isReplaying()))
+     recorder_->isReplaying()) && !goal_orientation_changed_)
   {
     int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose, end_effector_pose_.header);
     int_marker_server_->applyChanges();
@@ -1324,6 +1343,8 @@ void PR2Simulator::updateEndEffectorMarker()
   {
     if(goal_orientation_changed_)
     {
+      end_effector_goal_pose_.pose.orientation =
+	end_effector_goal_orientation_;
       snapEndEffectorTo(end_effector_goal_pose_.pose, joint_states_.position[14],
 			attached_object_, false, true);
       goal_orientation_changed_ = false;
@@ -1418,7 +1439,7 @@ void PR2Simulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &v
 
 void PR2Simulator::updateTransforms()
 {
-  // Broadcast the coordinate frame of the base footprint.
+  // Broadcast the coordinate frame of the base footprint
   tf::Transform transform;
   transform.setOrigin(tf::Vector3(base_pose_.pose.position.x,
 				  base_pose_.pose.position.y,
@@ -1436,7 +1457,7 @@ void PR2Simulator::updateTransforms()
     );
 
   // Broadcast the coordinate frame of the (right) end-effector in the base footprint frame
-  // and in the map frame.
+  // and in the map frame
   transform.setOrigin(tf::Vector3(end_effector_pose_.pose.position.x,
 				  end_effector_pose_.pose.position.y,
 				  end_effector_pose_.pose.position.z)
@@ -1466,6 +1487,33 @@ void PR2Simulator::updateTransforms()
 						     ros::Time::now(),
 						     resolveName("map", user_id_),
 						     resolveName("right_end_effector", user_id_))
+    );
+
+  // Broadcast the coordinate frame of the (right) upper arm in the
+  // map frame
+  KDL::Frame ruarl_in_map(KDL::Rotation::Quaternion(r_upper_arm_roll_pose_.orientation.x,
+						    r_upper_arm_roll_pose_.orientation.y,
+						    r_upper_arm_roll_pose_.orientation.z,
+						    r_upper_arm_roll_pose_.orientation.w),
+			  KDL::Vector(r_upper_arm_roll_pose_.position.x,
+				      r_upper_arm_roll_pose_.position.y,
+				      r_upper_arm_roll_pose_.position.z)
+    );
+
+  KDL::Frame marker_in_ruarl(KDL::Rotation::Identity(),
+			     KDL::Vector(0.20, 0.0, 0.0));
+
+  KDL::Frame marker_in_map = ruarl_in_map * marker_in_ruarl;
+  double x, y, z, w;
+  marker_in_map.M.GetQuaternion(x, y, z, w);
+  transform.setOrigin(tf::Vector3(marker_in_map.p.x(),
+				  marker_in_map.p.y(),
+				  marker_in_map.p.z()));
+  transform.setRotation(tf::Quaternion(x, y, z, w));
+  tf_broadcaster_.sendTransform(tf::StampedTransform(transform,
+						     ros::Time::now(),
+						     resolveName("map", user_id_),
+						     resolveName("right_upper_arm", user_id_))
     );
 
   // Get the pose of the base footprint in the torso lift link frame.
@@ -1955,8 +2003,8 @@ void PR2Simulator::enableUpperArmRollControl()
   // Place an interactive marker control on the right upper arm.
   visualization_msgs::InteractiveMarker int_marker;
   // int_marker.header.frame_id = "/map"; //"/base_footprint";
-  int_marker.header.frame_id = resolveName("map", user_id_);
-  int_marker.pose = marker_pose; //robot_markers_.markers.at(4).pose;
+  int_marker.header.frame_id = resolveName("right_upper_arm", user_id_);//resolveName("map", user_id_);
+  //int_marker.pose = marker_pose; //robot_markers_.markers.at(4).pose;
   int_marker.name = "r_upper_arm_marker";
   int_marker.description = "";
   int_marker.scale = 0.4;
@@ -1966,23 +2014,23 @@ void PR2Simulator::enableUpperArmRollControl()
   control.markers.clear();
 
   // *** FOR DEBUGGING ***
-  visualization_msgs::Marker arrow;
-  arrow.header.frame_id = "";
-  arrow.header.stamp = ros::Time();
-  arrow.ns = "debug";
-  arrow.id = 0;
-  arrow.type = visualization_msgs::Marker::ARROW;
-  arrow.action = visualization_msgs::Marker::ADD;
-  arrow.pose.orientation.y = 1;
-  arrow.pose.orientation.w = 1;
-  arrow.scale.x = 0.35;
-  arrow.scale.y = 0.35;
-  arrow.scale.z = 1.5;
-  arrow.color.a = 1;
-  arrow.color.r = 1;
-  arrow.color.g = 0;
-  arrow.color.b = 0;
-  control.markers.push_back(arrow);
+  // visualization_msgs::Marker arrow;
+  // arrow.header.frame_id = "";
+  // arrow.header.stamp = ros::Time();
+  // arrow.ns = "debug";
+  // arrow.id = 0;
+  // arrow.type = visualization_msgs::Marker::ARROW;
+  // arrow.action = visualization_msgs::Marker::ADD;
+  // arrow.pose.orientation.y = 1;
+  // arrow.pose.orientation.w = 1;
+  // arrow.scale.x = 0.35;
+  // arrow.scale.y = 0.35;
+  // arrow.scale.z = 1.5;
+  // arrow.color.a = 1;
+  // arrow.color.r = 1;
+  // arrow.color.g = 0;
+  // arrow.color.b = 0;
+  // control.markers.push_back(arrow);
 
   control.orientation.x = 0;
   control.orientation.y = 0;

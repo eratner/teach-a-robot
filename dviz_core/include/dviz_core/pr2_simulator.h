@@ -289,6 +289,7 @@ private:
   bool pause_requested_;
 
   bool goal_orientation_changed_;
+  geometry_msgs::Quaternion end_effector_goal_orientation_;
 
   double delta_arm_roll_;
 
