@@ -70,32 +70,61 @@ DVIZ.CameraManager = function(options) {
 
   this.zMode = false;
   this.gameStarted = false;
+  this.acceptedGrasp = false;
 
-  // Use SMA filters to make the camera smoother.
-  this.xFilter = createSMAFilter(this.filterBufferSize);
-  this.yFilter = createSMAFilter(this.filterBufferSize);
+  // Use SMA filters to make the camera smoother
+  this.baseXFilter = createSMAFilter(this.filterBufferSize);
+  this.baseYFilter = createSMAFilter(this.filterBufferSize);
+
+  this.rEndEffectorXFilter = createSMAFilter(this.filterBufferSize);
+  this.rEndEffectorYFilter = createSMAFilter(this.filterBufferSize);
+  this.rEndEffectorZFilter = createSMAFilter(this.filterBufferSize);
 
   console.log('[CameraManager] user_id = ' + this.id + ' topic: /dviz_user_' + this.id + '/base_footprint');
 
   this.tfClient.subscribe('/dviz_user_' + this.id + '/base_footprint', function(message) {
     var tf = new ROSLIB.Transform(message);
 
-    that.xFilter.push(tf.translation.x);
-    that.yFilter.push(tf.translation.y);
+    that.baseXFilter.push(tf.translation.x);
+    that.baseYFilter.push(tf.translation.y);
 
-    // Center the camera at the base of the robot.
+    // Center the camera at the base of the robot
     if(that.cameraMode === 0) {
       if(that.filterTf) {
-	that.viewer.cameraControls.center.x = that.xFilter.getValue();
-	that.viewer.cameraControls.center.y = that.yFilter.getValue();
+	that.viewer.cameraControls.center.x = that.baseXFilter.getValue();
+	that.viewer.cameraControls.center.y = that.baseYFilter.getValue();
+	that.viewer.cameraControls.center.z = 0.0;
       } else {
 	that.viewer.cameraControls.center.x = tf.translation.x;
 	that.viewer.cameraControls.center.y = tf.translation.y;
-	//that.viewer.cameraControls.center.z = tf.translation.z;
+	that.viewer.cameraControls.center.z = tf.translation.z;
       }
       that.viewer.cameraControls.update();
     }
   });
+
+  this.tfClient.subscribe('/dviz_user_' + this.id + '/right_end_effector', function(message) {
+    var tf = new ROSLIB.Transform(message);
+
+    that.rEndEffectorXFilter.push(tf.translation.x);
+    that.rEndEffectorYFilter.push(tf.translation.y);
+    that.rEndEffectorZFilter.push(tf.translation.z);
+
+    if(that.cameraMode === 2) {
+      if(that.filterTf) {
+	that.viewer.cameraControls.center.x = that.rEndEffectorXFilter.getValue();
+	that.viewer.cameraControls.center.y = that.rEndEffectorYFilter.getValue();
+	that.viewer.cameraControls.center.z = that.rEndEffectorZFilter.getValue();
+      } else {
+	that.viewer.cameraControls.center.x = tf.translation.x;
+	that.viewer.cameraControls.center.y = tf.translation.y;
+	that.viewer.cameraControls.center.z = tf.translation.z;
+      }
+
+      that.viewer.cameraControls.update();
+    }
+  });
+
 };
 
 /**
@@ -107,6 +136,7 @@ DVIZ.CameraManager = function(options) {
  *   0 -- Follows the base of the robot
  *   1 -- Does not follow the base of the robot (used for 
  *        focusing the camera at a particular position)
+ *   2 -- Follows the right end-effector of the robot
  */
 DVIZ.CameraManager.prototype.setCamera = function(mode) {
   if(mode !== this.cameraMode) {
@@ -122,6 +152,38 @@ DVIZ.CameraManager.prototype.setCamera = function(mode) {
 
 DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
   this.filterTf = filter;
+}
+
+/**
+ * Focus the center of the camera to a the point (x, y, z) in space
+ */
+DVIZ.CameraManager.prototype.centerCameraAt = function(x, y, z) {
+  // @todo
+  this.cameraManager.viewer.cameraControls.center.x = x;
+  this.cameraManager.viewer.cameraControls.center.y = y;
+  this.cameraManager.viewer.cameraControls.center.z = z;
+  this.cameraManager.viewer.cameraControls.update();
+}
+
+/**
+ * Sets the zoom speed of the camera
+ */
+DVIZ.CameraManager.prototype.setZoomSpeed = function(speed) {
+  console.log('[DVizClient] Setting zoom speed to ' + speed.toString());
+
+  // @todo this needs to be tested further
+  this.cameraManager.viewer.cameraControls.userZoomSpeed = speed;
+  this.cameraManager.viewer.cameraControls.update();
+}
+
+/**
+ * Sets the actual zoom of the camera to a particular scale
+ */
+DVIZ.CameraManager.prototype.setZoom = function(scale) {
+  console.log('[DVizClient] Setting zoom scale to ' + scale.toString());
+
+  this.cameraManager.viewer.cameraControls.scale = scale;
+  this.cameraManager.viewer.cameraControls.update();
 }
 
 /**
@@ -186,8 +248,25 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     var currentGoal = message.current_goal;
     // @todo find a better way to decide when to update the task list...
     //       maybe there should be a flag: has the task changed?
+
     if(that.currentGoalNumber != currentGoal) {
+      // When changing from goal -1 (i.e. no goals) to goal 0
+      // (i.e. the first goal in the task), do not display a goal
+      // completed dialog
+      if(currentGoal > 0) {
+	that.goalCompleted(that.currentGoalNumber);
+      }
+
+      console.log('[DVizClient] Changing from goal ' + that.currentGoalNumber.toString() + ' to goal ' + currentGoal.toString());
+
       that.currentGoalNumber = currentGoal;
+
+      if(that.currentGoalNumber >= that.goals.length) {
+	// All goals complete; notify the user
+	that.displayStatusText('All goals completed!');
+	return;
+      }
+
       var html = '';
       for(var i = 0; i < message.goals.length; ++i) {
 	html = html + '<a href="#" onclick="dvizClient.changeGoal(' +
@@ -204,8 +283,11 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
 	// Show an interactive gripper marker at the current goal
 	console.log('[DVizClient] Current goal is of type pick-up.');
+	this.acceptedGrasp = false;
+	$('#acceptGrasp').text('Accept Grasp');
 	that.showInteractiveGripper(that.currentGoalNumber);
 	$('#acceptGrasp').prop('disabled', false);
+	$('#acceptGrasp').tooltip('show');
 	// Switch the camera back to follow the base of the robot
 	that.cameraManager.setCamera(0);
       } else {
@@ -239,21 +321,46 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   });
 }
 
-DVIZ.DemonstrationVisualizerClient.prototype.pause = function() {
+DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
   console.log('[DVizClient] Pausing simulator...');
+
+  var pauseNow = now || true;
 
   // Disable the pause button
   $('#pause').prop('disabled', true);
   $('#play').prop('disabled', false);
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'pause_now',
+    command : (pauseNow ? 'pause_now' : 'pause_later'),
     args : []
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
     }
   });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
+  if(follow === 'base') {
+    console.log('[DVizClient] Changing camera to follow the base');
+    this.cameraManager.setCamera(0);
+    this.cameraManager.viewer.cameraControls.center.x =
+      this.cameraManager.baseXFilter.back();
+    this.cameraManager.viewer.cameraControls.center.y =
+      this.cameraManager.baseYFilter.back();
+    this.cameraManager.viewer.cameraControls.center.z = 0.0;
+    $('#changeCamera').attr('onclick', 'dvizClient.changeCamera(\'gripper\')');
+  } else if(follow === 'gripper') {
+    console.log('[DVizClient] Changing camera to follow the gripper');
+    this.cameraManager.setCamera(2);
+    this.cameraManager.viewer.cameraControls.center.x =
+      this.cameraManager.rEndEffectorXFilter.back();
+    this.cameraManager.viewer.cameraControls.center.y =
+      this.cameraManager.rEndEffectorYFilter.back();
+    this.cameraManager.viewer.cameraControls.center.z =
+      this.cameraManager.rEndEffectorZFilter.back();
+    $('#changeCamera').attr('onclick', 'dvizClient.changeCamera(\'base\')');
+  }
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.toggleGripperControls = function() {
@@ -292,7 +399,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.resetTask = function() {
       console.log('[DVizClient] Error response: ' + response.response);
     }
   });
-}
+};
 
 DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
   //showAlertModal('Loading the kitchen...', 'This might take a minute or two!');
@@ -324,7 +431,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function(task) {
   var taskName = task || 'brownie_recipe.xml';
 
   console.log('[DVizClient] Loading task ' + taskName);
-
 
   // Load the task
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -407,6 +513,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   // Disable marker control of the robot (so the user cannot move 
   // the robot while selecting a grasp)
   this.robotMarkerControl(false);
+  this.pause();
 
   this.cameraManager.setCamera(1);
   // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
@@ -434,9 +541,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
   this.robotMarkerControl(true);
   this.cameraManager.setCamera(0);
   this.cameraManager.viewer.cameraControls.center.x =
-    this.cameraManager.xFilter.back();
+    this.cameraManager.baseXFilter.back();
   this.cameraManager.viewer.cameraControls.center.y =
-    this.cameraManager.yFilter.back();
+    this.cameraManager.baseYFilter.back();
   this.cameraManager.viewer.cameraControls.center.z = 0.0;
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -450,19 +557,35 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
-  console.log('[DVizClient] Accepting grasp');
+  if(this.acceptedGrasp) {
+    console.log('[DVizClient] Changing grasp');
+    this.pause();
+    this.acceptedGrasp = false;
 
-  // Hide the interactive gripper of the current goal
-  this.hideInteractiveGripper(this.currentGoalNumber);
+    $('#acceptGrasp').text('Accept Grasp');
+    $('#acceptGrasp').attr('title', 'Click here when you\'re done choosing a good grasp for the object.').tooltip('show');
 
-  this.commandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'accept_grasp',
-    args : []
-  }), function(response) {
-    if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
-    }
-  });
+    this.showInteractiveGripper(this.currentGoalNumber);
+  } else {
+    console.log('[DVizClient] Accepting grasp');
+    this.play();
+    this.acceptedGrasp = true;
+
+    // Hide the interactive gripper of the current goal
+    this.hideInteractiveGripper(this.currentGoalNumber);
+
+    this.commandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'accept_grasp',
+      args : []
+    }), function(response) {
+      if(response.response.length > 0) {
+	console.log('[DVizClient] Error response: ' + response.response);
+      }
+    });
+    
+    $('#acceptGrasp').text('Change Grasp');
+    $('#acceptGrasp').attr('title', 'Click here if you want to change the grasp that you\'ve already chosen.').tooltip('show');
+  }
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
@@ -521,7 +644,29 @@ DVIZ.DemonstrationVisualizerClient.prototype.beginReplay = function() {
 DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber) {
   console.log('[DVizClient] Goal ' + goalNumber.toString() + ' completed!');
 
-  // @todo notify the user through some user interface element
+  // Notify the user that a goal has been completed, and give a 
+  // description of the next goal in the task
+  var message = 'Goal ' + goalNumber.toString() + ' completed! ';
+  if(goalNumber + 1 >= this.goals.length) {
+    message += 'The task is complete.';
+  } else {
+    message += ('Next goal: ' + 
+		this.goals[goalNumber + 1].description);
+  }
+  $('#goalCompleteMessage').text(message);
+  $('#goalCompleteModal').modal('show');
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function() {
+  console.log('[DVizClient] Ending demonstration.');
+
+  if(this.gameStarted) {
+    this.gameStarted = false;
+    // @todo do all the post-game 'clean up': save demonstration files,
+    // etc. 
+    // this can be called when a game is prematurely terminated
+
+  }
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.robotMarkerControl = function(enabled) {
@@ -652,8 +797,11 @@ function init() {
     });
   });
 
-  // Initialize all tooltips.
+  // Initialize all tooltips
   $('.tip').tooltip();
+
+  // Show the instructions
+  $('#infoModal').modal('show');
 
   //$(window).scroll(function() {
   //console.log('scrolling');
@@ -718,8 +866,8 @@ function setFrameBufferSize() {
 		+ '\' is not a valid integer value!');
   } else {
     console.log('[DVizClient] Set frame buffer size to ' + frameBufferSize + '.');
-    dvizClient.cameraManager.xFilter = createSMAFilter(frameBufferSize);
-    dvizClient.cameraManager.yFilter = createSMAFilter(frameBufferSize);
+    dvizClient.cameraManager.baseXFilter = createSMAFilter(frameBufferSize);
+    dvizClient.cameraManager.baseYFilter = createSMAFilter(frameBufferSize);
   }
 }
 

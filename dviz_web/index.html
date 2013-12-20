@@ -36,6 +36,99 @@
 	<h1>Teach-A-Robot</h1>
       </div>
 
+      <!-- Instructions modal dialog -->
+      <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+              <h4 class="modal-title" id="infoModalTitle">How to Teach-A-Robot</h4>
+	    </div>
+	    <div class="modal-body">
+	      <div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
+		<!-- Indicators -->
+		<ol class="carousel-indicators">
+		  <li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>
+		  <li data-target="#carousel-example-generic" data-slide-to="1"></li>
+		  <li data-target="#carousel-example-generic" data-slide-to="2"></li>		  
+		  <li data-target="#carousel-example-generic" data-slide-to="3"></li>		 
+		  <li data-target="#carousel-example-generic" data-slide-to="4"></li>
+		  <li data-target="#carousel-example-generic" data-slide-to="5"></li>
+		</ol>
+
+		<!-- Wrapper for slides -->
+		<div class="carousel-inner">
+		  <div class="item active">
+		    <img src="black.jpg" alt="Grasp selection">
+		    <div class="carousel-caption">
+		      <p>For each pick up goal, first select a good grasp so that the robot knows how to hold the object.</p>
+		    </div>
+		  </div>
+		  <div class="item">
+		    <img src="black.jpg" alt="Accept grasp">
+		    <div class="carousel-caption">
+		      <p>When you've chosen a good grasp, click on the "Accept Grasp" button.</p>
+		    </div>
+		  </div>
+		  <div class="item">
+		    <img src="MoveBase.jpg" alt="Base movement">
+		    <div class="carousel-caption">
+		      <p>To move the robot towards the goal, click and drag on the green marker at its base.</p>
+		    </div>
+		  </div>
+		  <div class="item">
+		    <img src="MoveGripper.jpg" alt="End-effector movement">
+		    <div class="carousel-caption">
+		      <p>To move the gripper of the robot, click and drag the green marker.</p>
+		    </div>
+		  </div>
+		  <div class="item">
+		    <img src="black.jpg" alt="z-control of the end-effector">
+		    <div class="carousel-caption">
+		      <p>Press the z-key while dragging the green marker to move the gripper up and down.</p>
+		    </div>
+		  </div>
+		  <div class="item">
+		    <img src="black.jpg" alt="Advanced arm control">
+		    <div class="carousel-caption">
+		      <p>For more control over the gripper orientation and the elbow, select the "Advanced Gripper Controls" button.</p>
+		    </div>
+		  </div>
+		</div>
+
+		<!-- Controls -->
+		<a class="left carousel-control" href="#carousel-example-generic" data-slide="prev">
+		  <span class="glyphicon glyphicon-chevron-left"></span>
+		</a>
+		<a class="right carousel-control" href="#carousel-example-generic" data-slide="next">
+		  <span class="glyphicon glyphicon-chevron-right"></span>
+		</a>
+	      </div>
+	    </div>
+	    <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Done!</button>
+	    </div>
+	  </div>
+	</div>
+      </div>
+
+      <!-- Goal complete notification modal dialog -->
+      <div class="modal fade" id="goalCompleteModal" tabindex="-1" role="dialog" aria-labelledby="goalCompleteModal" aria-hidden="true">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+              <h4 class="modal-title" id="goalCompleteModalTitle">Goal Completed!</h4>
+	    </div>
+	    <div class="modal-body" id="goalCompleteMessage">
+	    </div>
+	    <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Continue!</button>
+	    </div>
+	  </div>
+	</div>
+      </div>
+
       <!-- Alert modal -->
       <div id="alertModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="alertModalHeader" aria-hidden="true">\
 	<div class="modal-content">
@@ -90,6 +183,11 @@
 			    title="Click here when you're done choosing a good grasp for the object."
 			    class="tip btn btn-default" onclick="dvizClient.acceptGrasp()" disabled>Accept Grasp
 		    </button>
+		    <button id="changeCamera" type="button" data-toggle="tooltip" data-placement="left"
+			    title="Click here to switch the camera between following the base of the robot and the gripper."
+			    class="tip btn btn-default" onclick="dvizClient.changeCamera('gripper')">Change Camera
+		    </button>
+
 		  </div>
 
 		  <div id="debugControls">
