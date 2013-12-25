@@ -69,8 +69,6 @@ DVIZ.CameraManager = function(options) {
   this.lastCameraMode = 1;
 
   this.zMode = false;
-  this.gameStarted = false;
-  this.acceptedGrasp = false;
 
   // Use SMA filters to make the camera smoother
   this.baseXFilter = createSMAFilter(this.filterBufferSize);
@@ -150,6 +148,10 @@ DVIZ.CameraManager.prototype.setCamera = function(mode) {
   this.viewer.cameraControls.update();
 };
 
+DVIZ.CameraManager.prototype.getCameraMode = function() {
+  return this.cameraMode;
+}
+
 DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
   this.filterTf = filter;
 }
@@ -208,7 +210,11 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.goals = [];
   this.currentGoalNumber = -1;
   this.id = options.id;
+
   this.basicGripperControls = true;
+  this.playing = true;
+  this.gameStarted = false;
+  this.acceptedGrasp = false;
 
   console.log('[DVizClient] Assigned id ' + this.id);
   
@@ -284,15 +290,15 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	// Show an interactive gripper marker at the current goal
 	console.log('[DVizClient] Current goal is of type pick-up.');
 	this.acceptedGrasp = false;
-	$('#acceptGrasp').text('Accept Grasp');
+	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
 	that.showInteractiveGripper(that.currentGoalNumber);
-	$('#acceptGrasp').prop('disabled', false);
-	$('#acceptGrasp').tooltip('show');
+	$('#acceptChangeGrasp').prop('disabled', false);
+	$('#acceptChangeGrasp').tooltip('show');
 	// Switch the camera back to follow the base of the robot
 	that.cameraManager.setCamera(0);
       } else {
 	// The goal is not of type pick up
-	$('#acceptGrasp').prop('disabled', true);
+	$('#acceptChangeGrasp').prop('disabled', true);
       }
     }
   });
@@ -300,11 +306,10 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 
 DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   console.log('[DVizClient] Playing simulator...');
-  
-  // Disable the play button
-  $('#play').prop('disabled', true);
-  $('#pause').prop('disabled', false);
+  this.playing = true;
 
+  $('#playPause').html('<img src="images/pause.png" width="65" height="65" />');
+  
   // If the user has not started the game yet, load the task
   if(!this.gameStarted) {
     this.loadTask();
@@ -323,12 +328,11 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
 
 DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
   console.log('[DVizClient] Pausing simulator...');
+  this.playing = false;
+
+  $('#playPause').html('<img src="images/play.png" width="65" height="65" />');
 
   var pauseNow = now || true;
-
-  // Disable the pause button
-  $('#pause').prop('disabled', true);
-  $('#play').prop('disabled', false);
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : (pauseNow ? 'pause_now' : 'pause_later'),
@@ -340,6 +344,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
   });
 }
 
+DVIZ.DemonstrationVisualizerClient.prototype.isPlaying = function() {
+  return this.playing;
+}
+
 DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
   if(follow === 'base') {
     console.log('[DVizClient] Changing camera to follow the base');
@@ -349,7 +357,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
     this.cameraManager.viewer.cameraControls.center.y =
       this.cameraManager.baseYFilter.back();
     this.cameraManager.viewer.cameraControls.center.z = 0.0;
-    $('#changeCamera').attr('onclick', 'dvizClient.changeCamera(\'gripper\')');
   } else if(follow === 'gripper') {
     console.log('[DVizClient] Changing camera to follow the gripper');
     this.cameraManager.setCamera(2);
@@ -359,7 +366,11 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
       this.cameraManager.rEndEffectorYFilter.back();
     this.cameraManager.viewer.cameraControls.center.z =
       this.cameraManager.rEndEffectorZFilter.back();
-    $('#changeCamera').attr('onclick', 'dvizClient.changeCamera(\'base\')');
+  } else if(follow === 'none') {
+    console.log('[DVizClient] Changing camera to free mode');
+    this.cameraManager.setCamera(1);
+  } else {
+    console.log('[DVizClient] Unknown camera mode "' + follow + '"');
   }
 }
 
@@ -407,9 +418,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
 
   console.log('[DVizClient] Loading scene ' + sceneName);
 
-  // Pause the game, and show the user how to play
+  // Pause the game while the scene loads
   this.pause();
-  $('#play').tooltip('show');
 
   // @todo bring up a loading message until the scene has fully loaded into the browser.
   // then, need to figure out how to wait until the collada meshes have been fully rendered.
@@ -515,7 +525,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   this.robotMarkerControl(false);
   this.pause();
 
-  this.cameraManager.setCamera(1);
+  this.changeCamera('none');
   // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
   this.cameraManager.viewer.cameraControls.center.x = 
     this.goals[this.currentGoalNumber].initial_object_pose.position.x;
@@ -539,7 +549,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
   console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
 
   this.robotMarkerControl(true);
-  this.cameraManager.setCamera(0);
+  this.changeCamera('none');
   this.cameraManager.viewer.cameraControls.center.x =
     this.cameraManager.baseXFilter.back();
   this.cameraManager.viewer.cameraControls.center.y =
@@ -562,8 +572,12 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     this.pause();
     this.acceptedGrasp = false;
 
-    $('#acceptGrasp').text('Accept Grasp');
-    $('#acceptGrasp').attr('title', 'Click here when you\'re done choosing a good grasp for the object.').tooltip('show');
+    $('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
+    $('#acceptChangeGrasp').tooltip('destroy');
+    $('#acceptChangeGrasp').tooltip({
+      title : 'Click here when you\'re done choosing a good grasp for the object.'
+    });
+    $('#acceptChangeGrasp').tooltip('show');
 
     this.showInteractiveGripper(this.currentGoalNumber);
   } else {
@@ -583,8 +597,12 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
       }
     });
     
-    $('#acceptGrasp').text('Change Grasp');
-    $('#acceptGrasp').attr('title', 'Click here if you want to change the grasp that you\'ve already chosen.').tooltip('show');
+    $('#acceptChangeGrasp').html('<img src="images/change_grasp.png" width="65" height="65" />');
+    $('#acceptChangeGrasp').tooltip('destroy');
+    $('#acceptChangeGrasp').tooltip({
+      title : 'Click here if you want to change the grasp that you\'ve already chosen.'
+    });
+    $('#acceptChangeGrasp').tooltip('show');
   }
 }
 
@@ -783,7 +801,68 @@ function init() {
       id : userId
     });
 
+    // Initialize button click callbacks
+    $('#playPause').on('click', function() {
+      if(dvizClient.isPlaying()) {
+	dvizClient.pause();
+      } else {
+	dvizClient.play();
+      }
+    });
+
+    $('#acceptChangeGrasp').on('click', function() {
+      dvizClient.acceptGrasp();
+    });
+
+    $('#baseHandCamera').on('click', function() {
+      var b = $('#baseHandCamera');
+
+      if(dvizClient.cameraManager.getCameraMode() === 0) {
+	// Base-following camera
+	b.html('Base Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	dvizClient.changeCamera('gripper');
+      } else if(dvizClient.cameraManager.getCameraMode() === 2) {
+	// Gripper-following camera
+	b.html('Hand Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	dvizClient.changeCamera('base');
+      } else {
+	console.log('[DVizClient] Error in base/hand camera handler');
+      }
+    });
+
+    $('#freeFollowingCamera').on('click', function() {
+      var b = $('#freeFollowingCamera');
+
+      if(dvizClient.cameraManager.getCameraMode() !== 1) {
+	// Camera is not in free mode
+	b.html('Lock Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	dvizClient.changeCamera('none');
+	$('#baseHandCamera').prop('disabled', true);
+      } else {
+	// Camera is in free mode
+	b.html('Unlock Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	dvizClient.cameraManager.setCamera(
+	  dvizClient.cameraManager.lastCameraMode
+	);
+	$('#baseHandCamera').prop('disabled', false);
+      }
+    });
+
+    $('#rotateHandControls').on('click', function() {
+      var b = $('#rotateHandControls');
+
+      if(dvizClient.basicGripperControls) {
+	b.html('<img src="images/simple_control.png" width="65" height="65" />');
+      } else {
+	b.html('<img src="images/full_control.png" width="65" height="65" />');
+      }
+
+      dvizClient.toggleGripperControls();
+    })
+
     dvizClient.loadScene();
+    $('#playPause').prop('disabled', false);
+    $('#playPause').tooltip('show');
 
     dvizClient.displayStatusText('Connected to DVizServer!');
 
@@ -801,7 +880,11 @@ function init() {
   $('.tip').tooltip();
 
   // Show the instructions
-  $('#infoModal').modal('show');
+  //$('#infoModal').modal('show');
+
+  // Initialize gameplay settings
+  initializeGameplaySettings();
+  hideGameplaySettings();
 
   //$(window).scroll(function() {
   //console.log('scrolling');
@@ -818,14 +901,7 @@ window.onbeforeunload = function removeUser() {
   });
 }
 
-// Front-end specific functions.
-function showAlertModal(header, body) {
-  $('#alertModalHeader').html(header);
-  $('#alertModalBody').html(body);
-  $('#alertModal').modal('show');
-}
-
-// Functions to interface with the user interface front-end.
+// @todo these need to change with the new user interface
 function setCameraFollowing() {
   var follow = document.getElementById('cameraFollowing').checked;
   if(follow) {
@@ -845,15 +921,6 @@ function setCameraFilter() {
   } else {
     console.log('[DVizClient] Disabling camera TF filtering.');
     dvizClient.cameraManager.setFilterTf(filter);
-  }
-}
-
-function showDebugControls() {
-  var show = $('#showDebugControls').checked;
-  if(show) {
-    $('#debugControls').show();
-  } else {
-    $('#debugControls').hide();
   }
 }
 
@@ -910,11 +977,13 @@ function showAlert(message, timeout) {
     $('#alertDialog').alert('close'); }, timeout);
 }
 
-function setBaseLinearSpeed() {
-  var linearSpeed = parseFloat(document.getElementById('baseLinearSpeed').value);
+function setBaseLinearSpeed(speed) {
+  var linearSpeed = parseFloat(speed) || 
+    parseFloat($('#baseLinearSpeed').value);
   if(isNaN(linearSpeed)) {
     showAlert('Not a valid speed!');
   } else {
+    console.log('[DVizClient] Setting base linear speed to ' + linearSpeed.toString());
     dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_base_speed',
       args : [linearSpeed.toString(),
@@ -922,9 +991,7 @@ function setBaseLinearSpeed() {
     }), function(response) {
       if(response.response.length > 0) {
 	console.log('[DVizClient] Error response: ' + response.response);
-      } else {
-	// @todo
-      }
+      } 
     });
   }
 }
@@ -976,6 +1043,34 @@ function numUsers() {
       showAlert('There are currently ' + numUsers.toString() + ' DViz users');
     } else {
       console.log('[DVizClient] Error getting the number of DViz users');
+    }
+  });
+}
+
+function showGameplaySettings() {
+  console.log('[DVizClient] Showing gameplay settings');
+  $('#gameplaySettings').show();
+  $('#settings').html('Hide Gameplay Settings<br /><img src="images/black.jpg" width="65" height="45" />');
+  $('#settings').unbind('click');
+  $('#settings').on('click', hideGameplaySettings);
+}
+
+function hideGameplaySettings() {
+  console.log('[DVizClient] Hiding gameplay settings');
+  $('#gameplaySettings').hide();
+  $('#settings').html('Show Gameplay Settings<br /><img src="images/black.jpg" width="65" height="45" />');
+  $('#settings').unbind('click');
+  $('#settings').on('click', showGameplaySettings);
+}
+
+function initializeGameplaySettings() {
+  $('#baseLinearSpeed').slider({
+    value : 0.4,
+    min : 0.01,
+    max : 1.0,
+    step : 0.03,
+    slide : function(event, ui) {
+      setBaseLinearSpeed(ui.value);
     }
   });
 }

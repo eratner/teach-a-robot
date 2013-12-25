@@ -57,10 +57,6 @@ public:
   
   double getAngularSpeed() const;
 
-  void setFrameRate(double);
-
-  double getFrameRate() const;
-
   /**
    * @brief A helper method to compute the necessary angular velocity to achieve
    *        the goal angle given the current angle, both in the range [0, 2 \pi),
@@ -90,7 +86,6 @@ public:
 private:
   State last_state_;
   int frames_;
-  double frame_rate_;
   double linear_speed_;
   double angular_speed_;
 

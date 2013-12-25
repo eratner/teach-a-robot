@@ -13,6 +13,8 @@
     <script type="text/javascript" src="scripts/dviz.js"></script>
 
     <script src="//code.jquery.com/jquery.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+    <script src="//code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-theme.min.css">
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
@@ -155,39 +157,38 @@
 	    <button id="playPause" data-toggle="tooltip" 
 		    data-placement="top" title="When you're ready, click here to start the task!"
 		    type="button" class="tip btn btn-default"
-		    onclick="dvizClient.play()" disabled><!-- Play -->
+		    disabled><!-- Play -->
 	      <img src="images/start.png" width="65" height="65" />
 	    </button>
 	    <button id="acceptChangeGrasp" data-toggle="tooltip" 
 		    data-placement="top" title="Click here when you're done choosing a good grasp for the object."
 		    type="button" class="tip btn btn-default"
-		    onclick="dvizClient.acceptGrasp()" disabled><!-- Accept Grasp -->
+		    disabled><!-- Accept Grasp -->
 	      <img src="images/accept_grasp.png" width="65" height="65" />
 	    </button>
 	    <button id="baseHandCamera" data-toggle="tooltip" 
 		    data-placement="top" title="Switch the camera from following the base to following the hand of the robot."
-		    type="button" class="tip btn btn-default"
-		    onclick="dvizClient.changeCamera('gripper')">Hand Camera<br />
+		    type="button" class="tip btn btn-default">
+	      Hand Camera<br />
 	      <!-- <img src="images/hand_camera.png" width="65" height="65" /> -->
 	      <img src="images/black.jpg" width="65" height="45" />
 	    </button>
 	    <button id="freeFollowingCamera" data-toggle="tooltip" 
 		    data-placement="top" title="A free camera will not follow the robot's movements automatically."
-		    type="button" class="tip btn btn-default"
-		    onclick="dvizClient.changeCamera('none')">Free Camera<br />
+		    type="button" class="tip btn btn-default">
+	      Free Camera<br />
 	      <!-- <img src="images/free_camera.png" width="65" height="65" /> -->
 	      <img src="images/black.jpg" width="65" height="45" />
 	    </button>
 	    <button id="rotateHandControls" data-toggle="tooltip" 
 		    data-placement="top" title="Full control give you more freedom to move the elbow and rotate the hand of the robot."
-		    type="button" class="tip btn btn-default"
-		    onclick="dvizClient.toggleGripperControls()"><!-- Rotate Hand Controls -->
+		    type="button" class="tip btn btn-default"><!-- Rotate Hand Controls -->
 	      <img src="images/full_control.png" width="65" height="65" />
 	    </button>
 	    <button id="settings" data-toggle="tooltip" 
-		    data-placement="top" title="Display gameplay settings, including the base and arm speed of the robot."
+		    data-placement="top" title="Modify settings such as the base and arm speed of the robot."
 		    type="button" class="tip btn btn-default"
-		    onclick="showSettings()">Gameplay Settings<br />
+		    >Show Gameplay Settings<br />
 	      <!-- <img src="images/settings.png" width="65" height="65" /> -->
 	      <img src="images/black.jpg" width="65" height="45" />
 	    </button>
@@ -200,7 +201,7 @@
 	  <div class="col-lg-5">
 	    <div class="panel panel-default">
 	      <div class="panel-heading">
-		No task loaded.
+		<h4>No task loaded.</h4>
 	      </div>
 	      <div class="panel-body">
 		<div class="list-group" id="task">
@@ -213,10 +214,13 @@
 	  <div class="col-lg-5">
 	    <div id="gameplaySettings" class="panel panel-default">
 	      <div class="panel-heading">
-		Gameplay Settings
+		<h4>Gameplay Settings</h4>
 	      </div>
 	      <div class="panel-body">
-		...
+		<p>
+		  <label for="baseLinearSpeed">Base driving speed: </label>
+		  <div id="baseLinearSpeed"></div>
+		</p>
 	      </div>
 	    </div>
 	  </div>

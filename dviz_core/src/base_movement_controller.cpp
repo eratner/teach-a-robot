@@ -4,8 +4,8 @@ namespace demonstration_visualizer
 {
 
 BaseMovementController::BaseMovementController()
-  : last_state_(INITIAL), frames_(0), frame_rate_(10.0),
-    linear_speed_(0.4/10.0), angular_speed_(0.4/10.0),
+  : last_state_(INITIAL), frames_(0),
+    linear_speed_(0.04), angular_speed_(0.04),
     print_transitions_(false)
 {
 
@@ -113,16 +113,6 @@ void BaseMovementController::setAngularSpeed(double angular)
 double BaseMovementController::getAngularSpeed() const
 {
   return angular_speed_;
-}
-
-void BaseMovementController::setFrameRate(double rate)
-{
-  frame_rate_ = rate;
-}
-
-double BaseMovementController::getFrameRate() const
-{
-  return frame_rate_;
 }
 
 geometry_msgs::Twist BaseMovementController::rotate(double current_angle, 

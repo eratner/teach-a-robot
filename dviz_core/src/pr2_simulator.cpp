@@ -2075,8 +2075,6 @@ void PR2Simulator::setFrameRate(double rate)
   double c = frame_rate_/rate;
   ROS_INFO("c = %f", c);
   frame_rate_ = rate;
-  // @todo basemovementcontroller probably does not need the frame rate.
-  base_movement_controller_.setFrameRate(rate);
 
   // Adjust the meter/frame speeds for the new frame rate.
   ROS_INFO("previous speed = %f, new speed = %f", base_movement_controller_.getLinearSpeed(),
