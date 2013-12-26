@@ -90,6 +90,18 @@ public:
 
   void setGripperJointPosition(double);
 
+  double getCameraPhi() const;
+  
+  void setCameraPhi(double);
+
+  double getCameraTheta() const;
+
+  void setCameraTheta(double);
+
+  double getCameraRadius() const;
+
+  void setCameraRadius(double);
+
 private:
   int object_id_;
   geometry_msgs::Pose grasp_pose_;
@@ -97,6 +109,15 @@ private:
   bool grasp_done_;
   double grasp_distance_;
   double gripper_joint_position_;
+
+  // The position of the camera is specified in polar coordinates about
+  // the position of the pick-up object
+  // The zenith angle is specified by phi, the azimuth angle is 
+  // specified by theta, and the radial distance is specified by the
+  // radius
+  double camera_phi_;
+  double camera_theta_;
+  double camera_radius_;
 
 };
 

@@ -621,6 +621,9 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       goal.initial_object_pose = pick_up_goal->getInitialObjectPose();
       goal.grasp_distance = pick_up_goal->getGraspDistance();
       goal.gripper_joint_position = pick_up_goal->getGripperJointPosition();
+      goal.camera_phi = pick_up_goal->getCameraPhi();
+      goal.camera_theta = pick_up_goal->getCameraTheta();
+      goal.camera_radius = pick_up_goal->getCameraRadius();
 
       break;
     }

@@ -631,6 +631,25 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
 	return false;
       }
 
+      // (Optional) For pick up goals, one can specify a camera position in polar coordinates,
+      // centered around the pose of the object that is to be picked up.
+      // In particular, the camera position is specified by a zenith angle phi
+      // (i.e., the angle from the z-axis), an azimuth angle theta (i.e. the
+      // angle from the x-axis around the z-axis), and a radius from the center position.
+      double phi = M_PI / 4.0, theta = 0.0, radius = 1.0;
+      if(element->QueryDoubleAttribute("camera_phi", &phi) != TIXML_SUCCESS)
+      {
+	ROS_WARN("[SceneManager%d] No camera azimuth angle specified", user_id_);
+      }
+      if(element->QueryDoubleAttribute("camera_theta", &theta) != TIXML_SUCCESS)
+      {
+	ROS_WARN("[SceneManager%d] No camera zenith angle specified", user_id_);
+      }
+      if(element->QueryDoubleAttribute("camera_radius", &radius) != TIXML_SUCCESS)
+      {
+	ROS_WARN("[SceneManager%d] No camera radius specified", user_id_);
+      }
+
       geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
       goal->setGraspPose(object_pose);
       goal->setInitialObjectPose(object_pose);

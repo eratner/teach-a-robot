@@ -573,6 +573,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
 
   this.changeCamera('none');
   // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
+  /*
   this.cameraManager.viewer.cameraControls.center.x = 
     this.goals[this.currentGoalNumber].initial_object_pose.position.x;
   this.cameraManager.viewer.cameraControls.center.y = 
@@ -580,6 +581,18 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   this.cameraManager.viewer.cameraControls.center.z = 
     this.goals[this.currentGoalNumber].initial_object_pose.position.z;
   this.cameraManager.viewer.cameraControls.update();
+  */
+
+  var objectX = this.goals[goalNumber].initial_object_pose.position.x;
+  var objectY = this.goals[goalNumber].initial_object_pose.position.y;
+  var objectZ = this.goals[goalNumber].initial_object_pose.position.z;
+
+  var cameraPhi = this.goals[goalNumber].camera_phi;
+  var cameraTheta = this.goals[goalNumber].camera_theta;
+  var cameraRadius = this.goals[goalNumber].camera_radius;
+
+  this.cameraManager.centerCameraAt(objectX, objectY, objectZ);
+  this.cameraManager.setCameraOffset(cameraPhi, cameraTheta, cameraRadius);
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'show_interactive_gripper',

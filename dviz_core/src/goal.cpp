@@ -68,7 +68,8 @@ PickUpGoal::PickUpGoal(int goal_number,
   : Goal(goal_number, description), object_id_(object_id),
     grasp_pose_(grasp), initial_object_pose_(object_pose), 
     grasp_done_(false), grasp_distance_(0.25), 
-    gripper_joint_position_(EndEffectorController::GRIPPER_OPEN_ANGLE)
+    gripper_joint_position_(EndEffectorController::GRIPPER_OPEN_ANGLE),
+    camera_phi_(M_PI/4.0), camera_theta_(0.0), camera_radius_(1.0)
 {
 
 }
@@ -141,6 +142,36 @@ double PickUpGoal::getGripperJointPosition() const
 void PickUpGoal::setGripperJointPosition(double position)
 {
   gripper_joint_position_ = position;
+}
+
+double PickUpGoal::getCameraPhi() const
+{
+  return camera_phi_;
+}
+
+void PickUpGoal::setCameraPhi(double phi)
+{
+  camera_phi_ = phi;
+}
+
+double PickUpGoal::getCameraTheta() const
+{
+  return camera_theta_;
+}
+
+void PickUpGoal::setCameraTheta(double theta)
+{
+  camera_theta_ = theta;
+}
+
+double PickUpGoal::getCameraRadius() const
+{
+  return camera_radius_;
+}
+
+void PickUpGoal::setCameraRadius(double radius)
+{
+  camera_radius_ = radius;
 }
 
 PlaceGoal::PlaceGoal()
