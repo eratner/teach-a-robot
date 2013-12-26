@@ -655,6 +655,10 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
       goal->setInitialObjectPose(object_pose);
       goal->setObjectID(object_id);
 
+      goal->setCameraPhi(phi);
+      goal->setCameraTheta(theta);
+      goal->setCameraRadius(radius);
+
       goals_.push_back(goal);
 
       break;

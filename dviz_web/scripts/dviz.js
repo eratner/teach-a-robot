@@ -174,15 +174,19 @@ DVIZ.CameraManager.prototype.centerCameraAt = function(x, y, z) {
  */
 DVIZ.CameraManager.prototype.setCameraOffset = function(phi, theta, rho) {
   var offset = new THREE.Vector3();
-  offset.x = rho * Math.cos(phi);
-  offset.y = rho * Math.sin(phi) * Math.sin(theta);
-  offset.z = rho * Math.sin(phi) * Math.cos(theta);
 
-  offset.add(this.viewer.cameraControls.center);
-  this.viewer.cameraControls.camera.position = offset;
+  offset.z = rho * Math.cos(phi);
+  offset.y = rho * Math.sin(phi) * Math.sin(theta);
+  offset.x = rho * Math.sin(phi) * Math.cos(theta);
+
+  // Note that x->y, y->z, z->x, so
+  var transformedOffset = new THREE.Vector3(offset.z, offset.x, offset.y);
+
+  transformedOffset.add(this.viewer.cameraControls.center);
+  this.viewer.cameraControls.camera.position = transformedOffset;
 }
 
-/* @todo this does not work for some reason
+/* @todo fix this
 DVIZ.CameraManager.prototype.setCameraDistance = function(dist) {
   var position = this.viewer.cameraControls.camera.position;
   var offset = position.clone().sub(this.viewer.cameraControls.center);
@@ -949,7 +953,7 @@ function init() {
     $('#playPause').prop('disabled', false);
     $('#playPause').tooltip('show');
 
-    dvizClient.displayStatusText('Connected to DVizServer!');
+    dvizClient.displayStatusText('Connected to the server!');
 
     // Add keyboard bindings.
     $(window).bind('keydown', function(e) {
@@ -959,13 +963,33 @@ function init() {
     $(window).bind('keyup', function(e) {
       dvizClient.handleKeyRelease(e);
     });
+
+    // *** FOR DEBUGGING ***
+    /*
+    $('#cameraPos').on('click', function() {
+      // Under transformation x -> y, y -> z, z -> x
+      var position = dvizClient.cameraManager.viewer.cameraControls.camera.position;
+      var offset = position.clone().sub(dvizClient.cameraManager.viewer.cameraControls.center);
+
+      var radius = offset.length();
+      //var phi = Math.acos(offset.z / radius);
+      //var theta = Math.atan2(offset.y, offset.x);
+      var phi = Math.acos(offset.x / radius);
+      var theta = Math.atan2(offset.z, offset.y);
+
+      console.log('camera phi = ' + phi.toString() 
+		  + ', theta = ' + theta.toString()
+		  + ', radius = ' + radius.toString());
+    });
   });
+  */
+  $('#cameraPose').hide();
 
   // Initialize all tooltips
   $('.tip').tooltip();
 
   // Show the instructions
-  //$('#infoModal').modal('show');
+  $('#infoModal').modal('show');
 
   // Initialize gameplay settings
   initializeGameplaySettings();
