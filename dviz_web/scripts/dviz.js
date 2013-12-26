@@ -280,7 +280,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	  (message.goals[i].number === currentGoal ? ' active' : '') + 
 	  '">' + message.goals[i].description + '</a>';
       }
-      document.getElementById('task').innerHTML = html;
+      $('#task').html(html);
 
       // Check if we need to change the state of the camera (e.g. if the 
       // next goal is a pick up goal, we need to focus the camera at the 
@@ -288,9 +288,11 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
 	// Show an interactive gripper marker at the current goal
-	console.log('[DVizClient] Current goal is of type pick-up.');
+	console.log('[DVizClient] Current goal is of type pick-up');
 	this.acceptedGrasp = false;
 	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
+	$('#gripperJointAngle').slider('option', 'value', 
+				       that.goals[that.currentGoalNumber].gripper_joint_position);
 	that.showInteractiveGripper(that.currentGoalNumber);
 	$('#acceptChangeGrasp').prop('disabled', false);
 	$('#acceptChangeGrasp').tooltip('show');
@@ -525,6 +527,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   this.robotMarkerControl(false);
   this.pause();
 
+  $('#gripperJointAngle').slider('option', 'disabled', false);
+
   this.changeCamera('none');
   // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
   this.cameraManager.viewer.cameraControls.center.x = 
@@ -547,6 +551,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
 
 DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
   console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
+
+  $('#gripperJointAngle').slider('option', 'disabled', true);
 
   this.robotMarkerControl(true);
   this.changeCamera('none');
@@ -694,6 +700,19 @@ DVIZ.DemonstrationVisualizerClient.prototype.robotMarkerControl = function(enabl
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'robot_marker_control',
     args : [enabled.toString()]
+  }), function(response) {
+    if(response.response.length > 0) {
+      console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
+}
+
+DVIZ.DemonstrationVisualizerClient.prototype.setGripperJointAngle = function(angle) {
+  console.log('[DVizClient] Setting gripper joint angle to ' + angle.toString());
+
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'set_gripper_joint',
+    args : [angle.toString()]
   }), function(response) {
     if(response.response.length > 0) {
       console.log('[DVizClient] Error response: ' + response.response);
@@ -860,6 +879,17 @@ function init() {
       dvizClient.toggleGripperControls();
     })
 
+    $('#gripperJointAngle').slider({
+      value : 0.548,
+      min : 0.0,
+      max : 0.548,
+      step : 0.02,
+      slide : function(event, ui) {
+	dvizClient.setGripperJointAngle(ui.value);
+      },
+      disabled : true
+    });
+
     dvizClient.loadScene();
     $('#playPause').prop('disabled', false);
     $('#playPause').tooltip('show');
@@ -938,8 +968,9 @@ function setFrameBufferSize() {
   }
 }
 
-function setFrameRate() {
-  var frameRate = parseFloat(document.getElementById('frameRate').value);
+function setFrameRate(rate) {
+  var frameRate = rate ||
+    parseFloat($('#frameRate').value);
   if(isNaN(frameRate)) {
     showAlert('\'' + document.getElementById('frameRate').value
 	      + '\' is not a valid number!');
@@ -953,8 +984,6 @@ function setFrameRate() {
     }), function(response) {
       if(response.response.length > 0) {
 	console.log('[DVizClient] Error response: ' + response.response);
-      } else {
-	// @todo
       }
     });
   }
@@ -964,22 +993,22 @@ function showAlert(message, timeout) {
   // Default argument for timeout is 2 s (2000 ms)
   timeout = (typeof timeout === 'undefined') ? 2000 : timeout;
 
-  var alertDialog = document.getElementById('alertDialog');
+  var alertDialog = $('#alertDialog');
   if(alertDialog === null) {
-    document.getElementById('alerts').innerHTML = '<div id="alertDialog" class="alert alert-warning"></div>';
+    $('#alerts').innerHTML = '<div id="alertDialog" class="alert alert-warning"></div>';
   }
 
-  document.getElementById('alertDialog').innerHTML = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>' 
+  $('#alertDialog').innerHTML = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>' 
     + message + '</p>';
 
   // Set automatic timeout
   window.setTimeout(function() {
-    $('#alertDialog').alert('close'); }, timeout);
+    $('#alertDialog').alert('close'); 
+  }, timeout);
 }
 
 function setBaseLinearSpeed(speed) {
-  var linearSpeed = parseFloat(speed) || 
-    parseFloat($('#baseLinearSpeed').value);
+  var linearSpeed = speed || parseFloat($('#baseLinearSpeed').value);
   if(isNaN(linearSpeed)) {
     showAlert('Not a valid speed!');
   } else {
@@ -996,8 +1025,8 @@ function setBaseLinearSpeed(speed) {
   }
 }
 
-function setBaseAngularSpeed() {
-  var angularSpeed = parseFloat(document.getElementById('baseAngularSpeed').value);
+function setBaseAngularSpeed(speed) {
+  var angularSpeed = speed || parseFloat($('#baseAngularSpeed').value);
   if(isNaN(angularSpeed)) {
     showAlert('Not a valid speed!');
   } else {
@@ -1015,8 +1044,8 @@ function setBaseAngularSpeed() {
   }
 }
 
-function setEndEffectorSpeed() {
-  var speed = parseFloat(document.getElementById('endEffectorSpeed').value);
+function setEndEffectorSpeed(s) {
+  var speed = s || parseFloat($('#endEffectorSpeed').value);
   if(isNaN(speed)) {
     showAlert('Not a valid speed!');
   } else {
@@ -1026,8 +1055,6 @@ function setEndEffectorSpeed() {
     }), function(response) {
       if(response.response.length > 0) {
 	console.log('[DVizClient] Error response: ' + response.response);
-      } else {
-	// @todo
       }
     });
   }
@@ -1071,6 +1098,24 @@ function initializeGameplaySettings() {
     step : 0.03,
     slide : function(event, ui) {
       setBaseLinearSpeed(ui.value);
+    }
+  });
+  $('#baseAngularSpeed').slider({
+    value : 0.4,
+    min : 0.01,
+    max : 1.0,
+    step : 0.03,
+    slide : function(event, ui) {
+      setBaseAngularSpeed(ui.value);
+    }
+  });
+  $('#endEffectorSpeed').slider({
+    value : 0.4,
+    min : 0.01,
+    max : 1.0,
+    step : 0.03,
+    slide : function(event, ui) {
+      setEndEffectorSpeed(ui.value);
     }
   });
 }

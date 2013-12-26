@@ -543,6 +543,39 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end ROBOT_MARKER_CONTROL
+  else if(req.command.compare(dviz_core::Command::Request::SET_GRIPPER_JOINT) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      // Check that the current goal is of type PICK_UP; otherwise,
+      // we cannot change the gripper joint angle
+      Goal *current_goal = demonstration_scene_manager_->getGoal(
+	demonstration_scene_manager_->getCurrentGoal());
+      if(current_goal != 0 && current_goal->getType() == Goal::PICK_UP)
+      {
+	double gripper_joint = atof(req.args[0].c_str());
+
+	PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
+	pick_up_goal->setGripperJointPosition(gripper_joint);
+
+	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
+      }
+      else
+      {
+	res.response = "Invalid goal type";
+	return false;
+      }
+    }
+    else
+    {
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for set_gripper_joint (%d given, 1 required).",
+		(int)req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for set_gripper_joint (" << req.args.size() << " given, 1 required).";
+      res.response = ss.str();
+      return false;
+    }
+  } // end SET_GRIPPER_JOINT
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
