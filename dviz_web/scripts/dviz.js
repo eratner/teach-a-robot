@@ -160,12 +160,43 @@ DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
  * Focus the center of the camera to a the point (x, y, z) in space
  */
 DVIZ.CameraManager.prototype.centerCameraAt = function(x, y, z) {
-  // @todo
-  this.cameraManager.viewer.cameraControls.center.x = x;
-  this.cameraManager.viewer.cameraControls.center.y = y;
-  this.cameraManager.viewer.cameraControls.center.z = z;
-  this.cameraManager.viewer.cameraControls.update();
+  // @todo needs further testing
+  this.viewer.cameraControls.center.x = x;
+  this.viewer.cameraControls.center.y = y;
+  this.viewer.cameraControls.center.z = z;
 }
+
+/**
+ * Specify the camera offset from the center position in spherical
+ * coordinates, where phi is the angle from the z-axis, theta is
+ * the angle from the x-axis about the z-axis, and rho is the radial
+ * distance from the center
+ */
+DVIZ.CameraManager.prototype.setCameraOffset = function(phi, theta, rho) {
+  var offset = new THREE.Vector3();
+  offset.x = rho * Math.cos(phi);
+  offset.y = rho * Math.sin(phi) * Math.sin(theta);
+  offset.z = rho * Math.sin(phi) * Math.cos(theta);
+
+  offset.add(this.viewer.cameraControls.center);
+  this.viewer.cameraControls.camera.position = offset;
+}
+
+/* @todo this does not work for some reason
+DVIZ.CameraManager.prototype.setCameraDistance = function(dist) {
+  var position = this.viewer.cameraControls.camera.position;
+  var offset = position.clone().sub(this.viewer.cameraControls.center);
+  
+  var theta = Math.atan2(offset.y, offset.x);
+  var phi = Math.atan2(Math.sqrt(offset.y * offset.y + offset.x * offset.x), offset.z);
+  
+  console.log('setting camera to phi = ' + phi.toString() + 
+	      ', theta = ' + theta.toString() + 
+	      ', rho = ' + dist.toString());
+
+  this.setCameraOffset(theta, phi, dist);
+}
+*/
 
 /**
  * Sets the zoom speed of the camera
@@ -174,8 +205,8 @@ DVIZ.CameraManager.prototype.setZoomSpeed = function(speed) {
   console.log('[DVizClient] Setting zoom speed to ' + speed.toString());
 
   // @todo this needs to be tested further
-  this.cameraManager.viewer.cameraControls.userZoomSpeed = speed;
-  this.cameraManager.viewer.cameraControls.update();
+  this.viewer.cameraControls.userZoomSpeed = speed;
+  this.viewer.cameraControls.update();
 }
 
 /**
@@ -184,8 +215,8 @@ DVIZ.CameraManager.prototype.setZoomSpeed = function(speed) {
 DVIZ.CameraManager.prototype.setZoom = function(scale) {
   console.log('[DVizClient] Setting zoom scale to ' + scale.toString());
 
-  this.cameraManager.viewer.cameraControls.scale = scale;
-  this.cameraManager.viewer.cameraControls.update();
+  this.viewer.cameraControls.scale = scale;
+  this.viewer.cameraControls.update();
 }
 
 /**
@@ -273,12 +304,21 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	return;
       }
 
+      $('#currentGoal').html('Current goal: ' + 
+			     message.goals[that.currentGoalNumber].description);
+
       var html = '';
       for(var i = 0; i < message.goals.length; ++i) {
+	var color = '000000';
+	if(i < that.currentGoalNumber) {
+	  color = '999999';
+	} else if(i === that.currentGoalNumber) {
+	  color = '0088CC';
+	}
 	html = html + '<a href="#" onclick="dvizClient.changeGoal(' +
-	  message.goals[i].number + ')" class="list-group-item' + 
-	  (message.goals[i].number === currentGoal ? ' active' : '') + 
-	  '">' + message.goals[i].description + '</a>';
+	  message.goals[i].number + ')" class="list-group-item">' + 
+	  '<font color="' + color + '">' + 
+	  message.goals[i].description + '</font></a>';
       }
       $('#task').html(html);
 
@@ -359,6 +399,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
     this.cameraManager.viewer.cameraControls.center.y =
       this.cameraManager.baseYFilter.back();
     this.cameraManager.viewer.cameraControls.center.z = 0.0;
+    // @todo set a default zoom
   } else if(follow === 'gripper') {
     console.log('[DVizClient] Changing camera to follow the gripper');
     this.cameraManager.setCamera(2);
@@ -368,6 +409,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
       this.cameraManager.rEndEffectorYFilter.back();
     this.cameraManager.viewer.cameraControls.center.z =
       this.cameraManager.rEndEffectorZFilter.back();
+    // @todo set a default zoom
   } else if(follow === 'none') {
     console.log('[DVizClient] Changing camera to free mode');
     this.cameraManager.setCamera(1);
@@ -1112,7 +1154,7 @@ function initializeGameplaySettings() {
   $('#endEffectorSpeed').slider({
     value : 0.4,
     min : 0.01,
-    max : 1.0,
+    max : 0.6,
     step : 0.03,
     slide : function(event, ui) {
       setEndEffectorSpeed(ui.value);

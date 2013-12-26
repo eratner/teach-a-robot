@@ -7,3 +7,8 @@
 .top-margin {
     margin-top: 20px;
 }
+
+.goal-list {
+    max-height: 200px;
+    overflow-y: scroll;
+}
