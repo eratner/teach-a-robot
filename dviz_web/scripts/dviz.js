@@ -35,6 +35,11 @@ var createSMAFilter = function(n) {
 
     get : function(key) {
       return buffer[key];
+    },
+
+    getLatest : function() {
+      var latest = (pointer - 1 < 0 ? n + (pointer - 1) : pointer - 1);
+      return buffer[latest];
     }
   };
 };
@@ -104,6 +109,9 @@ DVIZ.CameraManager = function(options) {
   this.tfClient.subscribe('/dviz_user_' + this.id + '/right_end_effector', function(message) {
     var tf = new ROSLIB.Transform(message);
 
+    // console.log('r-ee x = ' + tf.translation.x.toString()
+    // 		+ ' y = ' + tf.translation.y.toString()
+    // 		+ ' z = ' + tf.translation.z.toString());
     that.rEndEffectorXFilter.push(tf.translation.x);
     that.rEndEffectorYFilter.push(tf.translation.y);
     that.rEndEffectorZFilter.push(tf.translation.z);
@@ -355,6 +363,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   this.playing = true;
 
   $('#playPause').html('<img src="images/pause.png" width="65" height="65" />');
+  $('#playPause').tooltip('hide')
+    .attr('data-original-title', 'Click here to pause the game.')
+    .tooltip('fixTitle')
+    .tooltip('show');
   
   // If the user has not started the game yet, load the task
   if(!this.gameStarted) {
@@ -377,6 +389,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
   this.playing = false;
 
   $('#playPause').html('<img src="images/play.png" width="65" height="65" />');
+  $('#playPause').tooltip('hide')
+    .attr('data-original-title', 'Click here to continue the game.')
+    .tooltip('fixTitle')
+    .tooltip('show');
 
   var pauseNow = now || true;
 
@@ -407,12 +423,15 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
   } else if(follow === 'gripper') {
     console.log('[DVizClient] Changing camera to follow the gripper');
     this.cameraManager.setCamera(2);
+    // console.log('setting camera to r-ee x = ' + 
+    // 		this.cameraManager.rEndEffectorXFilter.getLatest().toString()
+    // 		+ ' y = ' + this.cameraManager.rEndEffectorYFilter.getLatest().toString() + ' z = ' + this.cameraManager.rEndEffectorZFilter.getLatest().toString());
     this.cameraManager.viewer.cameraControls.center.x =
-      this.cameraManager.rEndEffectorXFilter.back();
+      this.cameraManager.rEndEffectorXFilter.getLatest();
     this.cameraManager.viewer.cameraControls.center.y =
-      this.cameraManager.rEndEffectorYFilter.back();
+      this.cameraManager.rEndEffectorYFilter.getLatest();
     this.cameraManager.viewer.cameraControls.center.z =
-      this.cameraManager.rEndEffectorZFilter.back();
+      this.cameraManager.rEndEffectorZFilter.getLatest();
     // @todo set a default zoom
   } else if(follow === 'none') {
     console.log('[DVizClient] Changing camera to free mode');
@@ -467,7 +486,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
   console.log('[DVizClient] Loading scene ' + sceneName);
 
   // Pause the game while the scene loads
-  this.pause();
+  //this.pause();
 
   // @todo bring up a loading message until the scene has fully loaded into the browser.
   // then, need to figure out how to wait until the collada meshes have been fully rendered.
@@ -638,11 +657,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     this.acceptedGrasp = false;
 
     $('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
-    $('#acceptChangeGrasp').tooltip('destroy');
-    $('#acceptChangeGrasp').tooltip({
-      title : 'Click here when you\'re done choosing a good grasp for the object.'
-    });
-    $('#acceptChangeGrasp').tooltip('show');
+    $('#acceptChangeGrasp').tooltip('hide')
+      .attr('data-original-title', 'Click here when you\'re done choosing a good grasp for the object.')
+      .tooltip('fixTitle')
+      .tooltip('show');
 
     this.showInteractiveGripper(this.currentGoalNumber);
   } else {
@@ -663,11 +681,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     });
     
     $('#acceptChangeGrasp').html('<img src="images/change_grasp.png" width="65" height="65" />');
-    $('#acceptChangeGrasp').tooltip('destroy');
-    $('#acceptChangeGrasp').tooltip({
-      title : 'Click here if you want to change the grasp that you\'ve already chosen.'
-    });
-    $('#acceptChangeGrasp').tooltip('show');
+    $('#acceptChangeGrasp').tooltip('hide')
+      .attr('data-original-title', 'Click here if you want to change the grasp that you\'ve already chosen.')
+      .tooltip('fixTitle')
+      .tooltip('show');
   }
 }
 
@@ -881,7 +898,7 @@ function init() {
 
     // Initialize button click callbacks
     $('#playPause').on('click', function() {
-      if(dvizClient.isPlaying()) {
+      if(dvizClient.isPlaying() && dvizClient.gameStarted) {
 	dvizClient.pause();
       } else {
 	dvizClient.play();
@@ -898,10 +915,20 @@ function init() {
       if(dvizClient.cameraManager.getCameraMode() === 0) {
 	// Base-following camera
 	b.html('Base Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.tooltip('hide')
+	  .attr('data-original-title', 'Switch the camera to follow the robot\'s base.')
+	  .tooltip('fixTitle')
+	  .tooltip('show');
+
 	dvizClient.changeCamera('gripper');
       } else if(dvizClient.cameraManager.getCameraMode() === 2) {
 	// Gripper-following camera
 	b.html('Hand Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.tooltip('hide')
+	  .attr('data-original-title', 'Switch the camera to follow the robot\'s hand.')
+	  .tooltip('fixTitle')
+	  .tooltip('show');
+
 	dvizClient.changeCamera('base');
       } else {
 	console.log('[DVizClient] Error in base/hand camera handler');
@@ -914,14 +941,30 @@ function init() {
       if(dvizClient.cameraManager.getCameraMode() !== 1) {
 	// Camera is not in free mode
 	b.html('Lock Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.tooltip('hide')
+	  .attr('data-original-title', 'Lock the camera so that it is automatically positioned.')
+	  .tooltip('fixTitle')
+	  .tooltip('show');
+
 	dvizClient.changeCamera('none');
 	$('#baseHandCamera').prop('disabled', true);
       } else {
 	// Camera is in free mode
 	b.html('Unlock Camera<br /><img src="images/black.jpg" width="65" height="65" />');
-	dvizClient.cameraManager.setCamera(
-	  dvizClient.cameraManager.lastCameraMode
-	);
+	b.tooltip('hide')
+	  .attr('data-original-title', 'Unlock the camera so that it can be manually positioned.')
+	  .tooltip('fixTitle')
+	  .tooltip('show');
+
+	if(dvizClient.cameraManager.lastCameraMode === 0) {
+	  dvizClient.changeCamera('base');
+	} else if(dvizClient.cameraManager.lastCameraMode === 2) {
+	  dvizClient.changeCamera('gripper');
+	} else if(dvizClient.cameraManager.lastCameraMode === 1) {
+	  dvizClient.changeCamera('none');
+	} else {
+	  console.log('[DVizClient] Error in lock/unlock camera handler');
+	}
 	$('#baseHandCamera').prop('disabled', false);
       }
     });
@@ -931,8 +974,16 @@ function init() {
 
       if(dvizClient.basicGripperControls) {
 	b.html('<img src="images/simple_control.png" width="65" height="65" />');
+	b.tooltip('hide')
+	  .attr('data-original-title', 'Show controls for only moving the position of the arm.')
+	  .tooltip('fixTitle')
+	  .tooltip('show');
       } else {
 	b.html('<img src="images/full_control.png" width="65" height="65" />');
+	b.tooltip('hide')
+	  .attr('data-original-title', 'Full control gives you more freedom to move the elbow and rotate the hand of the robot.')
+	  .tooltip('fixTitle')
+	  .tooltip('show');
       }
 
       dvizClient.toggleGripperControls();
@@ -981,8 +1032,9 @@ function init() {
 		  + ', theta = ' + theta.toString()
 		  + ', radius = ' + radius.toString());
     });
+    */
   });
-  */
+
   $('#cameraPose').hide();
 
   // Initialize all tooltips
