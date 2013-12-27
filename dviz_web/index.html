@@ -35,9 +35,9 @@
   <body onload="init()">
     <div class="container">
 
-      <div class="jumbotron">
-	<h1>Teach-A-Robot</h1>
-      </div>
+      <!-- <div class="jumbotron"> -->
+      <!-- 	<h1>Teach-A-Robot</h1> -->
+      <!-- </div> -->
 
       <!-- Instructions modal dialog -->
       <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel" aria-hidden="true">
@@ -101,19 +101,20 @@
 
 		<!-- Controls -->
 		<a class="left carousel-control" href="#carousel-example-generic" data-slide="prev">
-		  <span class="glyphicon glyphicon-chevron-left"></span>
+                  <span class="glyphicon glyphicon-chevron-left"></span>
 		</a>
 		<a class="right carousel-control" href="#carousel-example-generic" data-slide="next">
-		  <span class="glyphicon glyphicon-chevron-right"></span>
+                  <span class="glyphicon glyphicon-chevron-right"></span>
 		</a>
+              </div>
+              <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Done!</button>
 	      </div>
-	    </div>
-	    <div class="modal-footer">
-              <button type="button" class="btn btn-default" data-dismiss="modal">Done!</button>
 	    </div>
 	  </div>
 	</div>
       </div>
+
 
       <!-- Goal complete notification modal dialog -->
       <div class="modal fade" id="goalCompleteModal" tabindex="-1" role="dialog" aria-labelledby="goalCompleteModal" aria-hidden="true">
@@ -137,6 +138,120 @@
 	<div id="dviz" class="center-dviz"></div>
       </div>
 
+      <!-- Help modal dialog -->
+      <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+              <h4 class="modal-title" id="helpModalTitle">How to Teach-A-Robot</h4>
+	    </div>
+	    <div class="modal-body">
+	      <div id="helpLoader">
+		<h4>Loading images...</h4>
+	      </div>
+	      <div class="panel-group" id="accordion">
+		<div class="panel panel-default">
+		  <div class="panel-heading">
+		    <h4 class="panel-title">
+		      <a data-toggle="collapse" data-parent="#accordion" href="#howToMoveHand">
+			How do I move the hand?
+		      </a>
+		    </h4>
+		  </div>
+		  <div id="howToMoveHand" class="panel-collapse collapse">
+		    <div class="panel-body">
+		      <p class="text-center">
+			<img data-src="images/move_hand.gif" width="440" height="246" />
+		      <p>
+		      <p>
+			To move the hand, simply click on the green marker and drag it to the desired destination. You can move the hand up and down by holding the Z key while you drag.
+		      </p>
+		    </div>
+		  </div>
+		</div>
+		<div class="panel panel-default">
+		  <div class="panel-heading">
+		    <h4 class="panel-title">
+		      <a data-toggle="collapse" data-parent="#accordion" href="#howToOrientHand">
+			How do I change the orientation of the hand?
+		      </a>
+		    </h4>
+		  </div>
+		  <div id="howToOrientHand" class="panel-collapse collapse">
+		    <div class="panel-body">
+		      <p class="text-center">
+			<img data-src="images/orient_hand.gif" width="440" height="280" />
+		      <p>
+		      <p>
+			To change the orientation of the hand, first press the <strong>Full Control</strong> button. Then, use the colored rings that appear around the hand to change it's roll, pitch, and yaw.
+		      </p>
+		    </div>
+		  </div>
+		</div>
+		<div class="panel panel-default">
+		  <div class="panel-heading">
+		    <h4 class="panel-title">
+		      <a data-toggle="collapse" data-parent="#accordion" href="#howToMoveElbow">
+			How do I move the elbow?
+		      </a>
+		    </h4>
+		  </div>
+		  <div id="howToMoveElbow" class="panel-collapse collapse">
+		    <div class="panel-body">
+		      <p class="text-center">
+			<img data-src="images/move_elbow.gif" width="440" height="280" />
+		      <p>
+		      <p>
+			To move the elbow, first press the <strong>Full Control</strong> button. Then, use the colored ring around the upper arm to roll the upper arm, moving the elbow to the desired position. 
+		      </p>
+		    </div>
+		  </div>
+		</div>
+		<div class="panel panel-default">
+		  <div class="panel-heading">
+		    <h4 class="panel-title">
+		      <a data-toggle="collapse" data-parent="#accordion" href="#howToChooseGrasp">
+			How do I choose a grasp?
+		      </a>
+		    </h4>
+		  </div>
+		  <div id="howToChooseGrasp" class="panel-collapse collapse">
+		    <div class="panel-body">
+		      <p class="text-center">
+			<img data-src="images/choose_grasp.gif" width="440" height="280" />
+		      <p>
+		      <p>
+			Before each goal, you must first choose how you would like the robot to grasp the object. To do this, move the red hand marker to the desired grasp, using the same controls as for moving the hand of the robot. Then, press <strong>Accept Grasp</strong>.
+		      </p>
+		    </div>
+		  </div>
+		</div>
+		<div class="panel panel-default">
+		  <div class="panel-heading">
+		    <h4 class="panel-title">
+		      <a data-toggle="collapse" data-parent="#accordion" href="#howToMoveBase">
+			How do I move the base?
+		      </a>
+		    </h4>
+		  </div>
+		  <div id="howToMoveBase" class="panel-collapse collapse">
+		    <div class="panel-body">
+		      <p class="text-center">
+			<img data-src="images/move_base.gif" width="440" height="280" />
+		      <p>
+		      <p>
+			To move the base, simply click on the green marker at the robot's base, and drag it to the desired position. To rotate the base, click and drag the blue ring around the base.
+		      </p>
+		    </div>
+		  </div>
+		</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+
     </div>
 
     <div class="container">
@@ -150,7 +265,6 @@
 	
 	<!-- Gameplay controls -->
 	<div class="row top-margin">
-	  <!-- @todo to center, add text-center to div class below -->
 	  <!--<div class="btn-group-horizontal">-->
 	  <div class="panel panel-default">
 	    <div class="panel-body text-center">
@@ -166,31 +280,34 @@
 		    disabled><!-- Accept Grasp -->
 	      <img src="images/accept_grasp.png" width="65" height="65" />
 	    </button>
-	    <button id="baseHandCamera" data-toggle="tooltip" 
-		    data-placement="top" title="Switch the camera to follow the robot's hand."
-		    type="button" class="tip btn btn-default">
-	      Hand Camera<br />
-	      <!-- <img src="images/hand_camera.png" width="65" height="65" /> -->
-	      <img src="images/black.jpg" width="65" height="45" />
-	    </button>
-	    <button id="freeFollowingCamera" data-toggle="tooltip" 
-		    data-placement="top" title="A free camera will not follow the robot's movements automatically."
-		    type="button" class="tip btn btn-default">
-	      Unlock Camera<br />
-	      <!-- <img src="images/free_camera.png" width="65" height="65" /> -->
-	      <img src="images/black.jpg" width="65" height="45" />
-	    </button>
+
+	    <div class="btn-group-vertical">
+	      <button id="freeFollowingCamera" data-toggle="tooltip"
+		      data-placement="top" title="Switch to a view that you can move freely."
+		      type="button" class="tip btn btn-default">
+		Free View
+	      </button>
+	      <button id="baseHandCamera" data-toggle="tooltip"
+		      data-placement="bottom" title="Switch to a view that follows the robot's hand."
+		      type="button" class="tip btn btn-default">
+		Follow Hand
+	      </button>
+	    </div>
+
 	    <button id="rotateHandControls" data-toggle="tooltip" 
 		    data-placement="top" title="Full control gives you more freedom to move the elbow and rotate the hand of the robot."
-		    type="button" class="tip btn btn-default"><!-- Rotate Hand Controls -->
+		    type="button" class="tip btn btn-default">
 	      <img src="images/full_control.png" width="65" height="65" />
 	    </button>
 	    <button id="settings" data-toggle="tooltip" 
-		    data-placement="top" title="Modify settings such as the base and arm speed of the robot."
-		    type="button" class="tip btn btn-default"
-		    >Show Gameplay Settings<br />
-	      <!-- <img src="images/settings.png" width="65" height="65" /> -->
-	      <img src="images/black.jpg" width="65" height="45" />
+		    data-placement="top" title="View and modify gameplay settings."
+		    type="button" class="tip btn btn-default">
+	      <img src="images/settings.png" width="65" height="65" />
+	    </button>
+	    <button id="help" data-toggle="tooltip"
+		    data-placement="top" title="View detailed instructions on various gameplay topics."
+		    type="button" class="tip btn btn-default">
+	      <img src="images/help.png" width="65" height="65" />
 	    </button>
 
 	    <br />
@@ -234,12 +351,12 @@
 		  <label for="endEffectorSpeed">Arm speed: </label>
 		  <div id="endEffectorSpeed"></div>
 		</p>
-		<p>
-		  <button id="cameraPos"
-			  type="button" class="tip btn btn-default"
-			  >Get Camera Position
-		  </button>
-		</p>
+		<!-- <p> -->
+		<!--   <button id="cameraPos" -->
+		<!-- 	  type="button" class="tip btn btn-default"> -->
+		<!--     Get Camera Position -->
+		<!--   </button> -->
+		<!-- </p> -->
 	      </div>
 	    </div>
 	  </div>

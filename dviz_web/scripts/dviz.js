@@ -316,8 +316,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	return;
       }
 
-      $('#currentGoal').html('Current goal: ' + 
-			     message.goals[that.currentGoalNumber].description);
+      $('#currentGoal').html('Current goal: <strong>' + 
+			     message.goals[that.currentGoalNumber].description + '</strong>');
 
       var html = '';
       for(var i = 0; i < message.goals.length; ++i) {
@@ -370,7 +370,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   
   // If the user has not started the game yet, load the task
   if(!this.gameStarted) {
-    this.loadTask();
+    //this.loadTask();
     this.gameStarted = true;
   }
 
@@ -914,24 +914,24 @@ function init() {
 
       if(dvizClient.cameraManager.getCameraMode() === 0) {
 	// Base-following camera
-	b.html('Base Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.html('Base View');
 	b.tooltip('hide')
-	  .attr('data-original-title', 'Switch the camera to follow the robot\'s base.')
+	  .attr('data-original-title', 'Switch to a view that follows the robot\'s base.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
 
 	dvizClient.changeCamera('gripper');
       } else if(dvizClient.cameraManager.getCameraMode() === 2) {
 	// Gripper-following camera
-	b.html('Hand Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.html('Hand View');
 	b.tooltip('hide')
-	  .attr('data-original-title', 'Switch the camera to follow the robot\'s hand.')
+	  .attr('data-original-title', 'Switch to a view that follows the robot\'s hand.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
 
 	dvizClient.changeCamera('base');
       } else {
-	console.log('[DVizClient] Error in base/hand camera handler');
+	console.log('[DVizClient] Error in base/hand view handler');
       }
     });
 
@@ -940,9 +940,9 @@ function init() {
 
       if(dvizClient.cameraManager.getCameraMode() !== 1) {
 	// Camera is not in free mode
-	b.html('Lock Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.html('Following View');
 	b.tooltip('hide')
-	  .attr('data-original-title', 'Lock the camera so that it is automatically positioned.')
+	  .attr('data-original-title', 'Your view will follow the position of the robot automatically.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
 
@@ -950,9 +950,9 @@ function init() {
 	$('#baseHandCamera').prop('disabled', true);
       } else {
 	// Camera is in free mode
-	b.html('Unlock Camera<br /><img src="images/black.jpg" width="65" height="65" />');
+	b.html('Free View');
 	b.tooltip('hide')
-	  .attr('data-original-title', 'Unlock the camera so that it can be manually positioned.')
+	  .attr('data-original-title', 'You can move your view freely.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
 
@@ -963,7 +963,7 @@ function init() {
 	} else if(dvizClient.cameraManager.lastCameraMode === 1) {
 	  dvizClient.changeCamera('none');
 	} else {
-	  console.log('[DVizClient] Error in lock/unlock camera handler');
+	  console.log('[DVizClient] Error in free/following camera handler');
 	}
 	$('#baseHandCamera').prop('disabled', false);
       }
@@ -1000,7 +1000,7 @@ function init() {
       disabled : true
     });
 
-    dvizClient.loadScene();
+    //dvizClient.loadScene();
     $('#playPause').prop('disabled', false);
     $('#playPause').tooltip('show');
 
@@ -1035,8 +1035,6 @@ function init() {
     */
   });
 
-  $('#cameraPose').hide();
-
   // Initialize all tooltips
   $('.tip').tooltip();
 
@@ -1046,6 +1044,37 @@ function init() {
   // Initialize gameplay settings
   initializeGameplaySettings();
   hideGameplaySettings();
+
+  // Defer the loading of the gifs on the help modal for
+  // when the modal is shown, otherwise the entire page 
+  // loads too slowly
+  $('#helpModal').on('show.bs.modal', function(e) {
+    var panelGroup = $(this).find('.panel-group').hide();
+    var deferreds = [];
+    var imgs = $('.panel-group', this).find('img');
+    // loop over each img
+    imgs.each(function() {
+      var self = $(this);
+      var datasrc = self.attr('data-src');
+      console.log('deferring ' + datasrc);
+      if(datasrc) {
+        var d = $.Deferred();
+        self.one('load', d.resolve)
+          .attr("src", datasrc)
+          .attr('data-src', '');
+        deferreds.push(d.promise());
+      }
+    });
+
+    $.when.apply($, deferreds).done(function() {
+      $('#helpLoader').hide();
+      panelGroup.fadeIn(1000);
+    });
+  });
+
+  $('#help').on('click', function() {
+    $('#helpModal').modal('show');
+  });
 
   //$(window).scroll(function() {
   //console.log('scrolling');
@@ -1208,7 +1237,10 @@ function numUsers() {
 function showGameplaySettings() {
   console.log('[DVizClient] Showing gameplay settings');
   $('#gameplaySettings').show();
-  $('#settings').html('Hide Gameplay Settings<br /><img src="images/black.jpg" width="65" height="45" />');
+  $('#settings').tooltip('hide')
+    .attr('data-original-title', 'Close gameplay settings.')
+    .tooltip('fixTitle')
+    .tooltip('show');
   $('#settings').unbind('click');
   $('#settings').on('click', hideGameplaySettings);
 }
@@ -1216,7 +1248,10 @@ function showGameplaySettings() {
 function hideGameplaySettings() {
   console.log('[DVizClient] Hiding gameplay settings');
   $('#gameplaySettings').hide();
-  $('#settings').html('Show Gameplay Settings<br /><img src="images/black.jpg" width="65" height="45" />');
+  $('#settings').tooltip('hide')
+    .attr('data-original-title', 'View and modify gameplay settings.')
+    .tooltip('fixTitle')
+    .tooltip('show');
   $('#settings').unbind('click');
   $('#settings').on('click', showGameplaySettings);
 }
