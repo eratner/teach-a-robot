@@ -280,6 +280,11 @@
 		    disabled><!-- Accept Grasp -->
 	      <img src="images/accept_grasp.png" width="65" height="65" />
 	    </button>
+	    <button id="rotateHandControls" data-toggle="tooltip" 
+		    data-placement="top" title="Full control gives you more freedom to move the elbow and rotate the hand of the robot."
+		    type="button" class="tip btn btn-default">
+	      <img src="images/full_control.png" width="65" height="65" />
+	    </button>
 
 	    <div class="btn-group-vertical">
 	      <button id="freeFollowingCamera" data-toggle="tooltip"
@@ -294,11 +299,6 @@
 	      </button>
 	    </div>
 
-	    <button id="rotateHandControls" data-toggle="tooltip" 
-		    data-placement="top" title="Full control gives you more freedom to move the elbow and rotate the hand of the robot."
-		    type="button" class="tip btn btn-default">
-	      <img src="images/full_control.png" width="65" height="65" />
-	    </button>
 	    <button id="settings" data-toggle="tooltip" 
 		    data-placement="top" title="View and modify gameplay settings."
 		    type="button" class="tip btn btn-default">
@@ -350,6 +350,13 @@
 		<p>
 		  <label for="endEffectorSpeed">Arm speed: </label>
 		  <div id="endEffectorSpeed"></div>
+		</p>
+
+		<hr />
+
+		<p>
+		  <label for="zoomSpeed">Zoom speed: </label>
+		  <div id="zoomSpeed"></div>
 		</p>
 		<!-- <p> -->
 		<!--   <button id="cameraPos" -->

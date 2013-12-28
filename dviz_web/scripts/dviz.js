@@ -370,7 +370,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   
   // If the user has not started the game yet, load the task
   if(!this.gameStarted) {
-    //this.loadTask();
+    this.loadTask();
     this.gameStarted = true;
   }
 
@@ -654,6 +654,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   if(this.acceptedGrasp) {
     console.log('[DVizClient] Changing grasp');
     this.pause();
+    $('#playPause').attr('disabled', true);
+    $('#freeFollowingCamera').attr('disabled', true);
+    $('#baseHandCamera').attr('disabled', true);
     this.acceptedGrasp = false;
 
     $('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
@@ -666,6 +669,11 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   } else {
     console.log('[DVizClient] Accepting grasp');
     this.play();
+    $('#playPause').attr('disabled', false);
+    $('#freeFollowingCamera').attr('disabled', false);
+    if(this.cameraManager.cameraMode !== 0) {
+      $('#baseHandCamera').attr('disabled', false);
+    }
     this.acceptedGrasp = true;
 
     // Hide the interactive gripper of the current goal
@@ -831,6 +839,8 @@ function init() {
     antialias : true
   });
 
+  // Add an event listener to resize the 
+
   // Request a new DVizUser from the core
   dvizCoreCommandClient = new ROSLIB.Service({
     ros : ros,
@@ -963,7 +973,7 @@ function init() {
 	} else if(dvizClient.cameraManager.lastCameraMode === 1) {
 	  dvizClient.changeCamera('none');
 	} else {
-	  console.log('[DVizClient] Error in free/following camera handler');
+	  console.log('[DVizClient] Error in free/following camera handler (lastCameraMode = ' + dvizClient.cameraManager.lastCameraMode.toString() + ')');
 	}
 	$('#baseHandCamera').prop('disabled', false);
       }
@@ -1220,6 +1230,17 @@ function setEndEffectorSpeed(s) {
   }
 }
 
+function setZoomSpeed(speed) {
+  var zoomSpeed = speed || parseFloat($('#zoomSpeed').value);
+  if(isNaN(speed)) {
+    showAlert('Not a valid speed');
+  } else if(dvizClient === null) {
+    console.log('[DVizClient] Not connected to the server');
+  } else {
+    dvizClient.cameraManager.setZoomSpeed(zoomSpeed);
+  }
+}
+
 function numUsers() {
   dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'num_users',
@@ -1282,6 +1303,15 @@ function initializeGameplaySettings() {
     step : 0.03,
     slide : function(event, ui) {
       setEndEffectorSpeed(ui.value);
+    }
+  });
+  $('#zoomSpeed').slider({
+    value : 1.0,
+    min : 0.5,
+    max : 3.0,
+    step : 0.1,
+    slide : function(event, ui) {
+      setZoomSpeed(ui.value);
     }
   });
 }

@@ -50,6 +50,9 @@ ObjectManager::~ObjectManager()
     ROS_INFO("[ObjectManager] DVizCore removing distance field data from shared memory.");
     segment.destroy<ShmemVectorVectorVector>("df");
 
+    // @todo check if it exists before removing it (this is probably the cause of the boost::interprocess::interprocess_exception 
+    // thrown when dviz_core is killed but no scene has been loaded)
+
     // Remove the shared memory
     boost::interprocess::shared_memory_object::remove("SharedDistanceField");
   }
