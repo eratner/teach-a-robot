@@ -1051,6 +1051,74 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   control.orientation.z = 1;
   int_marker.controls.push_back(control);
 
+  // visualization_msgs::Marker arrow;
+  // arrow.header.frame_id = "";
+  // arrow.pose.position.y = 0.12;
+  // arrow.pose.position.x = -0.12;
+  // arrow.pose.position.z = 0;
+  // arrow.pose.orientation.z = 1;
+  // arrow.pose.orientation.w = 1;
+  // arrow.type = visualization_msgs::Marker::ARROW;
+  // arrow.color.r = 1.0;
+  // arrow.color.g = 0.0;
+  // arrow.color.b = 0.0;
+  // arrow.color.a = 1.0;
+  // arrow.scale.x = 0.06;
+  // arrow.scale.y = 0.04;
+  // control.markers.push_back(arrow);
+  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+  // int_marker.controls.push_back(control);
+
+  // control.markers.clear();
+  // arrow.pose.position.y = -0.12;
+  // arrow.pose.orientation.z = -1;
+  // control.markers.push_back(arrow);
+  // int_marker.controls.push_back(control);
+
+  control.name = "OPEN_GRIPPER_ARROW";
+  visualization_msgs::Marker arrow;
+  arrow.header.frame_id = "";
+  //arrow.pose.position.y = 0.06;
+  arrow.pose.position.y = 0;
+  arrow.pose.position.x = -0.26;
+  arrow.pose.position.z = 0;
+  arrow.pose.orientation.z = 1;
+  arrow.pose.orientation.w = 1;
+  arrow.type = visualization_msgs::Marker::ARROW;
+  arrow.color.r = 1.0;
+  arrow.color.g = 0.0;
+  arrow.color.b = 0.0;
+  arrow.color.a = 1.0;
+  arrow.scale.x = 0.06;
+  arrow.scale.y = 0.04;
+  control.markers.push_back(arrow);
+  control.interaction_mode = visualization_msgs::InteractiveMarkerControl::BUTTON;
+  //int_marker.controls.push_back(control);
+
+  // control.markers.clear();
+  // control.name = "OPEN_GRIPPER_ARROW";
+  arrow.pose.position.x = -0.26;
+  //arrow.pose.position.y = -0.02;
+  arrow.pose.orientation.z = -1;
+  control.markers.push_back(arrow);
+  int_marker.controls.push_back(control);
+
+  control.markers.clear();
+  control.name = "CLOSE_GRIPPER_ARROW";
+  arrow.pose.position.x = -0.28;
+  arrow.pose.position.y = 0.06;
+  arrow.pose.orientation.z = -1;
+  control.markers.push_back(arrow);
+  // int_marker.controls.push_back(control);
+
+  // control.markers.clear();
+  // control.name = "CLOSE_GRIPPER_ARROW";
+  arrow.pose.position.x = -0.28;
+  arrow.pose.position.y = -0.06;
+  arrow.pose.orientation.z = 1;
+  control.markers.push_back(arrow);
+  int_marker.controls.push_back(control);
+
   int_marker_server_->insert(int_marker,
 			     boost::bind(
 			       &DemonstrationVisualizerUser::gripperMarkerFeedback,
@@ -1058,6 +1126,70 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 			       _1)
 			     );
   int_marker_server_->applyChanges();
+
+  // *** EXPERIMENTAL ***
+  // Add an interactive marker for the user to control the gripper joint angle
+  visualization_msgs::InteractiveMarker grasp_angle_int_marker;
+  grasp_angle_int_marker.header.frame_id = resolveName("map", id_);
+  s.str(std::string());
+  s << "grasp_angle_marker_goal_" << goal_number;
+  grasp_angle_int_marker.name = s.str();
+  grasp_angle_int_marker.description = "";
+
+  // Determine the pose of the arrow in the map
+  KDL::Frame grasp_in_map(KDL::Rotation::Quaternion(
+			    gripper_pose.orientation.x,
+			    gripper_pose.orientation.y,
+			    gripper_pose.orientation.z,
+			    gripper_pose.orientation.w),
+			  KDL::Vector(gripper_pose.position.x,
+				      gripper_pose.position.y,
+				      gripper_pose.position.z)
+    );
+
+  KDL::Frame arrow_in_grasp(KDL::Rotation::Quaternion(0, 0, 1, 1),
+			    KDL::Vector(-(goal->getGraspDistance()), 0, 0));
+
+  KDL::Frame arrow_in_map = grasp_in_map * arrow_in_grasp;
+  double x, y, z, w;
+  arrow_in_map.M.GetQuaternion(x, y, z, w);
+  geometry_msgs::Pose grasp_arrow_pose;
+  grasp_arrow_pose.position.x = arrow_in_map.p.x();
+  grasp_arrow_pose.position.y = arrow_in_map.p.y();
+  grasp_arrow_pose.position.z = arrow_in_map.p.z();
+  grasp_arrow_pose.orientation.x = x;
+  grasp_arrow_pose.orientation.y = y;
+  grasp_arrow_pose.orientation.z = z;
+  grasp_arrow_pose.orientation.w = w;
+  
+  // ROS_INFO("arrow (x, y, z) = (%f, %f, %f)", grasp_arrow_pose.position.x,
+  // 	   grasp_arrow_pose.position.y, grasp_arrow_pose.position.z);
+
+  grasp_angle_int_marker.pose = grasp_arrow_pose;
+
+  visualization_msgs::InteractiveMarkerControl grasp_angle_control;
+  visualization_msgs::Marker grasp_angle_arrow;
+  grasp_angle_arrow.header.frame_id = "";
+  grasp_angle_arrow.pose.position.x = 0;
+  grasp_angle_arrow.pose.position.y = 0;
+  grasp_angle_arrow.pose.position.z = 0;
+  //grasp_angle_arrow.pose.orientation.z = 1;
+  grasp_angle_arrow.pose.orientation.w = 1;
+  grasp_angle_arrow.type = visualization_msgs::Marker::ARROW;
+  grasp_angle_arrow.color.r = 1.0;
+  grasp_angle_arrow.color.g = 0.0;
+  grasp_angle_arrow.color.b = 0.0;
+  grasp_angle_arrow.color.a = 1.0;
+  grasp_angle_arrow.scale.x = 0.06;
+  grasp_angle_arrow.scale.y = 0.04;
+  //grasp_angle_arrow.scale.z = 0.2;
+  grasp_angle_control.markers.push_back(grasp_angle_arrow);
+  grasp_angle_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
+
+  grasp_angle_int_marker.controls.push_back(grasp_angle_control);
+  
+  // int_marker_server_->insert(grasp_angle_int_marker);
+  // int_marker_server_->applyChanges();
   
   return true;
 }
@@ -1095,45 +1227,112 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
   Goal *goal = demonstration_scene_manager_->getGoal(goal_number);
   if(goal->getType() == Goal::PICK_UP)
   {
-    PickUpGoal *p = static_cast<PickUpGoal *>(goal);
-    // Check if the gripper is too far from the object
-    geometry_msgs::Pose object_pose = p->getInitialObjectPose();
-    double dx = object_pose.position.x - feedback->pose.position.x;
-    double dy = object_pose.position.y - feedback->pose.position.y;
-    double dz = object_pose.position.z - feedback->pose.position.z;
-    double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+    // geometry_msgs::Pose gripper_pose = static_cast<PickUpGoal *>(goal)->getGraspPose();
 
-    // Adjust the control orientation of the gripper appropriately
-    // visualization_msgs::InteractiveMarker gripper_marker;
-    // int_marker_server_->get(feedback->marker_name, gripper_marker);
-    // tf::Quaternion rot(feedback->pose.orientation.x,
-    // 		       feedback->pose.orientation.y,
-    // 		       feedback->pose.orientation.z,
-    // 		       feedback->pose.orientation.w);
-    // tf::Quaternion rot2(tf::Vector3(0, 1, 0), M_PI/2.0);
-    // tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+    // KDL::Frame grasp_in_map(KDL::Rotation::Quaternion(
+    // 			      gripper_pose.orientation.x,
+    // 			      gripper_pose.orientation.y,
+    // 			      gripper_pose.orientation.z,
+    // 			      gripper_pose.orientation.w),
+    // 			    KDL::Vector(gripper_pose.position.x,
+    // 					gripper_pose.position.y,
+    // 					gripper_pose.position.z)
+    //   );
 
-    // int_marker_server_->insert(gripper_marker);
-    // int_marker_server_->applyChanges();
+    // KDL::Frame arrow_in_grasp(KDL::Rotation::Quaternion(0, 0, 1, 1),
+    // 			      KDL::Vector(-(static_cast<PickUpGoal *>(goal)->getGraspDistance()), 0, 0));
 
-    // If the gripper marker has been moved too far from the 
-    // position of the object, do not do anything
-    if(distance > 0.3)
+    // KDL::Frame arrow_in_map = grasp_in_map * arrow_in_grasp;
+    // double x, y, z, w;
+    // arrow_in_map.M.GetQuaternion(x, y, z, w);
+    // geometry_msgs::Pose grasp_arrow_pose;
+    // grasp_arrow_pose.position.x = arrow_in_map.p.x();
+    // grasp_arrow_pose.position.y = arrow_in_map.p.y();
+    // grasp_arrow_pose.position.z = arrow_in_map.p.z();
+    // grasp_arrow_pose.orientation.x = x;
+    // grasp_arrow_pose.orientation.y = y;
+    // grasp_arrow_pose.orientation.z = z;
+    // grasp_arrow_pose.orientation.w = w;
+
+    // std::stringstream ss;
+    // ss << "grasp_angle_marker_goal_" << goal_number;
+    
+    // int_marker_server_->setPose(ss.str(), grasp_arrow_pose);
+
+    if(feedback->control_name.compare("OPEN_GRIPPER_ARROW") == 0 ||
+       feedback->control_name.compare("CLOSE_GRIPPER_ARROW") == 0)
     {
-      ROS_WARN("[DVizUser%d] The grasp is too far from object", id_);
-      // Reset the pose of the interactive gripper
-      if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP)
+      bool open = feedback->control_name.compare("OPEN_GRIPPER_ARROW") == 0;
+      ROS_INFO_STREAM((open ? "open " : "close ") << "arrow clicked");
+      Goal *current_goal = demonstration_scene_manager_->getGoal(
+	demonstration_scene_manager_->getCurrentGoal());
+      if(current_goal != 0 && current_goal->getType() == Goal::PICK_UP)
       {
-	geometry_msgs::Pose last_pose = demonstration_scene_manager_->getGraspPose(goal_number);
-	int_marker_server_->setPose(feedback->marker_name, last_pose);
-	int_marker_server_->applyChanges();
+	PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
+
+	double increment = 0.02;
+	if(!open) increment *= -1.0;
+
+	// Check to make sure that the new gripper angle is within bounds
+	double new_angle = pick_up_goal->getGripperJointPosition() + increment;
+	if(new_angle < EndEffectorController::GRIPPER_CLOSED_ANGLE)
+	  new_angle = EndEffectorController::GRIPPER_CLOSED_ANGLE;
+	else if(new_angle > EndEffectorController::GRIPPER_OPEN_ANGLE)
+	  new_angle = EndEffectorController::GRIPPER_OPEN_ANGLE;
+
+	pick_up_goal->setGripperJointPosition(new_angle);
+
+	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
       }
-      return;
+    }
+    else
+    {
+      PickUpGoal *p = static_cast<PickUpGoal *>(goal);
+      // Check if the gripper is too far from the object
+      geometry_msgs::Pose object_pose = p->getInitialObjectPose();
+      double dx = object_pose.position.x - feedback->pose.position.x;
+      double dy = object_pose.position.y - feedback->pose.position.y;
+      double dz = object_pose.position.z - feedback->pose.position.z;
+      double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+
+      // Adjust the control orientation of the gripper appropriately
+      // visualization_msgs::InteractiveMarker gripper_marker;
+      // int_marker_server_->get(feedback->marker_name, gripper_marker);
+      // tf::Quaternion rot(feedback->pose.orientation.x,
+      // 		       feedback->pose.orientation.y,
+      // 		       feedback->pose.orientation.z,
+      // 		       feedback->pose.orientation.w);
+      // tf::Quaternion rot2(tf::Vector3(0, 1, 0), M_PI/2.0);
+      // tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+
+      // int_marker_server_->insert(gripper_marker);
+      // int_marker_server_->applyChanges();
+
+      // If the gripper marker has been moved too far from the 
+      // position of the object, do not do anything
+      if(distance > 0.3)
+      {
+	ROS_WARN("[DVizUser%d] The grasp is too far from object", id_);
+	// Reset the pose of the interactive gripper
+	if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP)
+	{
+	  geometry_msgs::Pose last_pose = demonstration_scene_manager_->getGraspPose(goal_number);
+	  int_marker_server_->setPose(feedback->marker_name, last_pose);
+	  int_marker_server_->applyChanges();
+	}
+	return;
+      }
     }
   }
 
   demonstration_scene_manager_->setGraspPose(goal_number, feedback->pose);
 }
+
+// void DemonstrationVisualizerUser::graspArrowMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+// {
+//   // @todo
+// }
+
 
 void DemonstrationVisualizerUser::processKeyEvent(int key, int type)
 {

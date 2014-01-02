@@ -160,6 +160,10 @@ DVIZ.CameraManager.prototype.getCameraMode = function() {
   return this.cameraMode;
 }
 
+DVIZ.CameraManager.prototype.getLastCameraMode = function() {
+  return this.lastCameraMode;
+}
+
 DVIZ.CameraManager.prototype.setFilterTf = function(filter) {
   this.filterTf = filter;
 }
@@ -592,7 +596,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   this.robotMarkerControl(false);
   this.pause();
 
-  $('#gripperJointAngle').slider('option', 'disabled', false);
+  //$('#gripperJointAngle').slider('option', 'disabled', false);
 
   this.changeCamera('none');
   // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
@@ -630,15 +634,54 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
 DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
   console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
 
-  $('#gripperJointAngle').slider('option', 'disabled', true);
+  //$('#gripperJointAngle').slider('option', 'disabled', true);
 
   this.robotMarkerControl(true);
-  this.changeCamera('none');
-  this.cameraManager.viewer.cameraControls.center.x =
-    this.cameraManager.baseXFilter.back();
-  this.cameraManager.viewer.cameraControls.center.y =
-    this.cameraManager.baseYFilter.back();
-  this.cameraManager.viewer.cameraControls.center.z = 0.0;
+  
+  // Return to the last camera mode
+  var b = $('#baseHandCamera');
+  if(this.cameraManager.getLastCameraMode() === 0) {
+    // Base-following camera
+    b.html('Hand View');
+    b.tooltip('hide')
+      .attr('data-original-title', 'Switch to a view that follows the robot\'s hand.')
+      .tooltip('fixTitle')
+      .tooltip('show');
+    $('#viewImage').attr('src', 'images/base_view.png');
+
+    this.changeCamera('base');
+  } else if(this.cameraManager.getLastCameraMode() === 2) {
+    // Gripper-following camera
+    b.html('Base View');
+    b.tooltip('hide')
+      .attr('data-original-title', 'Switch to a view that follows the robot\'s base.')
+      .tooltip('fixTitle')
+      .tooltip('show');
+    $('#viewImage').attr('src', 'images/hand_view.png');
+
+    this.changeCamera('gripper');
+  } else if(this.cameraManager.getLastCameraMode() === 1) {
+    console.log('NONE CAMERA');
+    // @todo set the buttons appropriately
+
+    // Free-camera (focus the camera intially at the base of the robot)
+    this.cameraManager.viewer.cameraControls.center.x =
+      this.cameraManager.baseXFilter.back();
+    this.cameraManager.viewer.cameraControls.center.y =
+      this.cameraManager.baseYFilter.back();
+    this.cameraManager.viewer.cameraControls.center.z = 0.0;
+
+    this.changeCamera('none');
+  } else {
+    console.log('[DVizClient] Error switching the camera back');
+  }
+
+  // this.changeCamera('none');
+  // this.cameraManager.viewer.cameraControls.center.x =
+  //   this.cameraManager.baseXFilter.back();
+  // this.cameraManager.viewer.cameraControls.center.y =
+  //   this.cameraManager.baseYFilter.back();
+  // this.cameraManager.viewer.cameraControls.center.z = 0.0;
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'hide_interactive_gripper',
@@ -652,7 +695,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
 
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   if(this.acceptedGrasp) {
-    console.log('[DVizClient] Changing grasp');
+    console.log('[DVizClient] Changing/choosing grasp');
     this.pause();
     $('#playPause').attr('disabled', true);
     $('#freeFollowingCamera').attr('disabled', true);
@@ -832,10 +875,17 @@ function init() {
     url: 'ws://sbpl.net:21891'
   });
 
+  // Width and height of the viewer, in pixels
+  var W = 800;
+  var H = Math.min(600, 
+		   Math.max(400, window.innerHeight - 200));
+  console.log('[DVizClient] Instantiating the viewer with width '
+	      + W.toString() + ' and height ' + H.toString());
+
   var viewer = new ROS3D.Viewer({
     divID : 'dviz',
-    width : 800,
-    height : 600,
+    width : W,
+    height : H,
     antialias : true
   });
 
@@ -901,8 +951,8 @@ function init() {
       ros : ros,
       tfClient : tfClient,
       viewer : viewer,
-      viewerWidth : 800,
-      viewerHeight : 600,
+      viewerWidth : W,
+      viewerHeight : H,
       id : userId
     });
 
@@ -929,6 +979,7 @@ function init() {
 	  .attr('data-original-title', 'Switch to a view that follows the robot\'s base.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
+	$('#viewImage').attr('src', 'images/hand_view.png');
 
 	dvizClient.changeCamera('gripper');
       } else if(dvizClient.cameraManager.getCameraMode() === 2) {
@@ -938,6 +989,7 @@ function init() {
 	  .attr('data-original-title', 'Switch to a view that follows the robot\'s hand.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
+	$('#viewImage').attr('src', 'images/base_view.png');
 
 	dvizClient.changeCamera('base');
       } else {
@@ -999,20 +1051,24 @@ function init() {
       dvizClient.toggleGripperControls();
     })
 
-    $('#gripperJointAngle').slider({
-      value : 0.548,
-      min : 0.0,
-      max : 0.548,
-      step : 0.02,
-      slide : function(event, ui) {
-	dvizClient.setGripperJointAngle(ui.value);
-      },
-      disabled : true
-    });
+    // $('#gripperJointAngle').slider({
+    //   value : 0.548,
+    //   min : 0.0,
+    //   max : 0.548,
+    //   step : 0.02,
+    //   slide : function(event, ui) {
+    // 	dvizClient.setGripperJointAngle(ui.value);
+    //   },
+    //   disabled : true
+    // });
 
-    //dvizClient.loadScene();
+    dvizClient.loadScene();
     $('#playPause').prop('disabled', false);
     $('#playPause').tooltip('show');
+
+    $('#rotateHandControls').prop('disabled', false);
+    $('#freeFollowingCamera').prop('disabled', false);
+    $('#baseHandCamera').prop('disabled', false);
 
     dvizClient.displayStatusText('Connected to the server!');
 

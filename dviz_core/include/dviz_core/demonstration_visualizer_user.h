@@ -96,6 +96,8 @@ public:
 
   void gripperMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
 
+  void graspArrowMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback);
+
   /**
    * @brief Process key events sent from the client
    * @param key The key code associated with the event

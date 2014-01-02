@@ -266,8 +266,9 @@
 	<!-- Gameplay controls -->
 	<div class="row top-margin">
 	  <!--<div class="btn-group-horizontal">-->
-	  <div class="panel panel-default">
+	  <div class="panel">
 	    <div class="panel-body text-center">
+
 	    <button id="playPause" data-toggle="tooltip" 
 		    data-placement="top" title="When you're ready, click here to start the task!"
 		    type="button" class="tip btn btn-default"
@@ -282,22 +283,25 @@
 	    </button>
 	    <button id="rotateHandControls" data-toggle="tooltip" 
 		    data-placement="top" title="Full control gives you more freedom to move the elbow and rotate the hand of the robot."
-		    type="button" class="tip btn btn-default">
+		    type="button" class="tip btn btn-default" disabled>
 	      <img src="images/full_control.png" width="65" height="65" />
 	    </button>
 
 	    <div class="btn-group-vertical">
 	      <button id="freeFollowingCamera" data-toggle="tooltip"
 		      data-placement="top" title="Switch to a view that you can move freely."
-		      type="button" class="tip btn btn-default">
+		      type="button" class="tip btn btn-default" disabled>
 		Free View
 	      </button>
 	      <button id="baseHandCamera" data-toggle="tooltip"
 		      data-placement="bottom" title="Switch to a view that follows the robot's hand."
-		      type="button" class="tip btn btn-default">
+		      type="button" class="tip btn btn-default" disabled>
 		Follow Hand
 	      </button>
 	    </div>
+
+	    <!-- The view image -->
+	    <img id="viewImage" src="images/base_view.png" width="65" height="65" />
 
 	    <button id="settings" data-toggle="tooltip" 
 		    data-placement="top" title="View and modify gameplay settings."
@@ -312,9 +316,9 @@
 
 	    <br />
 
-	    <label for="gripperJointAngle">Open/close gripper:</label>
-	    <div id="gripperJointAngle"></div>
-	    </div>
+	    <!-- <label for="gripperJointAngle">Open/close gripper:</label> -->
+	    <!-- <div id="gripperJointAngle"></div> -->
+	    <!-- </div> -->
 	  </div>
 	</div>
 
