@@ -361,7 +361,10 @@ Marker ObjectManager::getMarker(int id)
   return objects_[id].mesh_marker_;
 }
 
-bool ObjectManager::checkRobotMove(vector<double> rangles, vector<double> langles, BodyPose bp, int skip_id){
+bool ObjectManager::checkRobotMove(const vector<double> &rangles, 
+				   const vector<double> &langles, 
+				   BodyPose &bp, int skip_id)
+{
   double dist;
   if(collision_checker_ == NULL || disable_collision_checking_)
     return true;

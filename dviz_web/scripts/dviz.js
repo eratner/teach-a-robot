@@ -352,6 +352,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	that.showInteractiveGripper(that.currentGoalNumber);
 	$('#acceptChangeGrasp').prop('disabled', false);
 	$('#acceptChangeGrasp').tooltip('show');
+	$('#freeFollowingCamera').prop('disabled', true);
+	$('#baseHandCamera').prop('disabled', true);
 	// Switch the camera back to follow the base of the robot
 	that.cameraManager.setCamera(0);
       } else {
@@ -599,6 +601,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   //$('#gripperJointAngle').slider('option', 'disabled', false);
 
   this.changeCamera('none');
+  $('#baseHandCamera').prop('disabled', true);
   // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
   /*
   this.cameraManager.viewer.cameraControls.center.x = 
@@ -640,6 +643,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
   
   // Return to the last camera mode
   var b = $('#baseHandCamera');
+  var f = $('#freeFollowingCamera');
   if(this.cameraManager.getLastCameraMode() === 0) {
     // Base-following camera
     b.html('Hand View');
@@ -648,6 +652,12 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
       .tooltip('fixTitle')
       .tooltip('show');
     $('#viewImage').attr('src', 'images/base_view.png');
+    f.html('Free View');
+    f.tooltip('hide')
+      .attr('data-original-title', 'You can move your view freely.')
+      .tooltip('fixTitle')
+      .tooltip('show');
+    b.prop('disabled', false);
 
     this.changeCamera('base');
   } else if(this.cameraManager.getLastCameraMode() === 2) {
@@ -658,11 +668,22 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
       .tooltip('fixTitle')
       .tooltip('show');
     $('#viewImage').attr('src', 'images/hand_view.png');
+    b.prop('disabled', false);
+    f.html('Free View');
+    f.tooltip('hide')
+      .attr('data-original-title', 'You can move your view freely.')
+      .tooltip('fixTitle')
+      .tooltip('show');
 
     this.changeCamera('gripper');
   } else if(this.cameraManager.getLastCameraMode() === 1) {
-    console.log('NONE CAMERA');
     // @todo set the buttons appropriately
+    f.html('Following View');
+    f.tooltip('hide')
+     .attr('data-original-title', 'Your view will follow the position of the robot automatically.')
+     .tooltip('fixTitle')
+     .tooltip('show');
+    b.prop('disabled', true);
 
     // Free-camera (focus the camera intially at the base of the robot)
     this.cameraManager.viewer.cameraControls.center.x =
@@ -1024,6 +1045,7 @@ function init() {
 	  dvizClient.changeCamera('gripper');
 	} else if(dvizClient.cameraManager.lastCameraMode === 1) {
 	  dvizClient.changeCamera('none');
+	  $('#baseHandCamera').prop('disabled', true);
 	} else {
 	  console.log('[DVizClient] Error in free/following camera handler (lastCameraMode = ' + dvizClient.cameraManager.lastCameraMode.toString() + ')');
 	}

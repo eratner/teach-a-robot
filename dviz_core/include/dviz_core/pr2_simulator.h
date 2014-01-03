@@ -131,7 +131,8 @@ public:
                          bool snap_attached_object = true,
                          bool interpolate_position = true,
                          bool interpolate_orientation = true,
-                         bool stop_while_snapping = true);
+                         bool stop_while_snapping = true,
+                         bool check_for_collisions = true);
 
   bool isSnapDone() const;
 
@@ -159,7 +160,7 @@ public:
 
   bool validityCheck(const std::vector<double>& rangles, 
                      const std::vector<double>& langles, 
-                     const BodyPose& bp, 
+                     BodyPose& bp, 
                      const geometry_msgs::Pose& obj);
 
   void computeObjectPose(std::vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj);

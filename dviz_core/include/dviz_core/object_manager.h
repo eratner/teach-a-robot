@@ -49,7 +49,11 @@ public:
     std::vector<visualization_msgs::Marker> getMovedMarkers();
     std::vector<visualization_msgs::Marker> getMarkers();
     visualization_msgs::Marker getMarker(int id);
-    bool checkRobotMove(std::vector<double> rangles, std::vector<double> langles, BodyPose bp, int skip_id);
+
+    bool checkRobotMove(const std::vector<double> &rangles, 
+			const std::vector<double> &langles, 
+			BodyPose &bp, int skip_id = -1);
+
     bool checkObjectMove(int id, geometry_msgs::Pose p,
                          std::vector<double> rangles, std::vector<double> langles, BodyPose bp);
     void moveObject(int id, geometry_msgs::Pose p);

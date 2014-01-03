@@ -59,7 +59,7 @@ geometry_msgs::Twist BaseMovementController::getNextVelocities(const geometry_ms
   }
   case TRANSLATE_TO_CLOSE_POSITION:
   {
-    if(distance < 0.1)
+    if(distance < /*0.1*/ 0.05)
       return rotateToGoalOrientation(current_pose.orientation, goal_pose.orientation);
     else if(distance < 1.0)
       return translateToCloseGoalPosition(distance, angle_to_goal, current_angle);

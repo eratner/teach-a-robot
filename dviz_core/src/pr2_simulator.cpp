@@ -994,7 +994,8 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
 				     bool snap_attached_object,
                                      bool interpolate_position,
                                      bool interpolate_orientation,
-                                     bool stop_while_snapping)
+                                     bool stop_while_snapping,
+                                     bool check_for_collisions)
 {
   if(isValidEndEffectorPose(pose))
   {
@@ -1035,24 +1036,24 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
     snap_motion_count_ = 0;
     snap_motion_.clear();
 
-    end_effector_goal_pose_.pose = pose;
-    visualization_msgs::InteractiveMarker gripper_marker;
-    int_marker_server_->get("r_gripper_marker", gripper_marker);
-    gripper_marker.pose = pose;
-    tf::Quaternion rot(pose.orientation.x, 
-		       pose.orientation.y,
-		       pose.orientation.z,
-		       pose.orientation.w);
-    tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
-    tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+    // end_effector_goal_pose_.pose = pose;
+    // visualization_msgs::InteractiveMarker gripper_marker;
+    // int_marker_server_->get("r_gripper_marker", gripper_marker);
+    // gripper_marker.pose = pose;
+    // tf::Quaternion rot(pose.orientation.x, 
+    // 		       pose.orientation.y,
+    // 		       pose.orientation.z,
+    // 		       pose.orientation.w);
+    // tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+    // tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
 
-    // ROS_INFO("setting control orientation to (%f, %f, %f, %f)", gripper_marker.controls.at(0).orientation.x,
-    // 	     gripper_marker.controls.at(0).orientation.y, gripper_marker.controls.at(0).orientation.z,
-    // 	     gripper_marker.controls.at(0).orientation.w);
+    // // ROS_INFO("setting control orientation to (%f, %f, %f, %f)", gripper_marker.controls.at(0).orientation.x,
+    // // 	     gripper_marker.controls.at(0).orientation.y, gripper_marker.controls.at(0).orientation.z,
+    // // 	     gripper_marker.controls.at(0).orientation.w);
 
-    int_marker_server_->insert(gripper_marker);
-    int_marker_server_->applyChanges();
-
+    // int_marker_server_->insert(gripper_marker);
+    // int_marker_server_->applyChanges();
+    
     sensor_msgs::JointState joint_state;
     joint_state.name.resize(8);
     joint_state.position.resize(8);
@@ -1127,6 +1128,33 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
       joint_state.position[7] = joint_states_.position[14];
       // ROS_INFO("r_gripper_joint position %d: %f", i, joint_state.position[14]);
 
+      // Check if the interpolation point generated is in collision
+      if(check_for_collisions)
+      {
+	std::vector<double> r_angles(7, 0), l_angles(7, 0);
+	
+	for(int k = 0; k < 7; ++k)
+	{
+	  // Just use the left arm joints from the current state of the robot
+	  l_angles[k] = joint_states_.position[k];
+	  // Use the right arm joints from the generated point in the interpolation
+	  r_angles[k] = joint_state.position[k];
+	}
+
+	BodyPose body_pose;
+	body_pose.x = base_pose_.pose.position.x;
+	body_pose.y = base_pose_.pose.position.y;
+	body_pose.z = getTorsoPosition();
+	body_pose.theta = tf::getYaw(base_pose_.pose.orientation);
+
+	if(!object_manager_->checkRobotMove(r_angles, l_angles, body_pose))
+	{
+	  ROS_ERROR("[PR2Simulator] Interpolation error: current joint angles cause the robot to be in collision");
+	  snap_motion_.clear();
+	  return false;
+	}
+      }
+
       snap_motion_.push_back(joint_state);
     }
 
@@ -1139,6 +1167,22 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
       // ROS_INFO("r_gripper_joint position %d: %f.", i, joint_state.position[7]);
       snap_motion_.push_back(joint_state);
     }
+
+    // ********************************
+    end_effector_goal_pose_.pose = pose;
+    visualization_msgs::InteractiveMarker gripper_marker;
+    int_marker_server_->get("r_gripper_marker", gripper_marker);
+    gripper_marker.pose = pose;
+    tf::Quaternion rot(pose.orientation.x, 
+		       pose.orientation.y,
+		       pose.orientation.z,
+		       pose.orientation.w);
+    tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+    tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+
+    int_marker_server_->insert(gripper_marker);
+    int_marker_server_->applyChanges();
+
 	  
     ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", int(snap_motion_.size()));
 
@@ -1605,7 +1649,7 @@ KDL::Frame PR2Simulator::getAttachedTransform() const
 
 bool PR2Simulator::validityCheck(const vector<double>& rangles, 
                                  const vector<double>& langles, 
-                                 const BodyPose& bp, 
+                                 BodyPose& bp, 
                                  const geometry_msgs::Pose& object_pose)
 {
 
