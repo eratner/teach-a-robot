@@ -139,7 +139,7 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 
   ROS_INFO("[ObjectManager%d] Initializing the collision checker.", user_id_);
 
-  if(!collision_checker_->init())
+  if(!collision_checker_->init("dviz_core_node"))
   {
     ROS_ERROR("[ObjectManager%d] Failed to initialize the collision checker.", user_id_);
     return false;
