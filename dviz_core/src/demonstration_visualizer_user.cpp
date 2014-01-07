@@ -1006,6 +1006,7 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   int_marker.name = s.str();
   int_marker.description = "";
   int_marker.pose = gripper_pose;
+  int_marker.scale = 0.65;
 
   visualization_msgs::InteractiveMarkerControl control;
   std::vector<visualization_msgs::Marker> markers;
@@ -1287,6 +1288,22 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
     }
     else
     {
+      // Adjust the orientation of the controls, so that the axes remain at a fixed orientation
+      if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP)
+      {
+	visualization_msgs::InteractiveMarker gripper_marker;
+	int_marker_server_->get(feedback->marker_name, gripper_marker);
+	tf::Quaternion rot1(feedback->pose.orientation.x,
+			    feedback->pose.orientation.y,
+			    feedback->pose.orientation.z,
+			    feedback->pose.orientation.w);
+	tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+	tf::quaternionTFToMsg(rot1.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+
+	int_marker_server_->insert(gripper_marker);
+	int_marker_server_->applyChanges();
+      }
+
       PickUpGoal *p = static_cast<PickUpGoal *>(goal);
       // Check if the gripper is too far from the object
       geometry_msgs::Pose object_pose = p->getInitialObjectPose();
@@ -1317,6 +1334,7 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
 	if(feedback->event_type == visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP)
 	{
 	  geometry_msgs::Pose last_pose = demonstration_scene_manager_->getGraspPose(goal_number);
+
 	  int_marker_server_->setPose(feedback->marker_name, last_pose);
 	  int_marker_server_->applyChanges();
 	}
