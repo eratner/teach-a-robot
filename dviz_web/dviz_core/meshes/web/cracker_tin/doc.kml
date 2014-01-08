@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<kml xmlns='http://earth.google.com/kml/2.1'>
+<Folder>
+    <name>Carr's</name>
+    <description><![CDATA[Created with <a href="http://sketchup.google.com/">Google SketchUp 6.4.112</a>]]></description>
+    <DocumentSource>SketchUp</DocumentSource>
+<visibility>1</visibility>
+<LookAt>
+<heading>134.858</heading>
+<tilt>62.5009</tilt>
+<latitude>41.38303394109448</latitude>
+<longitude>2.182970055956598</longitude>
+<range>5.038150055885814</range>
+<altitude>2.522080816627181</altitude>
+</LookAt>
+<Folder>
+<name>Tour</name>
+<Placemark>
+<name>Camera</name>
+<visibility>1</visibility>
+<LookAt>
+<heading>134.858</heading>
+<tilt>62.5009</tilt>
+<latitude>41.38303394109448</latitude>
+<longitude>2.182970055956598</longitude>
+<range>5.038150055885814</range>
+<altitude>2.522080816627181</altitude>
+</LookAt>
+</Placemark>
+</Folder>
+  <Placemark>
+    <name>Model</name>
+    <description><![CDATA[]]></description>
+    <Style id='default'>
+    </Style>
+    <Model>
+        <altitudeMode>relativeToGround</altitudeMode>
+        <Location>
+            <longitude>2.183000000000</longitude>
+            <latitude>41.383000000000</latitude>
+            <altitude>0.000000000000</altitude>
+        </Location>
+        <Orientation>
+            <heading>0</heading>
+            <tilt>0</tilt>
+            <roll>0</roll>
+        </Orientation>
+        <Scale>
+            <x>1.0</x>
+            <y>1.0</y>
+            <z>1.0</z>
+        </Scale>
+        <Link>
+            <href>cracker_tin.dae</href>
+        </Link>
+    </Model>
+  </Placemark></Folder>
+</kml>
