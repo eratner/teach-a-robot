@@ -40,6 +40,10 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   pviz_ = new PViz(ss.str());
   pviz_->setReferenceFrame(resolveName("map", id_));
   recorder_ = new MotionRecorder(id_);
+  ros::NodeHandle handle;
+  ss.str(std::string());
+  ss << "/dviz_user_" << id_ << "/visualization_marker_array";
+  marker_array_pub_ = handle.advertise<visualization_msgs::MarkerArray>(ss.str(), 500);
 
   std::string larm_filename;
   std::string rarm_filename;
@@ -53,7 +57,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
 
 DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 {
-  ROS_INFO("[DVizUser%d] Destructing user.", id_);
+  ROS_INFO("[DVizUser%d] Destructing user", id_);
 
   if(web_)
   {
@@ -619,7 +623,7 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       goal.object_id = pick_up_goal->getObjectID();
       goal.grasp_pose = pick_up_goal->getGraspPose();
       goal.initial_object_pose = pick_up_goal->getInitialObjectPose();
-      goal.grasp_distance = pick_up_goal->getGraspDistance();
+      //goal.grasp_distance = pick_up_goal->getGraspDistance();
       goal.gripper_joint_position = pick_up_goal->getGripperJointPosition();
       goal.camera_phi = pick_up_goal->getCameraPhi();
       goal.camera_theta = pick_up_goal->getCameraTheta();
@@ -683,7 +687,7 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 					   gripper_pose.position.z)
 	);
       KDL::Frame gripper_in_marker(KDL::Rotation::Identity(),
-				   KDL::Vector(-1.0*pick_up_goal->getGraspDistance(),
+				   KDL::Vector(/*-1.0*pick_up_goal->getGraspDistance()*/0.0,
 					       0.0,
 					       0.0)
 	);
@@ -999,30 +1003,72 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 
   geometry_msgs::Pose gripper_pose = goal->getGraspPose();
 
-  visualization_msgs::InteractiveMarker int_marker;
-  int_marker.header.frame_id = resolveName("/map", id_);
+  // Find the pose of the gripper in the map
+  KDL::Frame center_in_map(KDL::Rotation::Quaternion(
+			     gripper_pose.orientation.x,
+			     gripper_pose.orientation.y,
+			     gripper_pose.orientation.z,
+			     gripper_pose.orientation.w),
+			   KDL::Vector(
+			     gripper_pose.position.x,
+			     gripper_pose.position.y,
+			     gripper_pose.position.z)
+    );
+  KDL::Frame gripper_in_center(KDL::Rotation::Identity(),
+			       KDL::Vector(
+				 /*-(goal->getGraspDistance())*/0,
+				 0,
+				 0
+				 )
+    );
+  KDL::Frame gripper_in_map = center_in_map * gripper_in_center;
+  geometry_msgs::Pose gripper_pose_map;
+  gripper_pose_map.position.x = gripper_in_map.p.x();
+  gripper_pose_map.position.y = gripper_in_map.p.y();
+  gripper_pose_map.position.z = gripper_in_map.p.z();
+  double x, y, z, w;
+  gripper_in_map.M.GetQuaternion(x, y, z, w);
+  gripper_pose_map.orientation.x = x;
+  gripper_pose_map.orientation.y = y;
+  gripper_pose_map.orientation.z = z;
+  gripper_pose_map.orientation.w = w;
+
+  // Visualize the gripper using a marker array
+  visualization_msgs::MarkerArray gripper_markers;
   std::stringstream s;
   s << "grasp_marker_goal_" << goal_number;
+  pviz_->getGripperMeshesMarkerMsg(gripper_pose_map, 0.2, s.str(), 1, goal->getGripperJointPosition(), gripper_markers.markers);
+  std::vector<visualization_msgs::Marker>::iterator it;
+  for(it = gripper_markers.markers.begin(); 
+      it != gripper_markers.markers.end();
+      ++it)
+  {
+    it->header.frame_id = resolveName("/map", id_);
+  }
+  marker_array_pub_.publish(gripper_markers);
+
+  // Use a separate interactive marker to control the pose of the 
+  // grasp, and for opening and closing the gripper
+  visualization_msgs::InteractiveMarker int_marker;
+  int_marker.header.frame_id = resolveName("/map", id_);
   int_marker.name = s.str();
   int_marker.description = "";
-  int_marker.pose = gripper_pose;
+  int_marker.pose = gripper_pose_map;
   int_marker.scale = 0.65;
 
   visualization_msgs::InteractiveMarkerControl control;
-  std::vector<visualization_msgs::Marker> markers;
-  geometry_msgs::Pose origin;
-  // @todo compute this based on the goal object.
-  origin.position.x = -(goal->getGraspDistance());
-  origin.position.y = origin.position.z = 0;
-  origin.orientation.x = origin.orientation.y = origin.orientation.z = 0;
-  origin.orientation.w = 1;
-  pviz_->getGripperMeshesMarkerMsg(origin, 0.2, "pr2_simple_sim", 1, goal->getGripperJointPosition(), markers);
+  visualization_msgs::Marker gripper_wrist_marker;
+  gripper_wrist_marker = gripper_markers.markers.at(0);
+  gripper_wrist_marker.header.frame_id = "";
+  gripper_wrist_marker.pose.position.x = 0;
+  gripper_wrist_marker.pose.position.y = 0;
+  gripper_wrist_marker.pose.position.z = 0;
+  gripper_wrist_marker.pose.orientation.x = 0;
+  gripper_wrist_marker.pose.orientation.y = 0;
+  gripper_wrist_marker.pose.orientation.z = 0;
+  gripper_wrist_marker.pose.orientation.w = 1;
+  control.markers.push_back(gripper_wrist_marker);
 
-  for(int i = 0; i < int(markers.size()); ++i)
-  {
-    markers.at(i).header.frame_id = "";
-    control.markers.push_back(markers.at(i));
-  }
   // Users are able to move the gripper marker in the plane
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   control.orientation.w = 1;
@@ -1051,30 +1097,6 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   control.orientation.y = 0;
   control.orientation.z = 1;
   int_marker.controls.push_back(control);
-
-  // visualization_msgs::Marker arrow;
-  // arrow.header.frame_id = "";
-  // arrow.pose.position.y = 0.12;
-  // arrow.pose.position.x = -0.12;
-  // arrow.pose.position.z = 0;
-  // arrow.pose.orientation.z = 1;
-  // arrow.pose.orientation.w = 1;
-  // arrow.type = visualization_msgs::Marker::ARROW;
-  // arrow.color.r = 1.0;
-  // arrow.color.g = 0.0;
-  // arrow.color.b = 0.0;
-  // arrow.color.a = 1.0;
-  // arrow.scale.x = 0.06;
-  // arrow.scale.y = 0.04;
-  // control.markers.push_back(arrow);
-  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-  // int_marker.controls.push_back(control);
-
-  // control.markers.clear();
-  // arrow.pose.position.y = -0.12;
-  // arrow.pose.orientation.z = -1;
-  // control.markers.push_back(arrow);
-  // int_marker.controls.push_back(control);
 
   control.name = "OPEN_GRIPPER_ARROW";
   visualization_msgs::Marker arrow;
@@ -1121,77 +1143,13 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   int_marker.controls.push_back(control);
 
   int_marker_server_->insert(int_marker,
-			     boost::bind(
-			       &DemonstrationVisualizerUser::gripperMarkerFeedback,
-			       this,
-			       _1)
-			     );
+  			     boost::bind(
+  			       &DemonstrationVisualizerUser::gripperMarkerFeedback,
+  			       this,
+  			       _1)
+  			     );
   int_marker_server_->applyChanges();
 
-  // *** EXPERIMENTAL ***
-  // Add an interactive marker for the user to control the gripper joint angle
-  visualization_msgs::InteractiveMarker grasp_angle_int_marker;
-  grasp_angle_int_marker.header.frame_id = resolveName("map", id_);
-  s.str(std::string());
-  s << "grasp_angle_marker_goal_" << goal_number;
-  grasp_angle_int_marker.name = s.str();
-  grasp_angle_int_marker.description = "";
-
-  // Determine the pose of the arrow in the map
-  KDL::Frame grasp_in_map(KDL::Rotation::Quaternion(
-			    gripper_pose.orientation.x,
-			    gripper_pose.orientation.y,
-			    gripper_pose.orientation.z,
-			    gripper_pose.orientation.w),
-			  KDL::Vector(gripper_pose.position.x,
-				      gripper_pose.position.y,
-				      gripper_pose.position.z)
-    );
-
-  KDL::Frame arrow_in_grasp(KDL::Rotation::Quaternion(0, 0, 1, 1),
-			    KDL::Vector(-(goal->getGraspDistance()), 0, 0));
-
-  KDL::Frame arrow_in_map = grasp_in_map * arrow_in_grasp;
-  double x, y, z, w;
-  arrow_in_map.M.GetQuaternion(x, y, z, w);
-  geometry_msgs::Pose grasp_arrow_pose;
-  grasp_arrow_pose.position.x = arrow_in_map.p.x();
-  grasp_arrow_pose.position.y = arrow_in_map.p.y();
-  grasp_arrow_pose.position.z = arrow_in_map.p.z();
-  grasp_arrow_pose.orientation.x = x;
-  grasp_arrow_pose.orientation.y = y;
-  grasp_arrow_pose.orientation.z = z;
-  grasp_arrow_pose.orientation.w = w;
-  
-  // ROS_INFO("arrow (x, y, z) = (%f, %f, %f)", grasp_arrow_pose.position.x,
-  // 	   grasp_arrow_pose.position.y, grasp_arrow_pose.position.z);
-
-  grasp_angle_int_marker.pose = grasp_arrow_pose;
-
-  visualization_msgs::InteractiveMarkerControl grasp_angle_control;
-  visualization_msgs::Marker grasp_angle_arrow;
-  grasp_angle_arrow.header.frame_id = "";
-  grasp_angle_arrow.pose.position.x = 0;
-  grasp_angle_arrow.pose.position.y = 0;
-  grasp_angle_arrow.pose.position.z = 0;
-  //grasp_angle_arrow.pose.orientation.z = 1;
-  grasp_angle_arrow.pose.orientation.w = 1;
-  grasp_angle_arrow.type = visualization_msgs::Marker::ARROW;
-  grasp_angle_arrow.color.r = 1.0;
-  grasp_angle_arrow.color.g = 0.0;
-  grasp_angle_arrow.color.b = 0.0;
-  grasp_angle_arrow.color.a = 1.0;
-  grasp_angle_arrow.scale.x = 0.06;
-  grasp_angle_arrow.scale.y = 0.04;
-  //grasp_angle_arrow.scale.z = 0.2;
-  grasp_angle_control.markers.push_back(grasp_angle_arrow);
-  grasp_angle_control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_AXIS;
-
-  grasp_angle_int_marker.controls.push_back(grasp_angle_control);
-  
-  // int_marker_server_->insert(grasp_angle_int_marker);
-  // int_marker_server_->applyChanges();
-  
   return true;
 }
 
@@ -1302,6 +1260,8 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
 
 	int_marker_server_->insert(gripper_marker);
 	int_marker_server_->applyChanges();
+
+	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
       }
 
       PickUpGoal *p = static_cast<PickUpGoal *>(goal);
@@ -1457,7 +1417,7 @@ void DemonstrationVisualizerUser::resetTask()
 	int object_id = g->getObjectID();
 	object_manager_->moveObject(object_id, initial_pose);
 	g->setGraspPose(initial_pose);
-	g->setGraspDistance(0.25);
+	//g->setGraspDistance(0.25);
 	g->setGraspDone(false);
 	g->setGripperJointPosition(EndEffectorController::GRIPPER_OPEN_ANGLE);
       }

@@ -128,6 +128,7 @@ private:
   ros::ServiceServer command_service_;
 
   ros::Publisher task_pub_;
+  ros::Publisher marker_array_pub_;
 
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
   PViz *pviz_;

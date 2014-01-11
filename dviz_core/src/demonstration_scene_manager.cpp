@@ -822,7 +822,7 @@ void DemonstrationSceneManager::resetTask()
       geometry_msgs::Pose initial_object_pose = pick_up_goal->getInitialObjectPose();
       // Reset the grasp pose to the default.
       pick_up_goal->setGraspPose(initial_object_pose);
-      pick_up_goal->setGraspDistance(0.25);
+      //pick_up_goal->setGraspDistance(0.25);
       // Reset the object to its initial pose.
       object_manager_->moveObject(pick_up_goal->getObjectID(), initial_object_pose);
     }
@@ -1090,7 +1090,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 				  );
 
       tf::Transform gripper_in_marker(tf::Quaternion::getIdentity(),
-				      tf::Vector3(-1.0*goal->getGraspDistance(),
+				      tf::Vector3(/*-1.0*goal->getGraspDistance()*/0.0,
 						  0.0,
 						  0.0)
 				      );
@@ -1447,7 +1447,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 	);
 
       tf::Transform gripper_in_marker(tf::Quaternion::getIdentity(),
-				      tf::Vector3(-1.0*pick_up_goal->getGraspDistance(),
+				      tf::Vector3(/*-1.0*pick_up_goal->getGraspDistance()*/0.0,
 						  0.0,
 						  0.0)
 	);

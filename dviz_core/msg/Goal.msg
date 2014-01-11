@@ -9,7 +9,6 @@ int32 object_id
 # For pick goals.
 geometry_msgs/Pose grasp_pose
 geometry_msgs/Pose initial_object_pose
-float32 grasp_distance
 float32 gripper_joint_position
 float32 camera_phi
 float32 camera_theta

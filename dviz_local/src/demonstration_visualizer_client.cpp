@@ -2014,7 +2014,8 @@ void DemonstrationVisualizerClient::beginGraspSelection()
   // Set the distance slider to the goal's current distance.
   int current_goal = user_.getSceneManager()->getCurrentGoal();
   PickUpGoal *goal = static_cast<PickUpGoal *>(user_.getSceneManager()->getGoal(current_goal));
-  grasp_distance_slider_->setValue(static_cast<int>(goal->getGraspDistance()*100.0));
+  // @TODO
+  // grasp_distance_slider_->setValue(static_cast<int>(goal->getGraspDistance()*100.0));
   gripper_position_slider_->setValue(static_cast<int>(goal->getGripperJointPosition()*1000.0));
 
   camera_before_grasp_ = camera_mode_;
@@ -2051,7 +2052,8 @@ void DemonstrationVisualizerClient::setGraspDistance(int value)
 
   int current_goal = user_.getSceneManager()->getCurrentGoal();
   PickUpGoal *goal = static_cast<PickUpGoal *>(user_.getSceneManager()->getGoal(current_goal));
-  goal->setGraspDistance(distance);
+  // @TODO
+  //goal->setGraspDistance(distance);
   
   // Redraw the interactive marker on the gripper to reflect the change in distance.
   // @TODO

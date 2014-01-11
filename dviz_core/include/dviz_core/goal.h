@@ -82,10 +82,6 @@ public:
 
   void setGraspDone(bool);
 
-  double getGraspDistance() const;
-
-  void setGraspDistance(double);
-
   double getGripperJointPosition() const;
 
   void setGripperJointPosition(double);
@@ -107,7 +103,6 @@ private:
   geometry_msgs::Pose grasp_pose_;
   geometry_msgs::Pose initial_object_pose_;
   bool grasp_done_;
-  double grasp_distance_;
   double gripper_joint_position_;
 
   // The position of the camera is specified in polar coordinates about

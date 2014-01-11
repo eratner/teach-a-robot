@@ -893,7 +893,8 @@ function init() {
   $('#debugControls').hide();
 
   ros = new ROSLIB.Ros({
-    url: 'ws://sbpl.net:21891'
+    //url : 'ws://sbpl.net:21891'
+    url : 'ws://localhost:9090'
   });
 
   // Width and height of the viewer, in pixels
@@ -951,8 +952,16 @@ function init() {
       rootObject : viewer.selectableObjects
     });
 
-    // Client to handle the robot visualization markers
-    var rmClient = new ROS3D.RobotMarkerArrayClient({
+    // // Client to handle the robot visualization markers
+    // var rmClient = new ROS3D.RobotMarkerArrayClient({
+    //   ros : ros,
+    //   tfClient : tfClient,
+    //   topic : '/dviz_user_' + userId + '/visualization_marker_array',
+    //   path : 'http://resources.robotwebtools.org/',
+    //   rootObject : viewer.scene
+    // });
+
+    var rmClient = new ROS3D.MarkerArrayClient({
       ros : ros,
       tfClient : tfClient,
       topic : '/dviz_user_' + userId + '/visualization_marker_array',
@@ -1084,7 +1093,7 @@ function init() {
     //   disabled : true
     // });
 
-    dvizClient.loadScene();
+    //dvizClient.loadScene();
     $('#playPause').prop('disabled', false);
     $('#playPause').tooltip('show');
 

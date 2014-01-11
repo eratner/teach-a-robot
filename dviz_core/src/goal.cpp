@@ -55,7 +55,7 @@ void Goal::setDescription(const std::string &description)
 }
 
 PickUpGoal::PickUpGoal()
-  : Goal(0, ""), grasp_pose_(), grasp_done_(false), grasp_distance_(0.25)
+  : Goal(0, ""), grasp_pose_(), grasp_done_(false)
 {
 
 }
@@ -67,7 +67,7 @@ PickUpGoal::PickUpGoal(int goal_number,
 		       const geometry_msgs::Pose &object_pose)
   : Goal(goal_number, description), object_id_(object_id),
     grasp_pose_(grasp), initial_object_pose_(object_pose), 
-    grasp_done_(false), grasp_distance_(0.25), 
+    grasp_done_(false),
     gripper_joint_position_(EndEffectorController::GRIPPER_OPEN_ANGLE),
     camera_phi_(M_PI/4.0), camera_theta_(0.0), camera_radius_(1.0)
 {
@@ -122,16 +122,6 @@ bool PickUpGoal::isGraspDone() const
 void PickUpGoal::setGraspDone(bool done)
 {
   grasp_done_ = done;
-}
-
-double PickUpGoal::getGraspDistance() const
-{
-  return grasp_distance_;
-}
-
-void PickUpGoal::setGraspDistance(double distance)
-{
-  grasp_distance_ = distance;
 }
 
 double PickUpGoal::getGripperJointPosition() const
