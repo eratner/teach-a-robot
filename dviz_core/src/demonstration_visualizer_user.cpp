@@ -1054,7 +1054,7 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   int_marker.name = s.str();
   int_marker.description = "";
   int_marker.pose = gripper_pose_map;
-  int_marker.scale = 0.65;
+  int_marker.scale = 0.5;
 
   visualization_msgs::InteractiveMarkerControl control;
   visualization_msgs::Marker gripper_wrist_marker;
@@ -1101,9 +1101,8 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   control.name = "OPEN_GRIPPER_ARROW";
   visualization_msgs::Marker arrow;
   arrow.header.frame_id = "";
-  //arrow.pose.position.y = 0.06;
   arrow.pose.position.y = 0;
-  arrow.pose.position.x = -0.26;
+  arrow.pose.position.x = -0.06;
   arrow.pose.position.z = 0;
   arrow.pose.orientation.z = 1;
   arrow.pose.orientation.w = 1;
@@ -1116,27 +1115,20 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   arrow.scale.y = 0.04;
   control.markers.push_back(arrow);
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::BUTTON;
-  //int_marker.controls.push_back(control);
 
-  // control.markers.clear();
-  // control.name = "OPEN_GRIPPER_ARROW";
-  arrow.pose.position.x = -0.26;
-  //arrow.pose.position.y = -0.02;
+  arrow.pose.position.x = -0.06;
   arrow.pose.orientation.z = -1;
   control.markers.push_back(arrow);
   int_marker.controls.push_back(control);
 
   control.markers.clear();
   control.name = "CLOSE_GRIPPER_ARROW";
-  arrow.pose.position.x = -0.28;
+  arrow.pose.position.x = -0.08;
   arrow.pose.position.y = 0.06;
   arrow.pose.orientation.z = -1;
   control.markers.push_back(arrow);
-  // int_marker.controls.push_back(control);
 
-  // control.markers.clear();
-  // control.name = "CLOSE_GRIPPER_ARROW";
-  arrow.pose.position.x = -0.28;
+  arrow.pose.position.x = -0.08;
   arrow.pose.position.y = -0.06;
   arrow.pose.orientation.z = 1;
   control.markers.push_back(arrow);
@@ -1161,10 +1153,26 @@ bool DemonstrationVisualizerUser::hideInteractiveGripper(int goal_number)
     return false;
   }
 
-  std::stringstream ss;
-  ss << "grasp_marker_goal_" << goal_number;
+  visualization_msgs::MarkerArray gripper_markers;
+  std::stringstream s;
+  s << "grasp_marker_goal_" << goal_number;
+  geometry_msgs::Pose origin;
+  origin.orientation.w = 1;
+  pviz_->getGripperMeshesMarkerMsg(origin, 0.2, s.str(), 1, 0.0, gripper_markers.markers);
+  std::vector<visualization_msgs::Marker>::iterator it;
+  for(it = gripper_markers.markers.begin(); 
+      it != gripper_markers.markers.end();
+      ++it)
+  {
+    it->header.frame_id = resolveName("/map", id_);
+    it->action = visualization_msgs::Marker::DELETE;
+  }
+  marker_array_pub_.publish(gripper_markers);
 
-  int_marker_server_->erase(ss.str());
+  s.str(std::string());
+  s << "grasp_marker_goal_" << goal_number;
+
+  int_marker_server_->erase(s.str());
   int_marker_server_->applyChanges();
 
   return true;

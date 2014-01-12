@@ -893,8 +893,8 @@ function init() {
   $('#debugControls').hide();
 
   ros = new ROSLIB.Ros({
-    //url : 'ws://sbpl.net:21891'
-    url : 'ws://localhost:9090'
+    url : 'ws://sbpl.net:21891'
+    //url : 'ws://localhost:9090'
   });
 
   // Width and height of the viewer, in pixels
@@ -1093,7 +1093,7 @@ function init() {
     //   disabled : true
     // });
 
-    //dvizClient.loadScene();
+    dvizClient.loadScene();
     $('#playPause').prop('disabled', false);
     $('#playPause').tooltip('show');
 
