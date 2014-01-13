@@ -34,8 +34,7 @@ bool MotionRecorder::beginRecording(const std::string &path,
     is_recording_ = true;
     // Start recording to a new bag file.
     std::stringstream file_path;
-    // @todo append user id to the name of the file.
-    file_path << path << "/demonstration" << bag_count_ << ".bag";
+    file_path << path << "/user" << user_id_ << "_demonstration" << bag_count_ << ".bag";
     write_bag_path_ = file_path.str();
 
     try

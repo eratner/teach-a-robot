@@ -377,6 +377,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   // If the user has not started the game yet, load the task
   if(!this.gameStarted) {
     this.loadTask();
+    // Start recording
+    this.beginRecording();
     this.gameStarted = true;
   }
 
@@ -763,8 +765,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
 DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
   console.log('[DVizClient] Begin recording');
 
-  $('#rrButton').html(
-    '<button type="button" class="btn btn-default" onclick="dvizClient.endRecording()">End Recording</button>');
+  // $('#rrButton').html(
+  //   '<button type="button" class="btn btn-default" onclick="dvizClient.endRecording()">End Recording</button>');
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'begin_recording',
@@ -779,8 +781,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
 DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
   console.log('[DVizClient] End recording');
 
-  $('#rrButton').html(
-    '<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>');
+  // $('#rrButton').html(
+  //   '<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>');
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'end_recording',
@@ -834,6 +836,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function() {
 
   if(this.gameStarted) {
     this.gameStarted = false;
+    this.endRecording();
     // @todo do all the post-game 'clean up': save demonstration files,
     // etc. 
     // this can be called when a game is prematurely terminated
@@ -1037,7 +1040,8 @@ function init() {
 	  .attr('data-original-title', 'Your view will follow the position of the robot automatically.')
 	  .tooltip('fixTitle')
 	  .tooltip('show');
-
+	$('#viewImage').attr('src', 'images/free_view.png');
+	
 	dvizClient.changeCamera('none');
 	$('#baseHandCamera').prop('disabled', true);
       } else {
@@ -1049,8 +1053,10 @@ function init() {
 	  .tooltip('show');
 
 	if(dvizClient.cameraManager.lastCameraMode === 0) {
+	  $('#viewImage').attr('src', 'images/base_view.png');
 	  dvizClient.changeCamera('base');
 	} else if(dvizClient.cameraManager.lastCameraMode === 2) {
+	  $('#viewImage').attr('src', 'images/hand_view.png');
 	  dvizClient.changeCamera('gripper');
 	} else if(dvizClient.cameraManager.lastCameraMode === 1) {
 	  dvizClient.changeCamera('none');
