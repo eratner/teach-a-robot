@@ -350,6 +350,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	$('#gripperJointAngle').slider('option', 'value', 
 				       that.goals[that.currentGoalNumber].gripper_joint_position);
 	that.showInteractiveGripper(that.currentGoalNumber);
+	$('#playPause').prop('disabled', true);
 	$('#acceptChangeGrasp').prop('disabled', false);
 	$('#acceptChangeGrasp').tooltip('show');
 	$('#freeFollowingCamera').prop('disabled', true);
@@ -1087,17 +1088,6 @@ function init() {
 
       dvizClient.toggleGripperControls();
     })
-
-    // $('#gripperJointAngle').slider({
-    //   value : 0.548,
-    //   min : 0.0,
-    //   max : 0.548,
-    //   step : 0.02,
-    //   slide : function(event, ui) {
-    // 	dvizClient.setGripperJointAngle(ui.value);
-    //   },
-    //   disabled : true
-    // });
 
     dvizClient.loadScene();
     $('#playPause').prop('disabled', false);
