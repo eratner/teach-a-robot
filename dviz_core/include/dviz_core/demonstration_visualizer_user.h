@@ -120,6 +120,12 @@ private:
    */
   bool init(int argc, char **argv);
 
+  /**
+   * @brief Updates the interactive gripper marker array for the 
+   *        given (PICK_UP) goal
+   */
+  void updateGripperMarkers(int goal_number);
+
   int id_;
   bool ok_;
   bool web_;

@@ -262,6 +262,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.playing = true;
   this.gameStarted = false;
   this.acceptedGrasp = false;
+  console.log('ACCEPTED GRASP -> FALSE');
 
   console.log('[DVizClient] Assigned id ' + this.id);
   
@@ -345,7 +346,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
 	// Show an interactive gripper marker at the current goal
 	console.log('[DVizClient] Current goal is of type pick-up');
-	this.acceptedGrasp = false;
+	that.acceptedGrasp = false;
+	console.log('ACCEPTED GRASP -> FALSE');
 	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
 	$('#gripperJointAngle').slider('option', 'value', 
 				       that.goals[that.currentGoalNumber].gripper_joint_position);
@@ -355,6 +357,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	$('#acceptChangeGrasp').tooltip('show');
 	$('#freeFollowingCamera').prop('disabled', true);
 	$('#baseHandCamera').prop('disabled', true);
+	$('#rotateHandControls').prop('disabled', true);
 	// Switch the camera back to follow the base of the robot
 	that.cameraManager.setCamera(0);
       } else {
@@ -718,13 +721,15 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
-  if(this.acceptedGrasp) {
+  if(this.acceptedGrasp === true) {
     console.log('[DVizClient] Changing/choosing grasp');
     this.pause();
     $('#playPause').attr('disabled', true);
     $('#freeFollowingCamera').attr('disabled', true);
     $('#baseHandCamera').attr('disabled', true);
+    $('#rotateHandControls').attr('disabled', true);
     this.acceptedGrasp = false;
+    console.log('ACCEPTED GRASP -> FALSE');
 
     $('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
     $('#acceptChangeGrasp').tooltip('hide')
@@ -741,7 +746,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     if(this.cameraManager.cameraMode !== 0) {
       $('#baseHandCamera').attr('disabled', false);
     }
+    $('#rotateHandControls').attr('disabled', false);
     this.acceptedGrasp = true;
+    console.log('ACCEPTED GRASP -> TRUE');
 
     // Hide the interactive gripper of the current goal
     this.hideInteractiveGripper(this.currentGoalNumber);

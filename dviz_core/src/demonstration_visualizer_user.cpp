@@ -1003,49 +1003,50 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 
   geometry_msgs::Pose gripper_pose = goal->getGraspPose();
 
-  // Find the pose of the gripper in the map
-  KDL::Frame center_in_map(KDL::Rotation::Quaternion(
-			     gripper_pose.orientation.x,
-			     gripper_pose.orientation.y,
-			     gripper_pose.orientation.z,
-			     gripper_pose.orientation.w),
-			   KDL::Vector(
-			     gripper_pose.position.x,
-			     gripper_pose.position.y,
-			     gripper_pose.position.z)
-    );
-  KDL::Frame gripper_in_center(KDL::Rotation::Identity(),
-			       KDL::Vector(
-				 /*-(goal->getGraspDistance())*/0,
-				 0,
-				 0
-				 )
-    );
-  KDL::Frame gripper_in_map = center_in_map * gripper_in_center;
-  geometry_msgs::Pose gripper_pose_map;
-  gripper_pose_map.position.x = gripper_in_map.p.x();
-  gripper_pose_map.position.y = gripper_in_map.p.y();
-  gripper_pose_map.position.z = gripper_in_map.p.z();
-  double x, y, z, w;
-  gripper_in_map.M.GetQuaternion(x, y, z, w);
-  gripper_pose_map.orientation.x = x;
-  gripper_pose_map.orientation.y = y;
-  gripper_pose_map.orientation.z = z;
-  gripper_pose_map.orientation.w = w;
+  // // Find the pose of the gripper in the map
+  // KDL::Frame center_in_map(KDL::Rotation::Quaternion(
+  // 			     gripper_pose.orientation.x,
+  // 			     gripper_pose.orientation.y,
+  // 			     gripper_pose.orientation.z,
+  // 			     gripper_pose.orientation.w),
+  // 			   KDL::Vector(
+  // 			     gripper_pose.position.x,
+  // 			     gripper_pose.position.y,
+  // 			     gripper_pose.position.z)
+  //   );
+  // KDL::Frame gripper_in_center(KDL::Rotation::Identity(),
+  // 			       KDL::Vector(
+  // 				 /*-(goal->getGraspDistance())*/0,
+  // 				 0,
+  // 				 0
+  // 				 )
+  //   );
+  // KDL::Frame gripper_in_map = center_in_map * gripper_in_center;
+  // geometry_msgs::Pose gripper_pose_map;
+  // gripper_pose_map.position.x = gripper_in_map.p.x();
+  // gripper_pose_map.position.y = gripper_in_map.p.y();
+  // gripper_pose_map.position.z = gripper_in_map.p.z();
+  // double x, y, z, w;
+  // gripper_in_map.M.GetQuaternion(x, y, z, w);
+  // gripper_pose_map.orientation.x = x;
+  // gripper_pose_map.orientation.y = y;
+  // gripper_pose_map.orientation.z = z;
+  // gripper_pose_map.orientation.w = w;
 
-  // Visualize the gripper using a marker array
+  // // Visualize the gripper using a marker array
   visualization_msgs::MarkerArray gripper_markers;
   std::stringstream s;
   s << "grasp_marker_goal_" << goal_number;
-  pviz_->getGripperMeshesMarkerMsg(gripper_pose_map, 0.2, s.str(), 1, goal->getGripperJointPosition(), gripper_markers.markers);
-  std::vector<visualization_msgs::Marker>::iterator it;
-  for(it = gripper_markers.markers.begin(); 
-      it != gripper_markers.markers.end();
-      ++it)
-  {
-    it->header.frame_id = resolveName("/map", id_);
-  }
-  marker_array_pub_.publish(gripper_markers);
+  pviz_->getGripperMeshesMarkerMsg(gripper_pose, 0.2, s.str(), 1, goal->getGripperJointPosition(), gripper_markers.markers);
+  // std::vector<visualization_msgs::Marker>::iterator it;
+  // for(it = gripper_markers.markers.begin(); 
+  //     it != gripper_markers.markers.end();
+  //     ++it)
+  // {
+  //   it->header.frame_id = resolveName("/map", id_);
+  // }
+  // marker_array_pub_.publish(gripper_markers);
+  updateGripperMarkers(goal_number);
 
   // Use a separate interactive marker to control the pose of the 
   // grasp, and for opening and closing the gripper
@@ -1053,7 +1054,7 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
   int_marker.header.frame_id = resolveName("/map", id_);
   int_marker.name = s.str();
   int_marker.description = "";
-  int_marker.pose = gripper_pose_map;
+  int_marker.pose = gripper_pose;
   int_marker.scale = 0.5;
 
   visualization_msgs::InteractiveMarkerControl control;
@@ -1230,7 +1231,7 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
        feedback->control_name.compare("CLOSE_GRIPPER_ARROW") == 0)
     {
       bool open = feedback->control_name.compare("OPEN_GRIPPER_ARROW") == 0;
-      ROS_INFO_STREAM((open ? "open " : "close ") << "arrow clicked");
+      //ROS_INFO_STREAM((open ? "open " : "close ") << "arrow clicked");
       Goal *current_goal = demonstration_scene_manager_->getGoal(
 	demonstration_scene_manager_->getCurrentGoal());
       if(current_goal != 0 && current_goal->getType() == Goal::PICK_UP)
@@ -1249,7 +1250,8 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
 
 	pick_up_goal->setGripperJointPosition(new_angle);
 
-	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
+	updateGripperMarkers(demonstration_scene_manager_->getCurrentGoal());
+	// showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
       }
     }
     else
@@ -1269,7 +1271,8 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
 	int_marker_server_->insert(gripper_marker);
 	int_marker_server_->applyChanges();
 
-	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
+	updateGripperMarkers(demonstration_scene_manager_->getCurrentGoal());
+//	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
       }
 
       PickUpGoal *p = static_cast<PickUpGoal *>(goal);
@@ -1430,6 +1433,30 @@ void DemonstrationVisualizerUser::resetTask()
 	g->setGripperJointPosition(EndEffectorController::GRIPPER_OPEN_ANGLE);
       }
     }
+  }
+}
+
+void DemonstrationVisualizerUser::updateGripperMarkers(int goal_number)
+{
+  if(demonstration_scene_manager_->getGoal(goal_number)->getType() == Goal::PICK_UP)
+  {
+    PickUpGoal *goal = static_cast<PickUpGoal *>(demonstration_scene_manager_->getGoal(goal_number));
+
+    geometry_msgs::Pose gripper_pose = goal->getGraspPose();
+
+    // Visualize the gripper using a marker array
+    visualization_msgs::MarkerArray gripper_markers;
+    std::stringstream s;
+    s << "grasp_marker_goal_" << goal_number;
+    pviz_->getGripperMeshesMarkerMsg(gripper_pose, 0.2, s.str(), 1, goal->getGripperJointPosition(), gripper_markers.markers);
+    std::vector<visualization_msgs::Marker>::iterator it;
+    for(it = gripper_markers.markers.begin(); 
+	it != gripper_markers.markers.end();
+	++it)
+    {
+      it->header.frame_id = resolveName("/map", id_);
+    }
+    marker_array_pub_.publish(gripper_markers);
   }
 }
 
