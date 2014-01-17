@@ -132,7 +132,8 @@ public:
                          bool interpolate_position = true,
                          bool interpolate_orientation = true,
                          bool stop_while_snapping = true,
-                         bool check_for_collisions = true);
+                         bool check_for_collisions = true,
+                         int skip_object_id = -1);
 
   bool isSnapDone() const;
 

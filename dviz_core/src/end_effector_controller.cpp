@@ -101,9 +101,16 @@ geometry_msgs::Twist EndEffectorController::movingToGoal(const geometry_msgs::Po
   r.z = goal.position.z - current.position.z;
 
   double length = std::sqrt(r.x*r.x + r.y*r.y + r.z*r.z);
-  r.x = (r.x/length) * speed_;
-  r.y = (r.y/length) * speed_;
-  r.z = (r.z/length) * speed_;
+  if(length > 0 && length <= speed_)
+  {
+    ROS_INFO("changing speed from %f to %f", speed_, length);
+  }
+  else
+  {
+    r.x = (r.x/length) * speed_;
+    r.y = (r.y/length) * speed_;
+    r.z = (r.z/length) * speed_;
+  }
 
   geometry_msgs::Twist vel;
   vel.linear.x = r.x;

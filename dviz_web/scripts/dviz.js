@@ -262,7 +262,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.playing = true;
   this.gameStarted = false;
   this.acceptedGrasp = false;
-  console.log('ACCEPTED GRASP -> FALSE');
+  //console.log('ACCEPTED GRASP -> FALSE');
 
   console.log('[DVizClient] Assigned id ' + this.id);
   
@@ -274,6 +274,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     height : height,
     id : this.id
   });
+
+  this.cameraManager.setZoomSpeed(1.7);
   
   this.coreCommandClient = new ROSLIB.Service({
     ros : ros,
@@ -347,7 +349,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	// Show an interactive gripper marker at the current goal
 	console.log('[DVizClient] Current goal is of type pick-up');
 	that.acceptedGrasp = false;
-	console.log('ACCEPTED GRASP -> FALSE');
+	//console.log('ACCEPTED GRASP -> FALSE');
 	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
 	$('#gripperJointAngle').slider('option', 'value', 
 				       that.goals[that.currentGoalNumber].gripper_joint_position);
@@ -582,11 +584,16 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
+  if(num === this.currentGoalNumber) {
+    console.log('[DVizClient] Attemping to change to goal ' + num + ': already on this goal');
+    return;
+  }
   // @todo first alert the user, and confirm that they want to switch goals
+  this.hideInteractiveGripper(this.currentGoalNumber);
 
-  console.log('[DVizClient] Changing goal to ' + num);
+  console.log('[DVizClient] Changing goal from ' + this.currentGoalNumber + ' to ' + num);
   // @todo check if valid goal number?
-  this.currentGoal = num;
+  //this.currentGoalNumber = num;
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'change_goal',
@@ -729,7 +736,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     $('#baseHandCamera').attr('disabled', true);
     $('#rotateHandControls').attr('disabled', true);
     this.acceptedGrasp = false;
-    console.log('ACCEPTED GRASP -> FALSE');
+    //console.log('ACCEPTED GRASP -> FALSE');
 
     $('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
     $('#acceptChangeGrasp').tooltip('hide')
@@ -748,7 +755,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     }
     $('#rotateHandControls').attr('disabled', false);
     this.acceptedGrasp = true;
-    console.log('ACCEPTED GRASP -> TRUE');
+    //console.log('ACCEPTED GRASP -> TRUE');
 
     // Hide the interactive gripper of the current goal
     this.hideInteractiveGripper(this.currentGoalNumber);
@@ -899,9 +906,12 @@ DVIZ.DemonstrationVisualizerClient.prototype.displayStatusText = function(text) 
 var ros = null;
 var dvizCoreCommandClient = null;
 var dvizClient = null;
+var watching = false;
 
 function init() {
   $('#debugControls').hide();
+
+  var variables = getUrlVariables();
 
   ros = new ROSLIB.Ros({
     url : 'ws://sbpl.net:21891'
@@ -922,8 +932,6 @@ function init() {
     antialias : true
   });
 
-  // Add an event listener to resize the 
-
   // Request a new DVizUser from the core
   dvizCoreCommandClient = new ROSLIB.Service({
     ros : ros,
@@ -931,209 +939,40 @@ function init() {
     serviceType : 'dviz_core/Command'
   });
 
-  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'add_user',
-    args : []
-  }), function(response) {
-    var userId = parseInt(response.response);
-    console.log('[DVizClient] Assigned DVizUser ID ' + userId + '.');
+  var userId = 0;
+  for(var i = 0; i < variables.length; i++) {
+    if(variables[i][0] === 'watchUserId') {
+      userId = variables[i][1];
+      break;
+    }
+  }
+  
+  // Either watch an existing user (referenced by ID), or request
+  // a new user from the DVizCore server
+  if(userId > 0) {
+    initializeDemonstration(userId, W, H, ros, viewer);
+    watching = true;
+    dvizClient.displayStatusText('Watching user ' + userId.toString);
+  } else {
+    dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'add_user',
+      args : []
+    }), function(response) {
+      var userId = parseInt(response.response);
+      console.log('[DVizClient] Assigned DVizUser ID ' + userId + '.');
+      initializeDemonstration(userId, W, H, ros, viewer);
 
-    var tfClient = new ROSLIB.TFClient({
-      ros : ros,
-      angularThres : 0.01,
-      transThres : 0.01,
-      rate : 30.0,
-      fixedFrame : '/dviz_user_' + userId + '/map'
+      dvizClient.loadScene();
+      $('#playPause').prop('disabled', false);
+      $('#playPause').tooltip('show');
+
+      $('#rotateHandControls').prop('disabled', false);
+      $('#freeFollowingCamera').prop('disabled', false);
+      $('#baseHandCamera').prop('disabled', false);
+
+      dvizClient.displayStatusText('Connected to the server!');
     });
-    
-    var meshClient = new ROS3D.MultiMarkerClient({
-      ros : ros,
-      topic : '/dviz_user_' + userId + '/visualization_marker',
-      tfClient : tfClient,
-      rootObject : viewer.scene
-    });
-
-    // Client to handle interactive markers
-    var imClient = new ROS3D.InteractiveMarkerClient({
-      ros : ros,
-      tfClient : tfClient,
-      topic : '/dviz_user_' + userId + '/interactive_markers',
-      path : 'http://resources.robotwebtools.org/',
-      camera : viewer.camera,
-      rootObject : viewer.selectableObjects
-    });
-
-    // // Client to handle the robot visualization markers
-    // var rmClient = new ROS3D.RobotMarkerArrayClient({
-    //   ros : ros,
-    //   tfClient : tfClient,
-    //   topic : '/dviz_user_' + userId + '/visualization_marker_array',
-    //   path : 'http://resources.robotwebtools.org/',
-    //   rootObject : viewer.scene
-    // });
-
-    var rmClient = new ROS3D.MarkerArrayClient({
-      ros : ros,
-      tfClient : tfClient,
-      topic : '/dviz_user_' + userId + '/visualization_marker_array',
-      path : 'http://resources.robotwebtools.org/',
-      rootObject : viewer.scene
-    });
-
-    // Client to display spheres to indicate robot collisions
-    var rcClient = new ROS3D.MultiMarkerClient({
-      ros : ros,
-      topic : '/dviz_user_' + userId + '/collisions/visualization_marker',
-      tfClient : tfClient,
-      rootObject : viewer.scene
-    });
-
-    dvizClient = new DVIZ.DemonstrationVisualizerClient({
-      ros : ros,
-      tfClient : tfClient,
-      viewer : viewer,
-      viewerWidth : W,
-      viewerHeight : H,
-      id : userId
-    });
-
-    // Initialize button click callbacks
-    $('#playPause').on('click', function() {
-      if(dvizClient.isPlaying() && dvizClient.gameStarted) {
-	dvizClient.pause();
-      } else {
-	dvizClient.play();
-      }
-    });
-
-    $('#acceptChangeGrasp').on('click', function() {
-      dvizClient.acceptGrasp();
-    });
-
-    $('#baseHandCamera').on('click', function() {
-      var b = $('#baseHandCamera');
-
-      if(dvizClient.cameraManager.getCameraMode() === 0) {
-	// Base-following camera
-	b.html('Base View');
-	b.tooltip('hide')
-	  .attr('data-original-title', 'Switch to a view that follows the robot\'s base.')
-	  .tooltip('fixTitle')
-	  .tooltip('show');
-	$('#viewImage').attr('src', 'images/hand_view.png');
-
-	dvizClient.changeCamera('gripper');
-      } else if(dvizClient.cameraManager.getCameraMode() === 2) {
-	// Gripper-following camera
-	b.html('Hand View');
-	b.tooltip('hide')
-	  .attr('data-original-title', 'Switch to a view that follows the robot\'s hand.')
-	  .tooltip('fixTitle')
-	  .tooltip('show');
-	$('#viewImage').attr('src', 'images/base_view.png');
-
-	dvizClient.changeCamera('base');
-      } else {
-	console.log('[DVizClient] Error in base/hand view handler');
-      }
-    });
-
-    $('#freeFollowingCamera').on('click', function() {
-      var b = $('#freeFollowingCamera');
-
-      if(dvizClient.cameraManager.getCameraMode() !== 1) {
-	// Camera is not in free mode
-	b.html('Following View');
-	b.tooltip('hide')
-	  .attr('data-original-title', 'Your view will follow the position of the robot automatically.')
-	  .tooltip('fixTitle')
-	  .tooltip('show');
-	$('#viewImage').attr('src', 'images/free_view.png');
-	
-	dvizClient.changeCamera('none');
-	$('#baseHandCamera').prop('disabled', true);
-      } else {
-	// Camera is in free mode
-	b.html('Free View');
-	b.tooltip('hide')
-	  .attr('data-original-title', 'You can move your view freely.')
-	  .tooltip('fixTitle')
-	  .tooltip('show');
-
-	if(dvizClient.cameraManager.lastCameraMode === 0) {
-	  $('#viewImage').attr('src', 'images/base_view.png');
-	  dvizClient.changeCamera('base');
-	} else if(dvizClient.cameraManager.lastCameraMode === 2) {
-	  $('#viewImage').attr('src', 'images/hand_view.png');
-	  dvizClient.changeCamera('gripper');
-	} else if(dvizClient.cameraManager.lastCameraMode === 1) {
-	  dvizClient.changeCamera('none');
-	  $('#baseHandCamera').prop('disabled', true);
-	} else {
-	  console.log('[DVizClient] Error in free/following camera handler (lastCameraMode = ' + dvizClient.cameraManager.lastCameraMode.toString() + ')');
-	}
-	$('#baseHandCamera').prop('disabled', false);
-      }
-    });
-
-    $('#rotateHandControls').on('click', function() {
-      var b = $('#rotateHandControls');
-
-      if(dvizClient.basicGripperControls) {
-	b.html('<img src="images/simple_control.png" width="65" height="65" />');
-	b.tooltip('hide')
-	  .attr('data-original-title', 'Show controls for only moving the position of the arm.')
-	  .tooltip('fixTitle')
-	  .tooltip('show');
-      } else {
-	b.html('<img src="images/full_control.png" width="65" height="65" />');
-	b.tooltip('hide')
-	  .attr('data-original-title', 'Full control gives you more freedom to move the elbow and rotate the hand of the robot.')
-	  .tooltip('fixTitle')
-	  .tooltip('show');
-      }
-
-      dvizClient.toggleGripperControls();
-    })
-
-    dvizClient.loadScene();
-    $('#playPause').prop('disabled', false);
-    $('#playPause').tooltip('show');
-
-    $('#rotateHandControls').prop('disabled', false);
-    $('#freeFollowingCamera').prop('disabled', false);
-    $('#baseHandCamera').prop('disabled', false);
-
-    dvizClient.displayStatusText('Connected to the server!');
-
-    // Add keyboard bindings.
-    $(window).bind('keydown', function(e) {
-      dvizClient.handleKeyPress(e);
-    });
-
-    $(window).bind('keyup', function(e) {
-      dvizClient.handleKeyRelease(e);
-    });
-
-    // *** FOR DEBUGGING ***
-    /*
-    $('#cameraPos').on('click', function() {
-      // Under transformation x -> y, y -> z, z -> x
-      var position = dvizClient.cameraManager.viewer.cameraControls.camera.position;
-      var offset = position.clone().sub(dvizClient.cameraManager.viewer.cameraControls.center);
-
-      var radius = offset.length();
-      //var phi = Math.acos(offset.z / radius);
-      //var theta = Math.atan2(offset.y, offset.x);
-      var phi = Math.acos(offset.x / radius);
-      var theta = Math.atan2(offset.z, offset.y);
-
-      console.log('camera phi = ' + phi.toString() 
-		  + ', theta = ' + theta.toString()
-		  + ', radius = ' + radius.toString());
-    });
-    */
-  });
+  }
 
   // Initialize all tooltips
   $('.tip').tooltip();
@@ -1183,11 +1022,174 @@ function init() {
 
 // Kill the DVizUser when the user exits the page
 window.onbeforeunload = function removeUser() {
-  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'kill_user',
-    args : [dvizClient.id.toString()]
-  }), function(response) {
-    console.log('[DVizClient] Killed user ' + dvizClient.id.toString());
+  if(!watching) {
+    dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'kill_user',
+      args : [dvizClient.id.toString()]
+    }), function(response) {
+      console.log('[DVizClient] Killed user ' + dvizClient.id.toString());
+    });
+  }
+}
+
+function initializeDemonstration(id, width, height, ros, viewer) {
+  var tfClient = new ROSLIB.TFClient({
+    ros : ros,
+    angularThres : 0.01,
+    transThres : 0.01,
+    rate : 30.0,
+    fixedFrame : '/dviz_user_' + id + '/map'
+  });
+  
+  var meshClient = new ROS3D.MultiMarkerClient({
+    ros : ros,
+    topic : '/dviz_user_' + id + '/visualization_marker',
+    tfClient : tfClient,
+    rootObject : viewer.scene
+  });
+
+  // Client to handle interactive markers
+  var imClient = new ROS3D.InteractiveMarkerClient({
+    ros : ros,
+    tfClient : tfClient,
+    topic : '/dviz_user_' + id + '/interactive_markers',
+    path : 'http://resources.robotwebtools.org/',
+    camera : viewer.camera,
+    rootObject : viewer.selectableObjects
+  });
+
+  var rmClient = new ROS3D.MarkerArrayClient({
+    ros : ros,
+    tfClient : tfClient,
+    topic : '/dviz_user_' + id + '/visualization_marker_array',
+    path : 'http://resources.robotwebtools.org/',
+    rootObject : viewer.scene
+  });
+
+  // Client to display spheres to indicate robot collisions
+  var rcClient = new ROS3D.MultiMarkerClient({
+    ros : ros,
+    topic : '/dviz_user_' + id + '/collisions/visualization_marker',
+    tfClient : tfClient,
+    rootObject : viewer.scene
+  });
+
+  dvizClient = new DVIZ.DemonstrationVisualizerClient({
+    ros : ros,
+    tfClient : tfClient,
+    viewer : viewer,
+    viewerWidth : width,
+    viewerHeight : height,
+    id : id
+  });
+
+  // Initialize button click callbacks
+  $('#playPause').on('click', function() {
+    if(dvizClient.isPlaying() && dvizClient.gameStarted) {
+      dvizClient.pause();
+    } else {
+      dvizClient.play();
+    }
+  });
+
+  $('#acceptChangeGrasp').on('click', function() {
+    dvizClient.acceptGrasp();
+  });
+
+  $('#baseHandCamera').on('click', function() {
+    var b = $('#baseHandCamera');
+
+    if(dvizClient.cameraManager.getCameraMode() === 0) {
+      // Base-following camera
+      b.html('Base View');
+      b.tooltip('hide')
+	.attr('data-original-title', 'Switch to a view that follows the robot\'s base.')
+	.tooltip('fixTitle')
+	.tooltip('show');
+      $('#viewImage').attr('src', 'images/hand_view.png');
+
+      dvizClient.changeCamera('gripper');
+    } else if(dvizClient.cameraManager.getCameraMode() === 2) {
+      // Gripper-following camera
+      b.html('Hand View');
+      b.tooltip('hide')
+	.attr('data-original-title', 'Switch to a view that follows the robot\'s hand.')
+	.tooltip('fixTitle')
+	.tooltip('show');
+      $('#viewImage').attr('src', 'images/base_view.png');
+
+      dvizClient.changeCamera('base');
+    } else {
+      console.log('[DVizClient] Error in base/hand view handler');
+    }
+  });
+
+  $('#freeFollowingCamera').on('click', function() {
+    var b = $('#freeFollowingCamera');
+
+    if(dvizClient.cameraManager.getCameraMode() !== 1) {
+      // Camera is not in free mode
+      b.html('Following View');
+      b.tooltip('hide')
+	.attr('data-original-title', 'Your view will follow the position of the robot automatically.')
+	.tooltip('fixTitle')
+	.tooltip('show');
+      $('#viewImage').attr('src', 'images/free_view.png');
+      
+      dvizClient.changeCamera('none');
+      $('#baseHandCamera').prop('disabled', true);
+    } else {
+      // Camera is in free mode
+      b.html('Free View');
+      b.tooltip('hide')
+	.attr('data-original-title', 'You can move your view freely.')
+	.tooltip('fixTitle')
+	.tooltip('show');
+
+      if(dvizClient.cameraManager.lastCameraMode === 0) {
+	$('#viewImage').attr('src', 'images/base_view.png');
+	dvizClient.changeCamera('base');
+      } else if(dvizClient.cameraManager.lastCameraMode === 2) {
+	$('#viewImage').attr('src', 'images/hand_view.png');
+	dvizClient.changeCamera('gripper');
+      } else if(dvizClient.cameraManager.lastCameraMode === 1) {
+	dvizClient.changeCamera('none');
+	$('#baseHandCamera').prop('disabled', true);
+      } else {
+	console.log('[DVizClient] Error in free/following camera handler (lastCameraMode = ' + dvizClient.cameraManager.lastCameraMode.toString() + ')');
+      }
+      $('#baseHandCamera').prop('disabled', false);
+    }
+  });
+
+  $('#rotateHandControls').on('click', function() {
+    var b = $('#rotateHandControls');
+
+    if(dvizClient.basicGripperControls) {
+      b.html('<img src="images/simple_control.png" width="65" height="65" />');
+      b.tooltip('hide')
+	.attr('data-original-title', 'Show controls for only moving the position of the arm.')
+	.tooltip('fixTitle')
+	.tooltip('show');
+    } else {
+      b.html('<img src="images/full_control.png" width="65" height="65" />');
+      b.tooltip('hide')
+	.attr('data-original-title', 'Full control gives you more freedom to move the elbow and rotate the hand of the robot.')
+	.tooltip('fixTitle')
+	.tooltip('show');
+    }
+
+    dvizClient.toggleGripperControls();
+  })
+
+
+  // Add keyboard bindings.
+  $(window).bind('keydown', function(e) {
+    dvizClient.handleKeyPress(e);
+  });
+
+  $(window).bind('keyup', function(e) {
+    dvizClient.handleKeyRelease(e);
   });
 }
 
@@ -1396,7 +1398,7 @@ function initializeGameplaySettings() {
     }
   });
   $('#zoomSpeed').slider({
-    value : 1.0,
+    value : 1.7,
     min : 0.5,
     max : 3.0,
     step : 0.1,
@@ -1404,4 +1406,17 @@ function initializeGameplaySettings() {
       setZoomSpeed(ui.value);
     }
   });
+}
+
+function getUrlVariables() {
+  var info = location.search.replace('?', '').split('&').map(function(x) {
+    return x.split('=');
+  });
+
+  console.log('url variables: ');
+  for(var i = 0; i < info.length; i++) {
+    console.log(info[i][0] + ' = ' + info[i][1]);
+  }
+  
+  return info;
 }

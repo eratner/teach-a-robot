@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id, bool web)
-  : id_(id), ok_(true), web_(web), frame_rate_(10.0), frame_rate_changed_(false)
+  : id_(id), ok_(true), web_(web), frame_rate_(10.0), frame_rate_changed_(false), accepted_grasp_(true)
 {
   ROS_INFO("[DVizUser%d] Constructing user.", id_);
 
@@ -562,7 +562,8 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
 	pick_up_goal->setGripperJointPosition(gripper_joint);
 
-	showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
+	//showInteractiveGripper(demonstration_scene_manager_->getCurrentGoal());
+	updateGripperMarkers(demonstration_scene_manager_->getCurrentGoal());
       }
       else
       {
@@ -664,7 +665,7 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       
     if(demonstration_scene_manager_->hasReachedGoal(demonstration_scene_manager_->getCurrentGoal(), 
 						    simulator_->getEndEffectorPose(), 0.05) 
-       && !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/)
+       && !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/ && accepted_grasp_)
     {
       ROS_INFO("[DVizUser%d] Reached goal %d!", id_, demonstration_scene_manager_->getCurrentGoal());
 
@@ -756,9 +757,19 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 	object_in_gripper = gripper_in_map.Inverse() * object_in_map;
       }
 
+      // For a pick up goal, allow the gripper to be in collision with
+      // the object that it must pick up (our collision spheres may not
+      // be precise enough to allow for tight grasps of the object while
+      // still being free of collision)
+      ROS_INFO("going to skip object with id %d", pick_up_goal->getObjectID());
       goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
 						     pick_up_goal->getGripperJointPosition(),
-						     false);
+						     false,
+	                                             true,
+	                                             true,
+	                                             true,
+	                                             true,
+	                                             pick_up_goal->getObjectID());
 
       if(goal_reachable)
       {
@@ -993,6 +1004,8 @@ void DemonstrationVisualizerUser::goalCompleted()
 
 bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 {
+  accepted_grasp_ = false;
+
   if(demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
   {
     ROS_ERROR("[DVizUser%d] Cannot show a gripper for a goal that is not of type PICK_UP.", id_);
@@ -1148,6 +1161,8 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 
 bool DemonstrationVisualizerUser::hideInteractiveGripper(int goal_number)
 {
+  accepted_grasp_ = true;
+
   if(demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
   {
     ROS_ERROR("[DVizUser%d] Cannot hide a gripper for a goal that is not of type PICK_UP.", id_);

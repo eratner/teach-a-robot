@@ -1,3 +1,4 @@
+
 #ifndef DEMONSTRATION_VISUALIZER_USER_H
 #define DEMONSTRATION_VISUALIZER_USER_H
 
@@ -131,6 +132,7 @@ private:
   bool web_;
   double frame_rate_;
   bool frame_rate_changed_;
+  bool accepted_grasp_;
   ros::ServiceServer command_service_;
 
   ros::Publisher task_pub_;

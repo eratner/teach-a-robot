@@ -1,6 +1,7 @@
 #include <dviz_core/pr2_simulator.h>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
 PR2Simulator::PR2Simulator(MotionRecorder *recorder, 
 			   PViz *pviz,
@@ -995,7 +996,8 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
                                      bool interpolate_position,
                                      bool interpolate_orientation,
                                      bool stop_while_snapping,
-                                     bool check_for_collisions)
+                                     bool check_for_collisions,
+                                     int skip_object_id)
 {
   if(isValidEndEffectorPose(pose))
   {
@@ -1147,7 +1149,8 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
 	body_pose.z = getTorsoPosition();
 	body_pose.theta = tf::getYaw(base_pose_.pose.orientation);
 
-	if(!object_manager_->checkRobotMove(r_angles, l_angles, body_pose))
+	ROS_INFO("skipping object with id %d", skip_object_id);
+	if(!object_manager_->checkRobotMove(r_angles, l_angles, body_pose, skip_object_id))
 	{
 	  ROS_ERROR("[PR2Simulator] Interpolation error: current joint angles cause the robot to be in collision");
 	  snap_motion_.clear();
