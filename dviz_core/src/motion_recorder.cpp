@@ -27,14 +27,22 @@ MotionRecorder::~MotionRecorder()
 }
 
 bool MotionRecorder::beginRecording(const std::string &path,
-				    const std::string &task_name)
+				    const std::string &task_name,
+				    const std::string &bagfile_name)
 {
   if(!is_recording_)
   {
     is_recording_ = true;
     // Start recording to a new bag file.
     std::stringstream file_path;
-    file_path << path << "/user" << user_id_ << "_demonstration" << bag_count_ << ".bag";
+    if(bagfile_name.empty())
+    {
+      file_path << path << "/user" << user_id_ << "_demonstration" << bag_count_ << ".bag";
+    }
+    else
+    {
+      file_path << path << "/" << bagfile_name;
+    }
     write_bag_path_ = file_path.str();
 
     try

@@ -3,6 +3,9 @@
  */
 var DVIZ = DVIZ || {};
 
+// This flag toggles output to the console that may be useful when debugging
+DVIZ.debug = true;
+
 /**
  * Creates a simple moving average (SMA) filter of size n.
  */
@@ -83,7 +86,7 @@ DVIZ.CameraManager = function(options) {
   this.rEndEffectorYFilter = createSMAFilter(this.filterBufferSize);
   this.rEndEffectorZFilter = createSMAFilter(this.filterBufferSize);
 
-  console.log('[CameraManager] user_id = ' + this.id + ' topic: /dviz_user_' + this.id + '/base_footprint');
+  DVIZ.debug && console.log('[CameraManager] user_id = ' + this.id + ' topic: /dviz_user_' + this.id + '/base_footprint');
 
   this.tfClient.subscribe('/dviz_user_' + this.id + '/base_footprint', function(message) {
     var tf = new ROSLIB.Transform(message);
@@ -146,8 +149,8 @@ DVIZ.CameraManager = function(options) {
  */
 DVIZ.CameraManager.prototype.setCamera = function(mode) {
   if(mode !== this.cameraMode) {
-    console.log('[DVizClient] Changing from camera mode ' + this.cameraMode
-                + ' to ' + mode + '.');
+    DVIZ.debug && console.log('[DVizClient] Changing from camera mode ' + this.cameraMode
+			 + ' to ' + mode + '.');
   }
   this.lastCameraMode = this.cameraMode;
   this.cameraMode = mode;
@@ -218,7 +221,7 @@ DVIZ.CameraManager.prototype.setCameraDistance = function(dist) {
  * Sets the zoom speed of the camera
  */
 DVIZ.CameraManager.prototype.setZoomSpeed = function(speed) {
-  console.log('[DVizClient] Setting zoom speed to ' + speed.toString());
+  DVIZ.debug && console.log('[DVizClient] Setting zoom speed to ' + speed.toString());
 
   // @todo this needs to be tested further
   this.viewer.cameraControls.userZoomSpeed = speed;
@@ -229,7 +232,7 @@ DVIZ.CameraManager.prototype.setZoomSpeed = function(speed) {
  * Sets the actual zoom of the camera to a particular scale
  */
 DVIZ.CameraManager.prototype.setZoom = function(scale) {
-  console.log('[DVizClient] Setting zoom scale to ' + scale.toString());
+  DVIZ.debug && console.log('[DVizClient] Setting zoom scale to ' + scale.toString());
 
   this.viewer.cameraControls.scale = scale;
   this.viewer.cameraControls.update();
@@ -264,7 +267,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.acceptedGrasp = false;
   //console.log('ACCEPTED GRASP -> FALSE');
 
-  console.log('[DVizClient] Assigned id ' + this.id);
+  DVIZ.debug && console.log('[DVizClient] Assigned id ' + this.id);
   
   this.cameraManager = new DVIZ.CameraManager({
     ros : ros,
@@ -313,7 +316,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	that.goalCompleted(that.currentGoalNumber);
       }
 
-      console.log('[DVizClient] Changing from goal ' + that.currentGoalNumber.toString() + ' to goal ' + currentGoal.toString());
+      DVIZ.debug && console.log('[DVizClient] Changing from goal ' + that.currentGoalNumber.toString() + ' to goal ' + currentGoal.toString());
 
       that.currentGoalNumber = currentGoal;
 
@@ -347,7 +350,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
 	// Show an interactive gripper marker at the current goal
-	console.log('[DVizClient] Current goal is of type pick-up');
+	DVIZ.debug && console.log('[DVizClient] Current goal is of type pick-up');
 	that.acceptedGrasp = false;
 	//console.log('ACCEPTED GRASP -> FALSE');
 	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
@@ -371,7 +374,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 };
 
 DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
-  console.log('[DVizClient] Playing simulator...');
+  DVIZ.debug && console.log('[DVizClient] Playing simulator...');
   this.playing = true;
 
   $('#playPause').html('<img src="images/pause.png" width="65" height="65" />');
@@ -384,7 +387,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   if(!this.gameStarted) {
     this.loadTask();
     // Start recording
-    this.beginRecording();
+    if(workerId !== null && assignmentId !== null) {
+      var bagfileName = 'user_' + workerId + '_demonstration_' 
+	+ assignmentId + '.bag';
+      this.beginRecording(bagfileName);
+    } else {
+      this.beginRecording();
+    }
     this.gameStarted = true;
   }
 
@@ -393,13 +402,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
     args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
-  console.log('[DVizClient] Pausing simulator...');
+  DVIZ.debug && console.log('[DVizClient] Pausing simulator...');
   this.playing = false;
 
   $('#playPause').html('<img src="images/play.png" width="65" height="65" />');
@@ -415,7 +424,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
     args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
@@ -426,7 +435,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.isPlaying = function() {
 
 DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
   if(follow === 'base') {
-    console.log('[DVizClient] Changing camera to follow the base');
+    DVIZ.debug && console.log('[DVizClient] Changing camera to follow the base');
     this.cameraManager.setCamera(0);
     this.cameraManager.viewer.cameraControls.center.x =
       this.cameraManager.baseXFilter.back();
@@ -435,7 +444,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
     this.cameraManager.viewer.cameraControls.center.z = 0.0;
     // @todo set a default zoom
   } else if(follow === 'gripper') {
-    console.log('[DVizClient] Changing camera to follow the gripper');
+    DVIZ.debug && console.log('[DVizClient] Changing camera to follow the gripper');
     this.cameraManager.setCamera(2);
     // console.log('setting camera to r-ee x = ' + 
     // 		this.cameraManager.rEndEffectorXFilter.getLatest().toString()
@@ -448,15 +457,15 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
       this.cameraManager.rEndEffectorZFilter.getLatest();
     // @todo set a default zoom
   } else if(follow === 'none') {
-    console.log('[DVizClient] Changing camera to free mode');
+    DVIZ.debug && console.log('[DVizClient] Changing camera to free mode');
     this.cameraManager.setCamera(1);
   } else {
-    console.log('[DVizClient] Unknown camera mode "' + follow + '"');
+    DVIZ.debug && console.log('[DVizClient] Unknown camera mode "' + follow + '"');
   }
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.toggleGripperControls = function() {
-  console.log('[DVizClient] Toggling gripper controls to ' +
+  DVIZ.debug && console.log('[DVizClient] Toggling gripper controls to ' +
 	      (!this.basicGripperControls).toString() + '.');
   this.basicGripperControls = !this.basicGripperControls;
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -464,31 +473,31 @@ DVIZ.DemonstrationVisualizerClient.prototype.toggleGripperControls = function() 
     args : [this.basicGripperControls.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.resetRobot = function() {
-  console.log('[DVizClient] Resetting robot...');
+  DVIZ.debug && console.log('[DVizClient] Resetting robot...');
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'reset_robot',
     args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 };
 
 DVIZ.DemonstrationVisualizerClient.prototype.resetTask = function() {
-  console.log('[DVizClient] Resetting task...');
+  DVIZ.debug && console.log('[DVizClient] Resetting task...');
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'reset_task',
     args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 };
@@ -497,7 +506,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
   //showAlertModal('Loading the kitchen...', 'This might take a minute or two!');
   var sceneName = scene || 'kitchen_lite.xml';
 
-  console.log('[DVizClient] Loading scene ' + sceneName);
+  DVIZ.debug && console.log('[DVizClient] Loading scene ' + sceneName);
 
   // Pause the game while the scene loads
   //this.pause();
@@ -511,9 +520,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
 	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/' + sceneName]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + res.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
     } else {
-      console.log('[DVizClient] Loaded the scene ' + sceneName);
+      DVIZ.debug && console.log('[DVizClient] Loaded the scene ' + sceneName);
     }
   });
 }
@@ -521,7 +530,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
 DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function(task) {
   var taskName = task || 'brownie_recipe.xml';
 
-  console.log('[DVizClient] Loading task ' + taskName);
+  DVIZ.debug && console.log('[DVizClient] Loading task ' + taskName);
 
   // Load the task
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -529,9 +538,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadTask = function(task) {
     args : ['package://dviz_core/tasks/' + taskName]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + res.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
     } else {
-      console.log('[DVizClient] Loaded the task ' + taskName);
+      DVIZ.debug && console.log('[DVizClient] Loaded the task ' + taskName);
     }
   });
 }
@@ -542,7 +551,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
   // Filter certain keys depending on the client state.
   if(e.which === 90) {
     if(!this.zMode) {
-      console.log('[DVizClient] Enabling z-mode');
+      DVIZ.debug && console.log('[DVizClient] Enabling z-mode');
       this.zMode = true;
     } else {
       return;
@@ -555,7 +564,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
 	    '6'] // Qt code for KeyPress, @todo make a constant
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
@@ -565,7 +574,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
 
   if(e.which === 90) {
     if(this.zMode) {
-        console.log('[DVizClient] Disabling z-mode');
+        DVIZ.debug && console.log('[DVizClient] Disabling z-mode');
         this.zMode = false;
       } else {
 	return;
@@ -578,20 +587,20 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
 	    '7'] // Qt code for KeyRelease, @todo make a constant
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
   if(num === this.currentGoalNumber) {
-    console.log('[DVizClient] Attemping to change to goal ' + num + ': already on this goal');
+    DVIZ.debug && console.log('[DVizClient] Attemping to change to goal ' + num + ': already on this goal');
     return;
   }
   // @todo first alert the user, and confirm that they want to switch goals
   this.hideInteractiveGripper(this.currentGoalNumber);
 
-  console.log('[DVizClient] Changing goal from ' + this.currentGoalNumber + ' to ' + num);
+  DVIZ.debug && console.log('[DVizClient] Changing goal from ' + this.currentGoalNumber + ' to ' + num);
   // @todo check if valid goal number?
   //this.currentGoalNumber = num;
 
@@ -599,12 +608,12 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeGoal = function(num) {
     command : 'change_goal',
     args : [num.toString()]
   }), function(response) {
-    console.log('[DVizClient] Error response: ' + response.response);
+    DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(goalNumber) {
-  console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString());
+  DVIZ.debug && console.log('[DVizClient] Showing interactive gripper for goal ' + goalNumber.toString());
 
   // Disable marker control of the robot (so the user cannot move 
   // the robot while selecting a grasp)
@@ -642,13 +651,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
     args : [goalNumber.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
-  console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
+  DVIZ.debug && console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
 
   //$('#gripperJointAngle').slider('option', 'disabled', true);
 
@@ -707,7 +716,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
 
     this.changeCamera('none');
   } else {
-    console.log('[DVizClient] Error switching the camera back');
+    DVIZ.debug && console.log('[DVizClient] Error switching the camera back');
   }
 
   // this.changeCamera('none');
@@ -722,14 +731,14 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
     args : [goalNumber.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   if(this.acceptedGrasp === true) {
-    console.log('[DVizClient] Changing/choosing grasp');
+    DVIZ.debug && console.log('[DVizClient] Changing/choosing grasp');
     this.pause();
     $('#playPause').attr('disabled', true);
     $('#freeFollowingCamera').attr('disabled', true);
@@ -746,7 +755,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
 
     this.showInteractiveGripper(this.currentGoalNumber);
   } else {
-    console.log('[DVizClient] Accepting grasp');
+    DVIZ.debug && console.log('[DVizClient] Accepting grasp');
     this.play();
     $('#playPause').attr('disabled', false);
     $('#freeFollowingCamera').attr('disabled', false);
@@ -765,7 +774,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
       args : []
     }), function(response) {
       if(response.response.length > 0) {
-	console.log('[DVizClient] Error response: ' + response.response);
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
       }
     });
     
@@ -777,24 +786,35 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   }
 }
 
-DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function() {
-  console.log('[DVizClient] Begin recording');
+DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function(name) {
+  var bagfileName = name || '';
 
-  // $('#rrButton').html(
-  //   '<button type="button" class="btn btn-default" onclick="dvizClient.endRecording()">End Recording</button>');
+  DVIZ.debug && console.log('[DVizClient] Begin recording to '
+			    + (bagfileName.length > 0 ? bagfileName : 'default'));
 
-  this.commandClient.callService(new ROSLIB.ServiceRequest({
-    command : 'begin_recording',
-    args : []
-  }), function(response) {
-    if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
-    }
-  });
+  if(bagfileName.length > 0) {
+    this.commandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'begin_recording',
+      args : [bagfileName]
+    }), function(response) {
+      if(response.response.length > 0) {
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
+      }
+    });
+  } else {
+    this.commandClient.callService(new ROSLIB.ServiceRequest({
+      command : 'begin_recording',
+      args : []
+    }), function(response) {
+      if(response.response.length > 0) {
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
+      }
+    });
+  }
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
-  console.log('[DVizClient] End recording');
+  DVIZ.debug && console.log('[DVizClient] End recording');
 
   // $('#rrButton').html(
   //   '<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>');
@@ -804,13 +824,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
     args : []
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.beginReplay = function() {
-  console.log('[DVizClient] Begin replay');
+  DVIZ.debug && console.log('[DVizClient] Begin replay');
 
   // Reset the robot before replaying a user demonstration
   this.resetRobot();
@@ -820,24 +840,26 @@ DVIZ.DemonstrationVisualizerClient.prototype.beginReplay = function() {
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'begin_replay',
-    args : ['/home/eratner/demonstrations/last_demonstration_'
-	    + this.id.toString() + '.bag']
-    // hack! the user should somehow input which demonstration to replay
+    args : ['/home/eratner/demonstrations/user' + this.id.toString() + '_demonstration0.bag']
+    // @todo the user should somehow input which demonstration to replay
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber) {
-  console.log('[DVizClient] Goal ' + goalNumber.toString() + ' completed!');
+  DVIZ.debug && console.log('[DVizClient] Goal ' + goalNumber.toString() + ' completed!');
+
+  goalsCompleted += 1;
 
   // Notify the user that a goal has been completed, and give a 
   // description of the next goal in the task
   var message = 'Goal ' + goalNumber.toString() + ' completed! ';
   if(goalNumber + 1 >= this.goals.length) {
     message += 'The task is complete.';
+    this.endDemonstration(true);
   } else {
     message += ('Next goal: ' + 
 		this.goals[goalNumber + 1].description);
@@ -846,8 +868,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   $('#goalCompleteModal').modal('show');
 }
 
-DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function() {
-  console.log('[DVizClient] Ending demonstration.');
+DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function(complete) {
+  DVIZ.debug && console.log('[DVizClient] Ending demonstration');
+
+  var taskComplete = complete || false;
 
   if(this.gameStarted) {
     this.gameStarted = false;
@@ -855,12 +879,39 @@ DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function() {
     // @todo do all the post-game 'clean up': save demonstration files,
     // etc. 
     // this can be called when a game is prematurely terminated
+    if(hitId !== null && assignmentId !== null) {
+      DVIZ.debug && console.log('[DVizClient] Submitting ' + goalsCompleted.toString() +
+				' goals completed to Mechanical Turk');
 
+      DVIZ.debug && console.log('[DVizClient] Submitting data string: ' + dataString);
+
+      var form = $('<form />', {
+	action : externalSubmitURL,
+	method : 'POST',
+	style : 'display : none;'
+      });
+      $('<input />', {
+	type : 'hidden',
+	name : 'assignmentId',
+	value : assignmentId
+      }).appendTo(form);
+      $('<input />', {
+	type : 'hidden',
+	name : 'goalsCompleted',
+	value : goalsCompleted
+      }).appendTo(form);
+      $('<input />', {
+	type : 'hidden',
+	name : 'taskCompleted',
+	value : taskCompleted
+      }).appendTo(form);
+      form.appendTo('body').submit();
+    }
   }
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.robotMarkerControl = function(enabled) {
-  console.log('[DVizClient] Robot marker control is ' +
+  DVIZ.debug && console.log('[DVizClient] Robot marker control is ' +
 	      (enabled ? 'enabled' : 'disabled'));
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -868,26 +919,26 @@ DVIZ.DemonstrationVisualizerClient.prototype.robotMarkerControl = function(enabl
     args : [enabled.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.setGripperJointAngle = function(angle) {
-  console.log('[DVizClient] Setting gripper joint angle to ' + angle.toString());
+  DVIZ.debug && console.log('[DVizClient] Setting gripper joint angle to ' + angle.toString());
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'set_gripper_joint',
     args : [angle.toString()]
   }), function(response) {
     if(response.response.length > 0) {
-      console.log('[DVizClient] Error response: ' + response.response);
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
     }
   });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.displayStatusText = function(text) {
-  console.log('adding status: ' + text);
+  DVIZ.debug && console.log('adding status: ' + text);
   if(this.statusText == null) {
     this.statusText = document.createElement('div');
     this.statusText.style.position = 'absolute';
@@ -908,10 +959,37 @@ var dvizCoreCommandClient = null;
 var dvizClient = null;
 var watching = false;
 
+// Mechanical Turk information
+var hitId = null;
+var workerId = null;
+var assignmentId = null;
+var previewMode = false;
+
+var goalsCompleted = 0;
+var externalSubmitURL = DVIZ.debug ? 'https://workersandbox.mturk.com/mturk/externalSubmit' : 
+                                     'https://www.mturk.com/mturk/externalSubmit';
+
 function init() {
   $('#debugControls').hide();
 
   var variables = getUrlVariables();
+
+  // Get any variables that are associated with a Mechanical Turk HIT
+  for(var i = 0; i < variables.length; i++) {
+    if(variables[i][0] === 'hitId') {
+      hitId = variables[i][1];
+    } else if(variables[i][0] === 'assignmentId') {
+      assignmentId = variables[i][1];
+      previewMode = (assignmentId === 'ASSIGNMENT_ID_NOT_AVAILABLE');
+    } else if(variables[i][0] === 'workerId') {
+      workerId = variables[i][1];
+    }
+  }
+
+  if(hitId !== null && assignmentId !== null) {
+    DVIZ.debug && console.log('[DVizClient] Processing HIT with hitId ' + hitId.toString()
+			 + ' and assignmentId ' + assignmentId.toString());
+  }
 
   ros = new ROSLIB.Ros({
     url : 'ws://sbpl.net:21891'
@@ -922,8 +1000,8 @@ function init() {
   var W = 800;
   var H = Math.min(600, 
 		   Math.max(400, window.innerHeight - 200));
-  console.log('[DVizClient] Instantiating the viewer with width '
-	      + W.toString() + ' and height ' + H.toString());
+  DVIZ.debug && console.log('[DVizClient] Instantiating the viewer with width '
+		       + W.toString() + ' and height ' + H.toString());
 
   var viewer = new ROS3D.Viewer({
     divID : 'dviz',
@@ -946,20 +1024,28 @@ function init() {
       break;
     }
   }
+
+  // Potential Mechanical Turk users can preview the task, and we do not 
+  // want to load the entire game when this happens
+  if(previewMode) {
+    DVIZ.debug && console.log('[DVizClient] Preview mode');
+    $('#settings').prop('disabled', true);
+    return;
+  }
   
   // Either watch an existing user (referenced by ID), or request
   // a new user from the DVizCore server
   if(userId > 0) {
     initializeDemonstration(userId, W, H, ros, viewer);
     watching = true;
-    dvizClient.displayStatusText('Watching user ' + userId.toString);
+    dvizClient.displayStatusText('Watching user ' + userId.toString());
   } else {
     dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
       command : 'add_user',
       args : []
     }), function(response) {
       var userId = parseInt(response.response);
-      console.log('[DVizClient] Assigned DVizUser ID ' + userId + '.');
+      console.log('[DVizClient] Starting DVizUser ID ' + userId);
       initializeDemonstration(userId, W, H, ros, viewer);
 
       dvizClient.loadScene();
@@ -969,6 +1055,7 @@ function init() {
       $('#rotateHandControls').prop('disabled', false);
       $('#freeFollowingCamera').prop('disabled', false);
       $('#baseHandCamera').prop('disabled', false);
+      $('#endDemonstration').prop('disabled', false);
 
       dvizClient.displayStatusText('Connected to the server!');
     });
@@ -1014,10 +1101,6 @@ function init() {
   $('#help').on('click', function() {
     $('#helpModal').modal('show');
   });
-
-  //$(window).scroll(function() {
-  //console.log('scrolling');
-  //});
 }
 
 // Kill the DVizUser when the user exits the page
@@ -1027,7 +1110,7 @@ window.onbeforeunload = function removeUser() {
       command : 'kill_user',
       args : [dvizClient.id.toString()]
     }), function(response) {
-      console.log('[DVizClient] Killed user ' + dvizClient.id.toString());
+      DVIZ.debug && console.log('[DVizClient] Killed user ' + dvizClient.id.toString());
     });
   }
 }
@@ -1041,7 +1124,7 @@ function initializeDemonstration(id, width, height, ros, viewer) {
     fixedFrame : '/dviz_user_' + id + '/map'
   });
   
-  var meshClient = new ROS3D.MultiMarkerClient({
+  var meshClient = new ROS3D.MarkerClient({
     ros : ros,
     topic : '/dviz_user_' + id + '/visualization_marker',
     tfClient : tfClient,
@@ -1067,7 +1150,7 @@ function initializeDemonstration(id, width, height, ros, viewer) {
   });
 
   // Client to display spheres to indicate robot collisions
-  var rcClient = new ROS3D.MultiMarkerClient({
+  var rcClient = new ROS3D.MarkerClient({
     ros : ros,
     topic : '/dviz_user_' + id + '/collisions/visualization_marker',
     tfClient : tfClient,
@@ -1156,7 +1239,7 @@ function initializeDemonstration(id, width, height, ros, viewer) {
 	dvizClient.changeCamera('none');
 	$('#baseHandCamera').prop('disabled', true);
       } else {
-	console.log('[DVizClient] Error in free/following camera handler (lastCameraMode = ' + dvizClient.cameraManager.lastCameraMode.toString() + ')');
+	DVIZ.debug && console.log('[DVizClient] Error in free/following camera handler (lastCameraMode = ' + dvizClient.cameraManager.lastCameraMode.toString() + ')');
       }
       $('#baseHandCamera').prop('disabled', false);
     }
@@ -1182,6 +1265,9 @@ function initializeDemonstration(id, width, height, ros, viewer) {
     dvizClient.toggleGripperControls();
   })
 
+  $('#endDemonstration').on('click', function() {
+    dvizClient.endDemonstration();
+  });
 
   // Add keyboard bindings.
   $(window).bind('keydown', function(e) {
@@ -1197,10 +1283,10 @@ function initializeDemonstration(id, width, height, ros, viewer) {
 function setCameraFollowing() {
   var follow = document.getElementById('cameraFollowing').checked;
   if(follow) {
-    console.log('[DVizClient] Enabling camera following.');
+    DVIZ.debug && console.log('[DVizClient] Enabling camera following.');
     dvizClient.cameraManager.setCamera(0);
   } else {
-    console.log('[DVizClient] Disabling camera following.');
+    DVIZ.debug && console.log('[DVizClient] Disabling camera following.');
     dvizClient.cameraManager.setCamera(1);
   }
 }
@@ -1208,10 +1294,10 @@ function setCameraFollowing() {
 function setCameraFilter() {
   var filter = document.getElementById('cameraTfFilter').checked;
   if(filter) {
-    console.log('[DVizClient] Enabling camera TF filtering.');
+    DVIZ.debug && console.log('[DVizClient] Enabling camera TF filtering.');
     dvizClient.cameraManager.setFilterTf(filter);
   } else {
-    console.log('[DVizClient] Disabling camera TF filtering.');
+    DVIZ.debug && console.log('[DVizClient] Disabling camera TF filtering.');
     dvizClient.cameraManager.setFilterTf(filter);
   }
 }
@@ -1221,10 +1307,10 @@ function setFrameBufferSize() {
   if(isNaN(frameBufferSize)) {
     showAlert('\'' + document.getElementById('frameBuffer').value
 	      + '\' is not a valid integer value!');
-    console.log('[DVizClient] \'' + document.getElementById('frameBuffer').value
-		+ '\' is not a valid integer value!');
+    DVIZ.debug && console.log('[DVizClient] \'' + document.getElementById('frameBuffer').value
+			 + '\' is not a valid integer value!');
   } else {
-    console.log('[DVizClient] Set frame buffer size to ' + frameBufferSize + '.');
+    DVIZ.debug && console.log('[DVizClient] Set frame buffer size to ' + frameBufferSize + '.');
     dvizClient.cameraManager.baseXFilter = createSMAFilter(frameBufferSize);
     dvizClient.cameraManager.baseYFilter = createSMAFilter(frameBufferSize);
   }
@@ -1236,8 +1322,8 @@ function setFrameRate(rate) {
   if(isNaN(frameRate)) {
     showAlert('\'' + document.getElementById('frameRate').value
 	      + '\' is not a valid number!');
-    console.log('[DVizClient] \'' + document.getElementById('frameRate').value
-		+ '\' is not a valid number!');
+    DVIZ.debug && console.log('[DVizClient] \'' + document.getElementById('frameRate').value
+			 + '\' is not a valid number!');
   } else {
     console.log('[DVizClient] Set frame rate to ' + frameRate);
     dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -1245,7 +1331,7 @@ function setFrameRate(rate) {
       args : [frameRate.toString()]
     }), function(response) {
       if(response.response.length > 0) {
-	console.log('[DVizClient] Error response: ' + response.response);
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
       }
     });
   }
@@ -1274,14 +1360,14 @@ function setBaseLinearSpeed(speed) {
   if(isNaN(linearSpeed)) {
     showAlert('Not a valid speed!');
   } else {
-    console.log('[DVizClient] Setting base linear speed to ' + linearSpeed.toString());
+    DVIZ.debug && console.log('[DVizClient] Setting base linear speed to ' + linearSpeed.toString());
     dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_base_speed',
       args : [linearSpeed.toString(),
 	      '0.0']
     }), function(response) {
       if(response.response.length > 0) {
-	console.log('[DVizClient] Error response: ' + response.response);
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
       } 
     });
   }
@@ -1298,7 +1384,7 @@ function setBaseAngularSpeed(speed) {
 	      angularSpeed.toString()]
     }), function(response) {
       if(response.response.length > 0) {
-	console.log('[DVizClient] Error response: ' + response.response);
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
       } else {
 	// @todo
       }
@@ -1316,7 +1402,7 @@ function setEndEffectorSpeed(s) {
       args : [speed.toString()]
     }), function(response) {
       if(response.response.length > 0) {
-	console.log('[DVizClient] Error response: ' + response.response);
+	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
       }
     });
   }
@@ -1327,7 +1413,7 @@ function setZoomSpeed(speed) {
   if(isNaN(speed)) {
     showAlert('Not a valid speed');
   } else if(dvizClient === null) {
-    console.log('[DVizClient] Not connected to the server');
+    DVIZ.debug && console.log('[DVizClient] Not connected to the server');
   } else {
     dvizClient.cameraManager.setZoomSpeed(zoomSpeed);
   }
@@ -1342,13 +1428,13 @@ function numUsers() {
       var numUsers = parseInt(response.response);
       showAlert('There are currently ' + numUsers.toString() + ' DViz users');
     } else {
-      console.log('[DVizClient] Error getting the number of DViz users');
+      DVIZ.debug && console.log('[DVizClient] Error getting the number of DViz users');
     }
   });
 }
 
 function showGameplaySettings() {
-  console.log('[DVizClient] Showing gameplay settings');
+  DVIZ.debug && console.log('[DVizClient] Showing gameplay settings');
   $('#gameplaySettings').show();
   $('#settings').tooltip('hide')
     .attr('data-original-title', 'Close gameplay settings.')
@@ -1359,7 +1445,7 @@ function showGameplaySettings() {
 }
 
 function hideGameplaySettings() {
-  console.log('[DVizClient] Hiding gameplay settings');
+  DVIZ.debug && console.log('[DVizClient] Hiding gameplay settings');
   $('#gameplaySettings').hide();
   $('#settings').tooltip('hide')
     .attr('data-original-title', 'View and modify gameplay settings.')
@@ -1413,9 +1499,11 @@ function getUrlVariables() {
     return x.split('=');
   });
 
-  console.log('url variables: ');
-  for(var i = 0; i < info.length; i++) {
-    console.log(info[i][0] + ' = ' + info[i][1]);
+  if(DVIZ.debug) {
+    console.log('url variables: ');
+    for(var i = 0; i < info.length; i++) {
+      console.log(info[i][0] + ' = ' + info[i][1]);
+    }
   }
   
   return info;

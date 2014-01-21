@@ -1,5 +1,6 @@
-# Command constants.
-# ADD_USER: no arguments.
+# Command constants: 
+# EXAMPLE_COMMAND = { [optional-arg], required-arg, ... }
+# ADD_USER: { }
 string ADD_USER = add_user
 # KILL_USER: arguments = { id }
 string KILL_USER = kill_user
@@ -27,7 +28,7 @@ string LOAD_MESH = load_mesh
 string GRIPPER_CONTROLS = gripper_controls
 # RESET_TASK: arguments = { }
 string RESET_TASK = reset_task
-# BEGIN_RECORDING: arguments = { [path] }
+# BEGIN_RECORDING: arguments = { [bagfile-name], [path] }
 string BEGIN_RECORDING = begin_recording
 # BEGIN_REPLAY: arguments = { file }
 string BEGIN_REPLAY = begin_replay

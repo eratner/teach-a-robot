@@ -5,10 +5,10 @@
 
     <title>Teach-A-Robot</title>
 
-    <script type="text/javascript" src="http://cdn.robotwebtools.org/threejs/current/three.min.js"></script>
-    <script src="http://cdn.robotwebtools.org/ColladaAnimationCompress/current/ColladaLoader2.min.js"></script>
-    <script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
-    <script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+    <script type="text/javascript" src="https://cdn.robotwebtools.org/threejs/current/three.min.js"></script>
+    <script src="https://cdn.robotwebtools.org/ColladaAnimationCompress/current/ColladaLoader2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
     <script type="text/javascript" src="scripts/ros3d.min.js"></script>
     <script type="text/javascript" src="scripts/dviz.js"></script>
 
@@ -59,6 +59,7 @@
 		  <li data-target="#carousel-example-generic" data-slide-to="5"></li>	
 		  <li data-target="#carousel-example-generic" data-slide-to="6"></li>
 		  <li data-target="#carousel-example-generic" data-slide-to="7"></li>
+		  <li data-target="#carousel-example-generic" data-slide-to="8"></li>
 		</ol>
 
 		<!-- Wrapper for slides -->
@@ -91,6 +92,12 @@
 		    <img src="images/MoveBase.jpg" alt="Base movement">
 		    <div class="carousel-caption">
 		      <p>To move the robot towards the goal, click and drag on the green marker at its base.</p>
+		    </div>
+		  </div>
+		  <div class="item">
+		    <img src="images/CollisionSphere.jpg" alt="Collision sphere">
+		    <div class="carousel-caption">
+		      <p>If the robot collides with the world, a red sphere will appear to indicate where the collision has occured. All robot motion will stop while it remains in collision.</p>
 		    </div>
 		  </div>
 		  <div class="item">
@@ -382,6 +389,16 @@
 		<!--     Get Camera Position -->
 		<!--   </button> -->
 		<!-- </p> -->
+
+		<hr />
+
+		<p>
+		  <button id="endDemonstration" data-toggle="tooltip" 
+			  data-placement="top" title="End the demonstration and submit your progress to the server."
+			  type="button" class="tip btn btn-default" disabled>
+		    End Demonstration
+		  </button>
+		<p>
 	      </div>
 	    </div>
 	  </div>

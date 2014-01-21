@@ -312,16 +312,22 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   } // end RESET_TASK
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
   {
-    if(req.args.size() == 0 || req.args.size() == 1)
+    if(req.args.size() == 0 || req.args.size() == 1 || req.args.size() == 2)
     {
       if(req.args.size() == 0)
       {
-	// No path provided; use the default demonstrations path.
+	// No path or bagfile name provided; use the default
 	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName());
+      }
+      else if(req.args.size() == 1)
+      {
+	// Bagfile name provided, but no path provided; use default
+	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName(), req.args[0]);
       }
       else
       {
-	recorder_->beginRecording(req.args[0], demonstration_scene_manager_->getTaskName());
+	// Bagfile name and path provided
+	recorder_->beginRecording(req.args[1], demonstration_scene_manager_->getTaskName(), req.args[0]);
       }
 
       if(demonstration_scene_manager_->getNumGoals() > 0)
@@ -330,7 +336,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
 
 	std::string object_label = "";
-	// Object type is only relevant if the the goal type is PICK_UP.
+	// Object type is only relevant if the the goal type is PICK_UP
 	if(goal->getType() == Goal::PICK_UP)
 	{
 	  object_label = object_manager_->getObjectLabel(static_cast<PickUpGoal *>(goal)->getObjectID());
