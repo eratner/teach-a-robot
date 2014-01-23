@@ -376,7 +376,7 @@ bool ObjectManager::checkRobotMove(const vector<double> &rangles,
   ROS_DEBUG("[ObjectManager%d] Collision checking time! robot-world first", user_id_);
   if(!collision_checker_->checkRobotAgainstWorld(rangles, langles, bp, false, dist))
   {
-    ROS_INFO("COLLISION: robot <-> world");
+    //ROS_INFO("COLLISION: robot <-> world");
     collision_checker_->visualizeCollision();
     return false;
   }
@@ -384,7 +384,7 @@ bool ObjectManager::checkRobotMove(const vector<double> &rangles,
   ROS_DEBUG("[ObjectManager%d] Collision checking time! robot-robot first", user_id_);
   if(!collision_checker_->checkRobotAgainstRobot(rangles, langles, bp, false, dist))
   {
-    ROS_INFO("COLLISION: robot <-> robot");
+    //ROS_INFO("COLLISION: robot <-> robot");
     collision_checker_->visualizeCollision();
     return false;
   }
@@ -394,7 +394,7 @@ bool ObjectManager::checkRobotMove(const vector<double> &rangles,
       continue;
     if(!collision_checker_->checkRobotAgainstGroup(rangles, langles, bp, &(objects_[i].group_), false/*true*/, false, dist))
     {
-      ROS_INFO("COLLISION robot <-> object %d", i);
+      //ROS_INFO("COLLISION robot <-> object %d", i);
       collision_checker_->visualizeCollision();
       return false;
     }  
@@ -495,7 +495,7 @@ bool ObjectManager::addObjectsFromOccupiedVoxelsFile(std::string filename)
 {
   if(!is_core_)
   {
-    ROS_INFO("[DVizUser] DVizUser cannot populate the distance field.");
+    ROS_INFO("[DVizUser] DVizUser cannot populate the distance field");
     return false;
   }
 
