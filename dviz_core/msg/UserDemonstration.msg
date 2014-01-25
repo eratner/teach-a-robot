@@ -1,4 +1,4 @@
-uint32 user_id
+string user_id
 time time
 string date
 string task_name

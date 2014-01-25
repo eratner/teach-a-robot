@@ -26,10 +26,22 @@ MotionRecorder::~MotionRecorder()
 
 }
 
-bool MotionRecorder::beginRecording(const std::string &path,
+bool MotionRecorder::beginRecording(const std::string &user_id,
+				    const std::string &path,
 				    const std::string &task_name,
 				    const std::string &bagfile_name)
 {
+  std::string user_name;
+
+  if(user_id.empty())
+  {
+    std::stringstream id;
+    id << user_id_;
+    user_name = id.str();
+  }
+  else
+    user_name = user_id;
+
   if(!is_recording_)
   {
     is_recording_ = true;
@@ -37,7 +49,7 @@ bool MotionRecorder::beginRecording(const std::string &path,
     std::stringstream file_path;
     if(bagfile_name.empty())
     {
-      file_path << path << "/user" << user_id_ << "_demonstration" << bag_count_ << ".bag";
+      file_path << path << "/user_" << user_name << "_demonstration_" << bag_count_ << ".bag";
     }
     else
     {
@@ -56,7 +68,7 @@ bool MotionRecorder::beginRecording(const std::string &path,
     }
 
     // Initialize the user demonstration message that will be written to the bagfile.
-    demo_.user_id = user_id_;
+    demo_.user_id = user_name;
     demo_.time = ros::Time::now();
 
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
@@ -95,7 +107,7 @@ void MotionRecorder::endRecording()
     flush();
 
     // Stop recording.
-    ROS_INFO("[MotionRec] Recording finished with %d messages.", write_bag_.getSize());
+    ROS_INFO("[MotionRec] Recording finished with %d messages", write_bag_.getSize());
     write_bag_.close();
 
     // if(!getBasePath(write_bag_path_, base_path_))
@@ -125,7 +137,7 @@ bool MotionRecorder::beginReplay(const std::string &file)
     return false;
   }
 
-  ROS_INFO("[MotionRec] Beginning replay from file %s.", file.c_str());
+  ROS_INFO("[MotionRec] Beginning replay from file %s", file.c_str());
 
   rosbag::View view(read_bag_, rosbag::TopicQuery("/demonstration"));
   rosbag::View::iterator iter = view.begin();
@@ -137,8 +149,8 @@ bool MotionRecorder::beginReplay(const std::string &file)
   }
 
   // Get information about the user demonstration.
-  ROS_INFO("[MotionRec] Replaying user demonstration from user %d performing task \"%s\" on the date %s with the following steps:",
-	   loaded_demo->user_id,
+  ROS_INFO("[MotionRec] Replaying user demonstration from user %s performing task \"%s\" on the date %s with the following steps:",
+	   loaded_demo->user_id.c_str(),
 	   loaded_demo->task_name.c_str(),
 	   loaded_demo->date.c_str());
   for(int i = 0; i < loaded_demo->steps.size(); i++)
@@ -168,7 +180,7 @@ bool MotionRecorder::beginReplay(const std::string &file)
     }
   }
 
-  ROS_INFO("[MotionRec] Added %d poses and %d joint states messages.", (int)poses_.size(), (int)joint_states_.size());
+  ROS_INFO("[MotionRec] Added %d poses and %d joint states messages", (int)poses_.size(), (int)joint_states_.size());
 
   read_bag_.close();
 

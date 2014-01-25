@@ -312,23 +312,25 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   } // end RESET_TASK
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
   {
-    if(req.args.size() == 0 || req.args.size() == 1 || req.args.size() == 2)
+    if(req.args.size() == 1 || // Just user string provided
+       req.args.size() == 2 || // User string and bagfile name provided
+       req.args.size() == 3)   // User string, bagfile name, and path to bagfile directory on the server provided
     {
-      if(req.args.size() == 0)
+      if(req.args.size() == 1)
       {
-	// No path or bagfile name provided; use the default
-	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName());
+	// Just user string provided; use defaults for path and bagfile name
+	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName());
       }
-      else if(req.args.size() == 1)
+      else if(req.args.size() == 2)
       {
-	// Bagfile name provided, but no path provided; use default
-	recorder_->beginRecording(MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName(), req.args[0]);
+	// User string and bagfile name provided; use default path
+	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName(), req.args[1]);
       }
-      else
+      else if(req.args.size() > 2)
       {
-	// Bagfile name and path provided
-	recorder_->beginRecording(req.args[1], demonstration_scene_manager_->getTaskName(), req.args[0]);
-      }
+	// User string, bagfile name, and path provided
+	recorder_->beginRecording(req.args[0], req.args[2], demonstration_scene_manager_->getTaskName(), req.args[1]);
+      } 
 
       if(demonstration_scene_manager_->getNumGoals() > 0)
       {
@@ -998,11 +1000,13 @@ void DemonstrationVisualizerUser::goalCompleted()
 	object_label = object_manager_->getObjectLabel(static_cast<PickUpGoal *>(goal)->getObjectID());
 	grasp_pose = demonstration_scene_manager_->getGraspPose(current_goal);
       }
+      ROS_INFO("[DVizUser%d] Adding step for goal type %s and object %s", id_,
+	       Goal::GoalTypeNames[goal->getType()], object_label.c_str());
       recorder_->addStep(Goal::GoalTypeNames[goal->getType()], object_label, grasp_pose);
     }
     else
     {
-      ROS_WARN("[DVizUser%d] No task loaded, so recording with no user demonstration information.", id_);
+      ROS_WARN("[DVizUser%d] No task loaded, so recording with no user demonstration information", id_);
       recorder_->addStep("?", "?", geometry_msgs::Pose());
     }
   }
@@ -1014,7 +1018,7 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 
   if(demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
   {
-    ROS_ERROR("[DVizUser%d] Cannot show a gripper for a goal that is not of type PICK_UP.", id_);
+    ROS_ERROR("[DVizUser%d] Cannot show a gripper for a goal that is not of type PICK_UP", id_);
     return false;
   }
 

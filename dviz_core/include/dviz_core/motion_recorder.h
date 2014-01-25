@@ -41,7 +41,7 @@ public:
    * @param task_name (optional) The name of the task that is being recorded.
    * @param start_goal (optional) The goal number to begin with. 
    */
-  bool beginRecording(const std::string &path, const std::string &task_name = "", const std::string &bagfile_name = "");
+  bool beginRecording(const std::string &user_id, const std::string &path, const std::string &task_name = "", const std::string &bagfile_name = "");
 
   void endRecording();
 

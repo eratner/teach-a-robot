@@ -788,14 +788,16 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
 
 DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function(name) {
   var bagfileName = name || '';
+  var userName = workerId || this.userId.toString();
 
   DVIZ.debug && console.log('[DVizClient] Begin recording to '
-			    + (bagfileName.length > 0 ? bagfileName : 'default'));
+			    + (bagfileName.length > 0 ? bagfileName : 'default')
+			    + ' with user name ' + userName);
 
   if(bagfileName.length > 0) {
     this.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'begin_recording',
-      args : [bagfileName]
+      args : [userName, bagfileName]
     }), function(response) {
       if(response.response.length > 0) {
 	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
@@ -804,7 +806,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function(name) {
   } else {
     this.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'begin_recording',
-      args : []
+      args : [userName]
     }), function(response) {
       if(response.response.length > 0) {
 	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
@@ -882,8 +884,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function(complet
     if(hitId !== null && assignmentId !== null) {
       DVIZ.debug && console.log('[DVizClient] Submitting ' + goalsCompleted.toString() +
 				' goals completed to Mechanical Turk');
-
-      DVIZ.debug && console.log('[DVizClient] Submitting data string: ' + dataString);
 
       var form = $('<form />', {
 	action : externalSubmitURL,
@@ -1106,6 +1106,8 @@ function init() {
 // Kill the DVizUser when the user exits the page
 window.onbeforeunload = function removeUser() {
   if(!watching) {
+    dvizClient.endDemonstration();
+
     dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
       command : 'kill_user',
       args : [dvizClient.id.toString()]
