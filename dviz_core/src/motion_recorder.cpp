@@ -28,6 +28,7 @@ MotionRecorder::~MotionRecorder()
 
 bool MotionRecorder::beginRecording(const std::string &user_id,
 				    const std::string &path,
+				    const std::string &demo_id,
 				    const std::string &task_name,
 				    const std::string &bagfile_name)
 {
@@ -41,6 +42,16 @@ bool MotionRecorder::beginRecording(const std::string &user_id,
   }
   else
     user_name = user_id;
+
+  std::string demo_name;
+  if(user_id.empty())
+  {
+    std::stringstream id;
+    id << bag_count_;
+    demo_name = id.str();
+  }
+  else
+    demo_name = demo_id;
 
   if(!is_recording_)
   {
@@ -77,13 +88,13 @@ bool MotionRecorder::beginRecording(const std::string &user_id,
        << "/" << now.date().year();
     demo_.date = ss.str();
     demo_.task_name = task_name;
-    demo_.demo_id = bag_count_; // @todo
+    demo_.demo_id = demo_name;
 
     demo_.steps.clear();
 
     bag_count_++;
 
-    ROS_INFO("[MotionRec] Beginning to record motion to %s.", file_path.str().c_str());
+    ROS_INFO("[MotionRec] Beginning to record motion to %s", file_path.str().c_str());
   }
   else
   {
@@ -100,13 +111,13 @@ void MotionRecorder::endRecording()
   {
     is_recording_ = false;
 
-    // Compute the total time taken for the user demonstration.
+    // Compute the total time taken for the user demonstration
     // @todo
 
-    // Record the demonstration to a bag file.
+    // Record the demonstration to a bag file
     flush();
 
-    // Stop recording.
+    // Stop recording
     ROS_INFO("[MotionRec] Recording finished with %d messages", write_bag_.getSize());
     write_bag_.close();
 
@@ -149,8 +160,9 @@ bool MotionRecorder::beginReplay(const std::string &file)
   }
 
   // Get information about the user demonstration.
-  ROS_INFO("[MotionRec] Replaying user demonstration from user %s performing task \"%s\" on the date %s with the following steps:",
+  ROS_INFO("[MotionRec] Replaying demonstration from user %s with id %s performing task \"%s\" on the date %s with the following steps:",
 	   loaded_demo->user_id.c_str(),
+	   loaded_demo->demo_id.c_str(),
 	   loaded_demo->task_name.c_str(),
 	   loaded_demo->date.c_str());
   for(int i = 0; i < loaded_demo->steps.size(); i++)
@@ -351,7 +363,7 @@ geometry_msgs::Pose MotionRecorder::getNextBasePose()
 
 void MotionRecorder::flush()
 {
-  ROS_INFO("[MotionRec] Flushing user demonstration to file: %d steps.", (int)demo_.steps.size());
+  ROS_INFO("[MotionRec] Flushing user demonstration to file: %d steps", (int)demo_.steps.size());
 
   write_bag_.write("/demonstration", ros::Time::now(), demo_);
 }

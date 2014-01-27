@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Teach-A-Robot Instructions</title>
+
+    <script src="//code.jquery.com/jquery.js"></script>
+
+    <script type="text/javascript">
+      var workerId = '';
+      var assignmentId = '';
+
+      function init() {
+        var params = location.search.replace('?', '').split('&').map(function(x) {
+          return x.split('=');
+        });
+
+        for(i in params) {
+          if(params[i][0] === 'workerId') {
+            workerId = params[i][1];
+          } else if(params[i][0] === 'assignmentId') {
+            assignmentId = params[i][1];
+          }
+        }
+
+        var playButton = $('#play');
+        var doneButton = $('#done');
+        if(assignmentId === 'ASSIGNMENT_ID_NOT_AVAILABLE') {
+          playButton.html('In preview mode');
+          playButton.prop('disabled', true);
+          doneButton.html('In preview mode');
+          doneButton.prop('disabled', true);
+        } else if(assignmentId === '' || workerId === '') {
+          playButton.html('Error: assignment ID or worker ID not available');
+          playButton.prop('disabled', true);
+          doneButton.html('Error: assignment ID or worker ID not available');
+          doneButton.prop('disabled', true);
+        }
+
+        doneButton.prop('disabled', true);
+
+        playButton.on('click', function() {
+          console.log('Play');
+          var url = 'http://sbpl.net:21890/?workerId=' + workerId + '&assignmentId=' + assignmentId;
+          window.open(url, '_blank');
+          doneButton.prop('disabled', false);
+        });
+
+        doneButton.on('click', function() {
+          console.log('Done! Submitting progress to Mechanical Turk');
+          var form = $('<form />', {
+            action : 'https://workersandbox.mturk.com/mturk/externalSubmit',
+            method : 'POST',
+            style : 'display : none;'
+          });
+          $('<input />', {
+            type : 'hidden',
+            name : 'assignmentId',
+            value : assignmentId
+          }).appendTo(form);
+          $('<input />', {
+            type : 'hidden',
+            name : 'demoId',
+            value : assignmentId
+          }).appendTo(form);
+          form.appendTo('body').submit();
+        });
+      }
+    </script>
+
+  </head>
+
+  <body onload="init()">
+    <h1>Teach-A-Robot: Teaching Robots Through Human Demonstrations</h1>
+
+    <h2>Motivation</h2>
+    
+    <p>
+      In this HIT, you will be asked to complete a series of goals, each of which involves moving a robot through a simulated world to pick up and place various objects. How you choose to grasp the objects and move the robot will be recorded and used to teach robots to perform similar tasks faster and better. <b>Detailed instructions on how to use the application are provided before you begin the demonstration.</b>
+    </p>
+
+    <p>
+      You will be given <b>75 minutes</b> to complete and submit your progress. This should give you a comfortable amount of time to complete the given task.
+    </p>
+
+    <h2>Reward Policy</h2>
+
+    <p>
+      Monetary rewards will be given based upon how many goals were completed in a given demonstration: 
+      <ul>
+	<li>Each goal is worth <b>$0.25</b>.</li>
+	<li>An additional <b>$0.50</b> will be given for full completion of all 12 goals in the task.</li> 
+	<li>Since there are <b>12</b> goals in this task, the <b>maximum</b> payout is <b>$3.50</b> for the full completion of this HIT.</li>
+      </ul>
+    </p>
+
+    <h2>Start Demonstration</h2>
+
+    <p>
+      Click below to start the demonstration application in a new window. Simply close this window when you are done; <b>all progress will be saved automatically.</b>
+    </p>
+
+    <p>
+      <button id="play">Start demonstration application</button>
+    </p>
+
+    <h2>Submit Progress</h2>
+
+    <p>
+      <button id="done">When you are done, click here to submit your progress for review</button>
+    </p>
+  </body>
+</html>

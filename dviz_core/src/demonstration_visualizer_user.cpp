@@ -313,8 +313,10 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_RECORDING) == 0)
   {
     if(req.args.size() == 1 || // Just user string provided
-       req.args.size() == 2 || // User string and bagfile name provided
-       req.args.size() == 3)   // User string, bagfile name, and path to bagfile directory on the server provided
+       req.args.size() == 2 || // User string and demo name provided
+       req.args.size() == 3 || // User string, demo name, and bagfile name provided
+       req.args.size() == 4)   // User string, demo name, bagfile name, and path to bagfile directory on the server provided
+      
     {
       if(req.args.size() == 1)
       {
@@ -323,14 +325,19 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       }
       else if(req.args.size() == 2)
       {
-	// User string and bagfile name provided; use default path
-	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName(), req.args[1]);
+	// User string and demo name provided; use default path
+	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, req.args[1], demonstration_scene_manager_->getTaskName());
       }
-      else if(req.args.size() > 2)
+      else if(req.args.size() == 3)
       {
-	// User string, bagfile name, and path provided
-	recorder_->beginRecording(req.args[0], req.args[2], demonstration_scene_manager_->getTaskName(), req.args[1]);
-      } 
+	// User string, demo name, and bagfile name provided
+	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, req.args[1], demonstration_scene_manager_->getTaskName(), req.args[2]);
+      }
+      else if(req.args.size() > 3)
+      {
+	// User string, demo name, bagfile name, and path provided
+	recorder_->beginRecording(req.args[0], req.args[3], req.args[1], demonstration_scene_manager_->getTaskName(), req.args[2]);
+      }
 
       if(demonstration_scene_manager_->getNumGoals() > 0)
       {

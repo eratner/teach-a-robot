@@ -390,7 +390,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
     if(workerId !== null && assignmentId !== null) {
       var bagfileName = 'user_' + workerId + '_demonstration_' 
 	+ assignmentId + '.bag';
-      this.beginRecording(bagfileName);
+      this.beginRecording(bagfileName, assignmentId);
     } else {
       this.beginRecording();
     }
@@ -786,40 +786,28 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
   }
 }
 
-DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function(name) {
+DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function(name, demo) {
   var bagfileName = name || '';
   var userName = workerId || this.userId.toString();
+  var demoName = demo || '';
 
   DVIZ.debug && console.log('[DVizClient] Begin recording to '
 			    + (bagfileName.length > 0 ? bagfileName : 'default')
-			    + ' with user name ' + userName);
+			    + ' with user name ' + userName + 
+			   (demo.length > 0 ? (' and demo name ' + demoName) : ''));
 
-  if(bagfileName.length > 0) {
-    this.commandClient.callService(new ROSLIB.ServiceRequest({
-      command : 'begin_recording',
-      args : [userName, bagfileName]
-    }), function(response) {
-      if(response.response.length > 0) {
-	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
-      }
-    });
-  } else {
-    this.commandClient.callService(new ROSLIB.ServiceRequest({
-      command : 'begin_recording',
-      args : [userName]
-    }), function(response) {
-      if(response.response.length > 0) {
-	DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
-      }
-    });
-  }
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'begin_recording',
+    args : [userName, demoName, bagfileName]
+  }), function(response) {
+    if(response.response.length > 0) {
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.endRecording = function() {
   DVIZ.debug && console.log('[DVizClient] End recording');
-
-  // $('#rrButton').html(
-  //   '<button type="button" class="btn btn-default" onclick="dvizClient.beginRecording()">Begin Recording</button>');
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'end_recording',
@@ -881,32 +869,32 @@ DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function(complet
     // @todo do all the post-game 'clean up': save demonstration files,
     // etc. 
     // this can be called when a game is prematurely terminated
-    if(hitId !== null && assignmentId !== null) {
-      DVIZ.debug && console.log('[DVizClient] Submitting ' + goalsCompleted.toString() +
-				' goals completed to Mechanical Turk');
+    // if(hitId !== null && assignmentId !== null) {
+    //   DVIZ.debug && console.log('[DVizClient] Submitting ' + goalsCompleted.toString() +
+    // 				' goals completed to Mechanical Turk');
 
-      var form = $('<form />', {
-	action : externalSubmitURL,
-	method : 'POST',
-	style : 'display : none;'
-      });
-      $('<input />', {
-	type : 'hidden',
-	name : 'assignmentId',
-	value : assignmentId
-      }).appendTo(form);
-      $('<input />', {
-	type : 'hidden',
-	name : 'goalsCompleted',
-	value : goalsCompleted
-      }).appendTo(form);
-      $('<input />', {
-	type : 'hidden',
-	name : 'taskCompleted',
-	value : taskCompleted
-      }).appendTo(form);
-      form.appendTo('body').submit();
-    }
+    //   var form = $('<form />', {
+    // 	action : externalSubmitURL,
+    // 	method : 'POST',
+    // 	style : 'display : none;'
+    //   });
+    //   $('<input />', {
+    // 	type : 'hidden',
+    // 	name : 'assignmentId',
+    // 	value : assignmentId
+    //   }).appendTo(form);
+    //   $('<input />', {
+    // 	type : 'hidden',
+    // 	name : 'goalsCompleted',
+    // 	value : goalsCompleted
+    //   }).appendTo(form);
+    //   $('<input />', {
+    // 	type : 'hidden',
+    // 	name : 'taskCompleted',
+    // 	value : taskCompleted
+    //   }).appendTo(form);
+    //   form.appendTo('body').submit();
+    // }
   }
 }
 
@@ -1106,6 +1094,8 @@ function init() {
 // Kill the DVizUser when the user exits the page
 window.onbeforeunload = function removeUser() {
   if(!watching) {
+    // Importantly, ending the demonstration explicitly flushes the progress made in the 
+    // demonstration to the appropriate bagfile
     dvizClient.endDemonstration();
 
     dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({

@@ -37,14 +37,25 @@ public:
   /**
    * @brief Creates a bagfile for recording motion at the specified 
    *        file path. 
-   * @param path The path indicating where to save the bagfile.
-   * @param task_name (optional) The name of the task that is being recorded.
-   * @param start_goal (optional) The goal number to begin with. 
+   * @param user_id The user id string
+   * @param path The path indicating where to save the bagfile
+   * @param task_name (optional) The name of the task that is being recorded
+   * @param bagfile_name (optional) The name of the bagfile where the demonstration should be
+   *                     saved
+   * @param demo_id (optional) The string id unique to this demonstration
    */
-  bool beginRecording(const std::string &user_id, const std::string &path, const std::string &task_name = "", const std::string &bagfile_name = "");
+  bool beginRecording(const std::string &user_id, 
+		      const std::string &path,
+		      const std::string &demo_id = "",
+		      const std::string &task_name = "", 
+		      const std::string &bagfile_name = "");
 
   void endRecording();
 
+  /**
+   * @brief Replay a demonstration from a given bagfile
+   * @param file The path to the bagfile containing the demonstration
+   */
   bool beginReplay(const std::string &file);
 
   void endReplay();
@@ -75,13 +86,13 @@ public:
 
   /**
    * @brief If replaying from a bagfile, this will return the next
-   *        set of joint angle positions in the recorded trajectory.
+   *        set of joint angle positions in the recorded trajectory
    */
   sensor_msgs::JointState getNextJoints();
 
   /**
    * @brief If replaying from a bagfile, this will return the next
-   *        base pose from the recorded trajectory.
+   *        base pose from the recorded trajectory
    */
   geometry_msgs::Pose getNextBasePose();
 
