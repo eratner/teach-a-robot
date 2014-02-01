@@ -9,7 +9,7 @@
     <goal number="6" type="0" desc="Grab the pan from the sink" object_id="6" camera_phi="1.9816417401337465" camera_theta="1.7525649566552322" camera_radius="2.2145429410432453" />
     <goal number="7" type="1" desc="Put the pan on the counter" object_id="6" ignore_yaw="1" position_x="0.901986" position_y="0.799256" position_z="0.899204" orientation_x="2.81518e-07" orientation_y="-4.96768e-08" orientation_z="0.93971" orientation_w="-0.341973" />
     <goal number="8" type="0" desc='Retrieve the &quot;mixing utensil&quot;' object_id="11" camera_phi="1.2414517994125198" camera_theta="2.29745593289256" camera_radius="2.331097807992244" />
-    <goal number="9" type="1" desc='Bring the &quot;mixing utensil&quot; to the island' object_id="11" ignore_yaw="0" position_x="1.22671" position_y="1.67001" position_z="0.89535" orientation_x="0.0736653" orientation_y="0.703358" orientation_z="-0.70323" orientation_w="-0.0730008" />
+    <goal number="9" type="1" desc='Bring the &quot;mixing utensil&quot; to the island' object_id="11" ignore_yaw="0" position_x="1.52564" position_y="2.53245" position_z="0.600653" orientation_x="0.194509" orientation_y="-0.0035289" orientation_z="-0.637417" orientation_w="0.745556" />
     <goal number="10" type="0" desc="Get the eggs from the fridge" object_id="7" camera_phi="1.5983732274018796" camera_theta="2.4604915823343654" camera_radius="1.9480187237795084" />
-    <goal number="11" type="1" desc="Bring the eggs to the island" object_id="7" ignore_yaw="1" position_x="0.492781" position_y="2.69086" position_z="0.903934" orientation_x="6.93834e-08" orientation_y="-7.61662e-09" orientation_z="-0.983537" orientation_w="0.180706" />
+    <goal number="11" type="1" desc="Bring the eggs to the island" object_id="7" ignore_yaw="1" position_x="0.492781" position_y="2.69086" position_z="0.917871" orientation_x="6.93834e-08" orientation_y="-7.61662e-09" orientation_z="-0.983537" orientation_w="0.180706" />
 </task>

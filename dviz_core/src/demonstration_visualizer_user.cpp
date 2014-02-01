@@ -436,6 +436,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
     if(req.args.size() == 1)
     {
       double speed = atof(req.args[0].c_str());
+      //ROS_INFO("[DVizUser%d] Setting end-effector speed to %f", id_, speed);
       // Speed is given in m/s, must be converted to m/f.
       simulator_->setEndEffectorSpeed(speed * (1/getFrameRate()));
     }

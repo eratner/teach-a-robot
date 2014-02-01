@@ -8,8 +8,10 @@ const std::string EndEffectorController::R_GRIPPER_MARKER_NAME = "r_gripper_mark
 const double EndEffectorController::GRIPPER_OPEN_ANGLE = 0.548;
 const double EndEffectorController::GRIPPER_CLOSED_ANGLE = 0.00;
 
+const double EndEffectorController::DEFAULT_SPEED = 0.006;
+
 EndEffectorController::EndEffectorController(interactive_markers::InteractiveMarkerServer *int_marker_server)
- : int_marker_server_(int_marker_server), last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(0.05/10.0),
+ : int_marker_server_(int_marker_server), last_state_(INITIAL), current_state_(INITIAL), frames_(0), speed_(DEFAULT_SPEED),
    print_transitions_(false)
 {
 

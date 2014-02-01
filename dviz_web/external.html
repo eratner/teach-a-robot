@@ -32,9 +32,9 @@
           doneButton.html('In preview mode');
           doneButton.prop('disabled', true);
         } else if(assignmentId === '' || workerId === '') {
-          playButton.html('Error: assignment ID or worker ID not available');
+          playButton.html('Error: assignment ID and/or worker ID not available');
           playButton.prop('disabled', true);
-          doneButton.html('Error: assignment ID or worker ID not available');
+          doneButton.html('Error: assignment ID and/or worker ID not available');
           doneButton.prop('disabled', true);
         }
 
@@ -85,12 +85,18 @@
     <h2>Motivation</h2>
     
     <p>
-      In this HIT, you will be asked to complete a series of goals, each of which involves moving a robot through a simulated world to pick up and place various objects. How you choose to grasp the objects and move the robot will be recorded and used to teach robots to perform similar tasks faster and better. <b>Detailed instructions on how to use the application are provided before you begin the demonstration.</b>
+      In this HIT, you will be asked to complete a series of goals, each of which involves moving a robot through a simulated world to pick up and place various objects. How you choose to grasp the objects and move the robot will be recorded and used to teach robots to perform similar tasks faster and better. <b>Detailed instructions on how to use the simulator are provided before you begin the demonstration.</b>
     </p>
 
     <p>
       You will be given <b>75 minutes</b> to complete and submit your progress. This should give you a comfortable amount of time to complete the given task.
     </p>
+
+    <h2>Requirements</h2>
+
+    <p>You must use a WebGL-enabled web-browser; we recommend <strong>Google Chrome</strong>.</p>
+
+    <p>Prior video-game experience can be helpful.</p>
 
     <h2>Reward Policy</h2>
 
@@ -103,11 +109,17 @@
       </ul>
     </p>
 
+    <p>
+      <strong>If you choose a grasp for the robot to hold an object too unrealistically, you will not recieve payment for that goal.</strong>
+    </p>
+
     <h2>Start Demonstration</h2>
 
     <p>
       Click below to start the demonstration application in a new window. Simply close this window when you are done; <b>all progress will be saved automatically.</b>
     </p>
+
+    <p><b>Good luck!</b></p>
 
     <p>
       <button id="play">Start demonstration application</button>
@@ -116,7 +128,7 @@
     <h2>Submit Progress</h2>
 
     <p>
-      (Optional) If you have any feedback (regarding gameplay mechanics, issues you encountered, etc.) please write it in the form below.
+      (Optional) If you have any feedback (regarding gameplay mechanics, issues you encountered, etc.) please write it in the form below. We are in a stage of active development, so any feedback you provide will be very helpful!
     </p>
 
     <p>
@@ -124,7 +136,7 @@
     </p>
 
     <p>
-      <button id="done">When you are done, click here to submit your progress for review</button>
+      <button id="done">When you are done, click here to submit your progress for review. Thank you!</button>
     </p>
   </body>
 </html>

@@ -25,6 +25,8 @@ public:
   static const double GRIPPER_OPEN_ANGLE;
   static const double GRIPPER_CLOSED_ANGLE;
 
+  static const double DEFAULT_SPEED;
+
   enum State { INITIAL = 0,
                READY,
 	       MOVING_TO_GOAL,

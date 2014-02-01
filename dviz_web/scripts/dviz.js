@@ -4,7 +4,7 @@
 var DVIZ = DVIZ || {};
 
 // This flag toggles output to the console that may be useful when debugging
-DVIZ.debug = true;
+DVIZ.debug = false;
 
 /**
  * Creates a simple moving average (SMA) filter of size n.
@@ -851,7 +851,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   // description of the next goal in the task
   var message = 'Goal ' + goalNumber.toString() + ' completed! ';
   if(goalNumber + 1 >= this.goals.length) {
-    message += 'The task is complete.';
+    message += 'Congradulations, the task is complete! Close this window and your demonstration will automatically be saved. Return to the Mechanical Turk page to submit your results.';
     this.endDemonstration(true);
   } else {
     message += ('Next goal: ' + 
@@ -1495,10 +1495,10 @@ function initializeGameplaySettings() {
     }
   });
   $('#endEffectorSpeed').slider({
-    value : 0.4,
-    min : 0.01,
-    max : 0.6,
-    step : 0.03,
+    value : 0.06,
+    min : 0.02,
+    max : 0.24,
+    step : 0.02,
     slide : function(event, ui) {
       setEndEffectorSpeed(ui.value);
     }
