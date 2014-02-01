@@ -321,7 +321,7 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       if(req.args.size() == 1)
       {
 	// Just user string provided; use defaults for path and bagfile name
-	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, demonstration_scene_manager_->getTaskName());
+	recorder_->beginRecording(req.args[0], MotionRecorder::DEFAULT_DEMONSTRATION_PATH, "", demonstration_scene_manager_->getTaskName());
       }
       else if(req.args.size() == 2)
       {
