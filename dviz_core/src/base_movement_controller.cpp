@@ -3,9 +3,13 @@
 namespace demonstration_visualizer
 {
 
+const double BaseMovementController::DEFAULT_LINEAR_SPEED = 0.05;
+const double BaseMovementController::DEFAULT_ANGULAR_SPEED = 0.05;
+
 BaseMovementController::BaseMovementController()
   : last_state_(INITIAL), frames_(0),
-    linear_speed_(0.04), angular_speed_(0.04),
+    linear_speed_(DEFAULT_LINEAR_SPEED),
+    angular_speed_(DEFAULT_ANGULAR_SPEED),
     print_transitions_(false)
 {
 

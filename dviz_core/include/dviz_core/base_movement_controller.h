@@ -30,6 +30,9 @@ static const char *STATE_NAMES[] = { "INITIAL",
 class BaseMovementController
 {
 public:
+  static const double DEFAULT_LINEAR_SPEED;
+  static const double DEFAULT_ANGULAR_SPEED;
+
   enum State { INITIAL = 0,
 	       READY,
                ROTATE_TO_POSITION,

@@ -318,6 +318,8 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
        req.args.size() == 4)   // User string, demo name, bagfile name, and path to bagfile directory on the server provided
       
     {
+      ROS_INFO("[DVizUser%d] Beginning to record demonstration of task %s",
+	       id_, demonstration_scene_manager_->getTaskName().c_str());
       if(req.args.size() == 1)
       {
 	// Just user string provided; use defaults for path and bagfile name
@@ -639,7 +641,6 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       goal.object_id = pick_up_goal->getObjectID();
       goal.grasp_pose = pick_up_goal->getGraspPose();
       goal.initial_object_pose = pick_up_goal->getInitialObjectPose();
-      //goal.grasp_distance = pick_up_goal->getGraspDistance();
       goal.gripper_joint_position = pick_up_goal->getGripperJointPosition();
       goal.camera_phi = pick_up_goal->getCameraPhi();
       goal.camera_theta = pick_up_goal->getCameraTheta();
@@ -667,7 +668,10 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
   if(demonstration_scene_manager_->editGoalsMode() ||
      demonstration_scene_manager_->taskDone() ||
      demonstration_scene_manager_->getNumGoals() == 0)
+  {
+    //ROS_INFO("[DVizUser%d] All goals complete; task complete!", id_);
     return;
+  }
 
   Goal *current_goal = demonstration_scene_manager_->getGoal(demonstration_scene_manager_->getCurrentGoal());
 
@@ -776,7 +780,7 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       // the object that it must pick up (our collision spheres may not
       // be precise enough to allow for tight grasps of the object while
       // still being free of collision)
-      ROS_INFO("going to skip object with id %d", pick_up_goal->getObjectID());
+      //ROS_INFO("going to skip object with id %d", pick_up_goal->getObjectID());
       goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
 						     pick_up_goal->getGripperJointPosition(),
 						     false,
@@ -995,17 +999,25 @@ void DemonstrationVisualizerUser::goalCompleted()
 
   if(recorder_->isRecording())
   {
-    if(demonstration_scene_manager_->getNumGoals() > 0)
+    if(demonstration_scene_manager_->taskDone())
+    {
+      ROS_INFO("[DVizUser%d] Task done!", id_);
+    }
+    else if(demonstration_scene_manager_->getNumGoals() > 0)
     {
       int current_goal = demonstration_scene_manager_->getCurrentGoal();
       Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
       std::string object_label = "";
       geometry_msgs::Pose grasp_pose;
-      // Object type and grasp pose is only relevant if the the goal type is PICK_UP.
+      // Object type and grasp pose is only relevant if the the goal type is PICK_UP
       if(goal->getType() == Goal::PICK_UP)
       {
 	object_label = object_manager_->getObjectLabel(static_cast<PickUpGoal *>(goal)->getObjectID());
 	grasp_pose = demonstration_scene_manager_->getGraspPose(current_goal);
+      }
+      else if(goal->getType() == Goal::PLACE)
+      {
+	object_label = object_manager_->getObjectLabel(static_cast<PlaceGoal *>(goal)->getObjectID());
       }
       ROS_INFO("[DVizUser%d] Adding step for goal type %s and object %s", id_,
 	       Goal::GoalTypeNames[goal->getType()], object_label.c_str());

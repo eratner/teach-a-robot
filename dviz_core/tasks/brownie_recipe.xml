@@ -1,4 +1,5 @@
 <task>
+    <task_info name="brownie recipe" />
     <goal number="0" type="0" desc="Grab the oil from the counter" object_id="8" camera_phi="0.6824048839028413" camera_theta="1.4209270681490944" camera_radius="2.331097767336457" />
     <goal number="1" type="1" desc="Bring the oil to the island" object_id="8" ignore_yaw="1" position_x="0.515593" position_y="0.850125" position_z="1.01283" orientation_x="-2.33272e-08" orientation_y="-5.28618e-08" orientation_z="0.500147" orientation_w="0.86594" />
     <goal number="2" type="0" desc="Get the cake mix from the shelf" object_id="10" camera_phi="0.6358284867501904" camera_theta="1.6086502764905957" camera_radius="1.9986250400543182" />

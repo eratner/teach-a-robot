@@ -337,8 +337,10 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
 	} else if(i === that.currentGoalNumber) {
 	  color = '0088CC';
 	}
-	html = html + '<a href="#" onclick="dvizClient.changeGoal(' +
-	  message.goals[i].number + ')" class="list-group-item">' + 
+	html = html + '<a href="#"' + 
+	  (DVIZ.debug ? 
+	   (' onclick="dvizClient.changeGoal(' + message.goals[i].number + ')" ') :
+	   ' ') + 'class="list-group-item">' + 
 	  '<font color="' + color + '">' + 
 	  message.goals[i].description + '</font></a>';
       }
@@ -1414,6 +1416,7 @@ function setEndEffectorSpeed(s) {
   if(isNaN(speed)) {
     showAlert('Not a valid speed!');
   } else {
+    DVIZ.debug && console.log('[DVizClient] Setting end-effector speed to ' + speed.toString());
     dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
       command : 'set_arm_speed',
       args : [speed.toString()]
@@ -1474,7 +1477,7 @@ function hideGameplaySettings() {
 
 function initializeGameplaySettings() {
   $('#baseLinearSpeed').slider({
-    value : 0.4,
+    value : 0.5,
     min : 0.01,
     max : 1.0,
     step : 0.03,
@@ -1483,7 +1486,7 @@ function initializeGameplaySettings() {
     }
   });
   $('#baseAngularSpeed').slider({
-    value : 0.4,
+    value : 0.5,
     min : 0.01,
     max : 1.0,
     step : 0.03,
