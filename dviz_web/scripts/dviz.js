@@ -386,6 +386,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
   // If the user has not started the game yet, load the task
   if(!this.gameStarted) {
     this.loadTask();
+    this.robotMarkerControl(true);
     // Start recording
     if(workerId !== null && assignmentId !== null) {
       var bagfileName = 'user_' + workerId + '_demonstration_' 
@@ -788,13 +789,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
 
 DVIZ.DemonstrationVisualizerClient.prototype.beginRecording = function(name, demo) {
   var bagfileName = name || '';
-  var userName = workerId || this.userId.toString();
+  var userName = workerId || this.id.toString();
   var demoName = demo || '';
 
   DVIZ.debug && console.log('[DVizClient] Begin recording to '
 			    + (bagfileName.length > 0 ? bagfileName : 'default')
 			    + ' with user name ' + userName + 
-			   (demo.length > 0 ? (' and demo name ' + demoName) : ''));
+			   (demoName.length > 0 ? (' and demo name ' + demoName) : ''));
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'begin_recording',
@@ -1046,6 +1047,30 @@ function init() {
       $('#endDemonstration').prop('disabled', false);
 
       dvizClient.displayStatusText('Connected to the server!');
+
+      // // Intially pause the game
+      // DVIZ.debug && console.log('[DVizClient] Pausing the game');
+
+      // dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
+      // 	command : 'pass_user_command_threaded',
+      // 	args : [dvizClient.id.toString(), 
+      // 		'pause_now']
+      // }), function(response) {
+      // 	if(response.response.length > 0) {
+      // 	  DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
+      // 	} 
+      // });
+
+      dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
+      	command : 'pass_user_command_threaded',
+      	args : [dvizClient.id.toString(), 
+      		'robot_marker_control',
+	        'false']
+      }), function(response) {
+      	if(response.response.length > 0) {
+      	  DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
+      	} 
+      });
     });
   }
 
@@ -1286,10 +1311,10 @@ function setCameraFollowing() {
 function setCameraFilter() {
   var filter = document.getElementById('cameraTfFilter').checked;
   if(filter) {
-    DVIZ.debug && console.log('[DVizClient] Enabling camera TF filtering.');
+    DVIZ.debug && console.log('[DVizClient] Enabling camera TF filtering');
     dvizClient.cameraManager.setFilterTf(filter);
   } else {
-    DVIZ.debug && console.log('[DVizClient] Disabling camera TF filtering.');
+    DVIZ.debug && console.log('[DVizClient] Disabling camera TF filtering');
     dvizClient.cameraManager.setFilterTf(filter);
   }
 }
@@ -1302,7 +1327,7 @@ function setFrameBufferSize() {
     DVIZ.debug && console.log('[DVizClient] \'' + document.getElementById('frameBuffer').value
 			 + '\' is not a valid integer value!');
   } else {
-    DVIZ.debug && console.log('[DVizClient] Set frame buffer size to ' + frameBufferSize + '.');
+    DVIZ.debug && console.log('[DVizClient] Set frame buffer size to ' + frameBufferSize);
     dvizClient.cameraManager.baseXFilter = createSMAFilter(frameBufferSize);
     dvizClient.cameraManager.baseYFilter = createSMAFilter(frameBufferSize);
   }

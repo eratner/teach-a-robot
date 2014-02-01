@@ -6,7 +6,7 @@ namespace demonstration_visualizer
 DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id, bool web)
   : id_(id), ok_(true), web_(web), frame_rate_(10.0), frame_rate_changed_(false), accepted_grasp_(true)
 {
-  ROS_INFO("[DVizUser%d] Constructing user.", id_);
+  ROS_INFO("[DVizUser%d] Constructing user", id_);
 
   if(!init(argc, argv))
   {

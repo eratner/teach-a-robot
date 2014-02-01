@@ -171,19 +171,50 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     }
     else
     {
-      ROS_ERROR("[DVizCore] Invalid number of arguments for load_scene (%d given, 2 required).",
+      ROS_ERROR("[DVizCore] Invalid number of arguments for load_scene (%d given, 2 required)",
 		req.args.size());
       std::stringstream ss;
-      ss << "Invalid number of arguments for load_scene (" << req.args.size() << " given, 2 required).";
+      ss << "Invalid number of arguments for load_scene (" << req.args.size() << " given, 2 required)";
       res.response = ss.str();
       return false;
     }
   } // end LOAD_SCENE
+  else if(req.command.compare(dviz_core::Command::Request::PASS_USER_COMMAND_THREADED) == 0)
+  {
+    if(req.args.size() >= 2)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      std::string command = req.args[1];
+      std::vector<std::string> args;
+      for(int i = 2; i < req.args.size(); ++i)
+      {
+	args.push_back(req.args[i]);
+      }
+
+      boost::thread worker = boost::thread(
+	&DemonstrationVisualizerCore::passCommandToUserThreaded,
+	this,
+	command,
+	res.response,
+	user_id,
+	args,
+	10.0f);
+    }
+    else
+    {
+      ROS_ERROR("[DVizCore] Invalid number of arguments for pass_user_command_threaded (%d given, >= 2 required)",
+		req.args.size());
+      std::stringstream ss;
+      ss << "Invalid number of arguments for pass_user_command_threaded (" << req.args.size() << " given, >= 2 required)";
+      res.response = ss.str();
+      return false;
+    }
+  } // end PASS_USER_COMMAND_THREADED
   else
   {
-    ROS_ERROR("[DVizCore] Invalid command \"%s\".", req.command.c_str());
+    ROS_ERROR("[DVizCore] Invalid command \"%s\"", req.command.c_str());
     std::stringstream ss;
-    ss << "Invalid command \"" << req.command.c_str() << "\".";
+    ss << "Invalid command \"" << req.command.c_str() << "\"";
     res.response = ss.str();
     return false;
   }
@@ -223,20 +254,20 @@ int DemonstrationVisualizerCore::addUser()
   }
 
   num_users_++;
-  ROS_INFO("[DVizCore] Number of users is %d.", num_users_);
+  ROS_INFO("[DVizCore] Number of users is %d", num_users_);
 
-  // Establish a command service client to issue commands to the newly created user.
+  // Establish a command service client to issue commands to the newly created user
   ros::NodeHandle nh;
-  ROS_INFO("adding %s", resolveName("dviz_command", id).c_str());
+  ROS_INFO("[DVizCore] Adding %s", resolveName("dviz_command", id).c_str());
   if(user_command_services_.find(id) == user_command_services_.end())
   {
-    ROS_INFO("[DVizCore] Adding service %s.", resolveName("dviz_command", id).c_str());
+    ROS_INFO("[DVizCore] Adding service %s", resolveName("dviz_command", id).c_str());
     user_command_services_.insert(std::pair<int, ros::ServiceClient>(
 				    id, nh.serviceClient<dviz_core::Command>(resolveName("dviz_command", id))));
   }
   else
   {
-    ROS_INFO("[DVizCore] Re-adding service %s.", resolveName("dviz_command", id).c_str());
+    ROS_INFO("[DVizCore] Re-adding service %s", resolveName("dviz_command", id).c_str());
     user_command_services_[id] = nh.serviceClient<dviz_core::Command>(resolveName("dviz_command", id));
   }
 
@@ -265,7 +296,7 @@ bool DemonstrationVisualizerCore::passCommandToUser(const std::string &command,
     {
       ROS_ERROR("[DVizCore] Something went wrong in passing %s command to user ID %d!", command.c_str(), id);
       std::stringstream ss;
-      ss << "Something went wrong in passing " << command << " command to user ID " << id << ".";
+      ss << "Something went wrong in passing " << command << " command to user ID " << id;
       response = ss.str();
       return false;
     }

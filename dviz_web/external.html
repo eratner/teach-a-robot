@@ -49,6 +49,9 @@
 
         doneButton.on('click', function() {
           console.log('Done! Submitting progress to Mechanical Turk');
+
+          var feedbackText = $('#feedback').val();
+
           var form = $('<form />', {
             action : 'https://workersandbox.mturk.com/mturk/externalSubmit',
             method : 'POST',
@@ -63,6 +66,11 @@
             type : 'hidden',
             name : 'demoId',
             value : assignmentId
+          }).appendTo(form);
+          $('<input />', {
+            type : 'hidden',
+            name : 'feedback',
+            value : feedbackText
           }).appendTo(form);
           form.appendTo('body').submit();
         });
@@ -89,9 +97,9 @@
     <p>
       Monetary rewards will be given based upon how many goals were completed in a given demonstration: 
       <ul>
-	<li>Each goal is worth <b>$0.25</b>.</li>
-	<li>An additional <b>$0.50</b> will be given for full completion of all 12 goals in the task.</li> 
-	<li>Since there are <b>12</b> goals in this task, the <b>maximum</b> payout is <b>$3.50</b> for the full completion of this HIT.</li>
+	<li>Each goal is worth <b>$0.50</b>.</li>
+	<li>An additional <b>$1.00</b> will be given for full completion of all 12 goals in the task.</li> 
+	<li>Since there are <b>12</b> goals in this task, the <b>maximum</b> payout is <b>$7.00</b> for the full completion of this HIT.</li>
       </ul>
     </p>
 
@@ -106,6 +114,14 @@
     </p>
 
     <h2>Submit Progress</h2>
+
+    <p>
+      (Optional) If you have any feedback (regarding gameplay mechanics, issues you encountered, etc.) please write it in the form below.
+    </p>
+
+    <p>
+      <textarea id="feedback"></textarea>
+    </p>
 
     <p>
       <button id="done">When you are done, click here to submit your progress for review</button>
