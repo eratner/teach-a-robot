@@ -857,7 +857,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
     message += ('Next goal: ' + 
 		this.goals[goalNumber + 1].description);
   }
-  $('#goalCompleteMessage').text(message);
+
+  message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString() 
+    + ' out of 12 goals</strong>, so you are now eligible for <strong>$'
+    + ((goalsCompleted * 0.50).toFixed(2)).toString() 
+    + '</strong>! Remember to submit your progress on the previous page, after closing this window.';
+
+  $('#goalCompleteMessage').html(message);
   $('#goalCompleteModal').modal('show');
 }
 
