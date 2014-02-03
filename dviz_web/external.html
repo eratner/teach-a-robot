@@ -53,7 +53,8 @@
           var feedbackText = $('#feedback').val();
 
           var form = $('<form />', {
-            action : 'https://workersandbox.mturk.com/mturk/externalSubmit',
+            //action : 'https://workersandbox.mturk.com/mturk/externalSubmit',
+            action : 'https://www.mturk.com/mturk/externalSubmit',
             method : 'POST',
             style : 'display : none;'
           });
@@ -89,27 +90,36 @@
     </p>
 
     <p>
-      You will be given <b>75 minutes</b> to complete and submit your progress. This should give you a comfortable amount of time to complete the given task.
+      You will be given <b>2 hours</b> to complete and submit your progress. This should give you enough time to complete the given task.
+    </p>
+
+    <p>
+      <strong>WARNING:</strong> The server that hosts this game is located in <strong>Pittsburgh, PA, USA</strong>. If you live very far from this location, especially outside the US, or you have a bad connection, you may experience varying degrees of lag.
     </p>
 
     <h2>Requirements</h2>
 
-    <p>You must use a WebGL-enabled web-browser; we recommend <strong>Google Chrome</strong>.</p>
+    <p>You must use a WebGL-enabled web-browser; we strongly recommend <strong>Google Chrome</strong>.</p>
 
-    <p>Prior video-game experience can be helpful.</p>
+    <p>Prior video-game experience (or other 3D applications) is <strong>strongly recommended</strong>.</p>
 
     <h2>Reward Policy</h2>
 
-    <p>As long as you successfully complete the first goal (i.e. picking up the first object), <strong>your results will be accepted</strong>. We encourage you to continue the task through added monetary rewards.</p>
+    <p>As long as you successfully complete the first two goals (i.e. picking up the first object, and placing it down), <strong>your results will be accepted</strong>. Please continue the task for additional rewards.</p>
 
     <p>
-      Rewards will be given based upon how many goals were completed in a given demonstration: 
+      Monetary rewards will be given based upon how many goals were completed: 
       <ul>
 	<li>Each goal is worth <b>$0.50</b>.</li>
-	<li>An additional <b>$1.00</b> will be given for full completion of all 12 goals in the task.</li> 
-	<li>Since there are <b>12</b> goals in this task, the <b>maximum</b> payout is <b>$7.00</b> for the full completion of this HIT.</li>
+	<li>After the first <b>6 goals</b> are completed, an additional <b>$1.00</b> will be rewarded.</li>
+	<li>An additional <b>$1.00</b> will be given after the completion of the remaining <b>6 goals</b>.</li> 
+	<li>Since there are <b>12</b> goals in this task, the <b>maximum</b> payout is <b>$8.00</b> for the full completion of this HIT.</li>
       </ul>
     </p>
+
+    <p>
+      <strong>You will be notified by the game each time you complete a goal.</strong>
+    <p>
 
     <p>
       <strong>If you choose a grasp for the robot to hold an object too unrealistically, you will not recieve payment for that goal.</strong>
@@ -118,13 +128,17 @@
     <h2>Start Demonstration</h2>
 
     <p>
-      Click below to start the demonstration application in a new window. Simply close this window when you are done; <b>all progress will be saved automatically.</b>
+      Click below to start the demonstration application in a new window. Simply close this window when you are done; <b>all progress will be saved automatically.</b> When you are done (regardless of whether or not you decide to submit your results) make sure to press the <strong>done button</strong> in the game window, which has the following symbol:
     </p>
 
-    <p><b>Good luck!</b></p>
+    <p>
+      <img src="images/done.png" width="65" height="65" />
+    </p>
+
+    <p><strong>Good luck!</strong></p>
 
     <p>
-      <button id="play">Start demonstration application</button>
+      <button id="play"><h3><strong>Start!</strong></h3></button>
     </p>
 
     <h2>Submit Progress</h2>
@@ -138,7 +152,10 @@
     </p>
 
     <p>
-      <button id="done">When you are done, click here to submit your progress for review. Thank you!</button>
+      <button id="done"><h3><strong>Submit Progress</strong></h3></button>
+    </p>
+    <p>
+      <strong>Thank you! :)</strong>
     </p>
   </body>
 </html>

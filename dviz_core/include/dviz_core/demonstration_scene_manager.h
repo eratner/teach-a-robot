@@ -54,11 +54,17 @@ public:
 
   void saveScene(const std::string &filename);
 
-  bool loadTask(const std::string &filename);
+  bool loadTask(const std::string &filename, bool randomize = false);
 
   void saveTask(const std::string &filename);
 
   void resetTask();
+
+  /**
+   * @brief Randomizes any currently loaded pick-and-place tasks (so the assumption
+   *        is that pairs of goals must remain in the same order, e.g. 0 & 1, 2 & 3, etc.)
+   */
+  void randomizePickAndPlaceTask();
 
   void addMeshFromFile(const std::string &filename, int mesh_id, 
 		       const std::string &label = "", bool movable = false,

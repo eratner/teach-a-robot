@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, int id, bool web)
-  : id_(id), ok_(true), web_(web), frame_rate_(10.0), frame_rate_changed_(false), accepted_grasp_(true)
+  : id_(id), ok_(true), web_(web), frame_rate_(10.0), frame_rate_changed_(false), accepted_grasp_(true), ping_count_(0), ping_delay_count_(0)
 {
   ROS_INFO("[DVizUser%d] Constructing user", id_);
 
@@ -44,6 +44,14 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   ss.str(std::string());
   ss << "/dviz_user_" << id_ << "/visualization_marker_array";
   marker_array_pub_ = handle.advertise<visualization_msgs::MarkerArray>(ss.str(), 500);
+  ss.str(std::string());
+  ss << "/dviz_user_" << id_ << "/ping";
+  ping_pub_ = handle.advertise<std_msgs::Empty>(ss.str(), 30);
+  ss.str(std::string());
+  ss << "/dviz_user_" << id_ << "/ping_response";
+  ping_sub_ = handle.subscribe(ss.str(), 1,
+			       &DemonstrationVisualizerUser::pingResponse,
+			       this);
 
   std::string larm_filename;
   std::string rarm_filename;
@@ -74,6 +82,9 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
       ROS_ERROR("[DVizUser%d] fork failed in destructor!", id_);
     }
   }
+
+  // Just in case, end the recording before the user dies
+  recorder_->endRecording();
 
   delete int_marker_server_;
   delete object_manager_;
@@ -108,6 +119,23 @@ void DemonstrationVisualizerUser::run()
 
     // Update goals and task.
     updateGoalsAndTask();
+
+    // if(ping_count_ > 30)
+    // {
+    //   ROS_ERROR("[DVizUser%d] DVizClient has timed out, destroying user", id_);
+    //   ok_ = false;
+    // }
+
+    // if(ping_delay_count_ >= 10)
+    // {
+    //   std_msgs::Empty ping;
+    //   ping_pub_.publish(ping);
+    //   ping_count_++;
+    //   ROS_WARN("[DVizUser%d] Ping count raised to %d", id_, ping_count_);
+    //   ping_delay_count_ = 0;
+    // }
+
+    // ping_delay_count_++;
 
     ros::spinOnce();
     rate.sleep();
@@ -154,19 +182,21 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	std::string path = req.args[0].substr(10+i);
 	std::stringstream ss;
 	ss << ros::package::getPath(package) << path;
-	demonstration_scene_manager_->loadTask(ss.str());
+	// Load the task, and randomize it
+	demonstration_scene_manager_->loadTask(ss.str(), true);
       }
       else
       {
-	demonstration_scene_manager_->loadTask(req.args[0]);
+	// Load the task, and randomize it
+	demonstration_scene_manager_->loadTask(req.args[0], true);
       }
     }
     else
     {
-      ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_task (%d given, 1 required).",
+      ROS_ERROR("[DVizUser%d] Invalid number of arguments for load_task (%d given, 1 required)",
 		id_, (int)req.args.size());
       std::stringstream ss;
-      ss << "Invalid number of arguments for load_task (" << req.args.size() << " given, 1 required).";
+      ss << "Invalid number of arguments for load_task (" << req.args.size() << " given, 1 required)";
       res.response = ss.str();
       return false;
     }
@@ -391,6 +421,10 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   {
     recorder_->endRecording();
   } // end END_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::SAVE_RECORDING) == 0)
+  {
+    recorder_->saveRecording();
+  }
   else if(req.command.compare(dviz_core::Command::Request::PROCESS_KEY) == 0)
   {
     if(req.args.size() == 2)
@@ -955,7 +989,7 @@ bool DemonstrationVisualizerUser::init(int argc, char **argv)
 						     this, _1, _2));
 
   // Advertise a topic for publishing the current task.
-  task_pub_ = nh.advertise<dviz_core::Task>("dviz_task", 1);
+  task_pub_ = nh.advertise<dviz_core::Task>("dviz_task", 500);
 
   return true;
 }
@@ -1479,6 +1513,11 @@ void DemonstrationVisualizerUser::resetTask()
       }
     }
   }
+}
+
+void DemonstrationVisualizerUser::pingResponse(const std_msgs::Empty &msg)
+{
+  ping_count_ = 0;
 }
 
 void DemonstrationVisualizerUser::updateGripperMarkers(int goal_number)

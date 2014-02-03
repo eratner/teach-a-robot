@@ -353,12 +353,45 @@ geometry_msgs::Pose MotionRecorder::getNextBasePose()
 {
   if(pose_count_ >= poses_.size())
   {
-    ROS_INFO("[MotionRec] Done replaying poses.");
+    ROS_INFO("[MotionRec] Done replaying poses");
     return geometry_msgs::Pose();
   }
   
   pose_count_++;
   return poses_.at(pose_count_-1);
+}
+
+int MotionRecorder::getNumPoses() const
+{
+  return poses_.size();
+}
+
+int MotionRecorder::getNumJoints() const
+{
+  return joint_states_.size();
+}
+
+void MotionRecorder::goTo(int i)
+{
+  ROS_INFO("[MotionRec] Fast-forwarding to frame %d", i);
+
+  if(i >= 0 && i < poses_.size() && i < joint_states_.size())
+  {
+    pose_count_ = i;
+    joint_states_count_ = i;
+  }
+  else
+  {
+    ROS_ERROR("[MotionRec] Cannot fast-forward to frame %d", i);
+  }
+}
+
+void MotionRecorder::saveRecording()
+{
+  if(isRecording())
+  {
+    flush();
+  }
 }
 
 void MotionRecorder::flush()

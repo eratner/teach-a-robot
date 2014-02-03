@@ -1,3 +1,4 @@
+
 #include <dviz_core/demonstration_visualizer_core.h>
 
 namespace demonstration_visualizer
@@ -160,7 +161,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
 	scene_loaded_ = true;
       }
 
-      boost::thread worker = boost::thread(
+      boost::thread worker(
 	&DemonstrationVisualizerCore::passCommandToUserThreaded,
 	this,
 	dviz_core::Command::Request::LOAD_SCENE,
@@ -191,7 +192,7 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
 	args.push_back(req.args[i]);
       }
 
-      boost::thread worker = boost::thread(
+      boost::thread worker(
 	&DemonstrationVisualizerCore::passCommandToUserThreaded,
 	this,
 	command,

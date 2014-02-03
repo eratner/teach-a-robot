@@ -39,6 +39,22 @@
       <!-- 	<h1>Teach-A-Robot</h1> -->
       <!-- </div> -->
 
+      <!-- End demonstration confirmation box -->
+      <div class="modal fade" id="confirmEnd">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-body">
+              <p>Are you sure you want to end the demonstration and close the window?</p>
+	      <p>Your progress will be saved to the server, but you must still press the submit button on the HIT page. If this window does not close automatically, please do so manually.</p>
+	    </div>
+	    <div class="modal-footer">
+              <button class="btn" id="confirmFalse">Wait! I want to continue.</button>
+              <button class="btn btn-primary" id="confirmTrue">Yes, I'm done!</button>
+	    </div>
+	  </div>
+	</div>
+      </div>
+
       <!-- Instructions modal dialog -->
       <div class="modal fade" id="infoModal" tabindex="-1" role="dialog" aria-labelledby="infoModalLabel" aria-hidden="true">
 	<div class="modal-dialog">
@@ -340,6 +356,11 @@
 		    data-placement="top" title="View detailed instructions on various gameplay topics."
 		    type="button" class="tip btn btn-default">
 	      <img src="images/help.png" width="65" height="65" />
+	    </button>
+	    <button id="done" data-toggle="tooltip"
+		    data-placement="top" title="End the demonstration and close the window."
+		    type="button" class="tip btn btn-default" disabled>
+	      <img src="images/done.png" width="65" height="65" />
 	    </button>
 
 	    <br />

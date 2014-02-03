@@ -96,6 +96,14 @@ public:
    */
   geometry_msgs::Pose getNextBasePose();
 
+  int getNumPoses() const;
+
+  int getNumJoints() const;
+
+  void goTo(int i);
+
+  void saveRecording();
+
 private:
   void flush();
 

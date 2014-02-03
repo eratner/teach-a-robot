@@ -14,6 +14,8 @@
 #include <dviz_core/Goal.h>
 #include <dviz_core/Task.h>
 
+#include <std_msgs/Empty.h>
+
 #include <boost/thread/mutex.hpp>
 
 namespace demonstration_visualizer
@@ -112,6 +114,8 @@ public:
    */
   void resetTask();
 
+  void pingResponse(const std_msgs::Empty &msg);
+
 private:
   /**
    * @brief Initializes ROS and names the DVizUser node with its
@@ -137,6 +141,12 @@ private:
 
   ros::Publisher task_pub_;
   ros::Publisher marker_array_pub_;
+  ros::Publisher ping_pub_;
+
+  int ping_count_;
+  int ping_delay_count_;
+
+  ros::Subscriber ping_sub_;
 
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
   PViz *pviz_;

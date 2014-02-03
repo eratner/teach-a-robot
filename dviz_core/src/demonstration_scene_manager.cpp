@@ -125,7 +125,7 @@ void DemonstrationSceneManager::updateScene()
 
 	if(!int_marker_server_->erase(int_marker_name.str()))
 	{
-	  ROS_ERROR("[SceneManager] Failed to remove interactive marker on mesh %d!", it->id);
+	  ROS_ERROR("[SceneManager%d] Failed to remove interactive marker on mesh %d!", user_id_, it->id);
 	}
 	int_marker_server_->applyChanges();
 
@@ -512,7 +512,7 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
   doc.SaveFile(filename.c_str());
 }
 
-bool DemonstrationSceneManager::loadTask(const std::string &filename)
+bool DemonstrationSceneManager::loadTask(const std::string &filename, bool randomize)
 {
   // Clear the existing task.
   for(int i = 0; i < int(goals_.size()); ++i)
@@ -738,12 +738,15 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename)
     }
   }
 
-  ROS_INFO("[SceneManager%d] Read %d goals.", user_id_, (int)goals_.size());
+  ROS_INFO("[SceneManager%d] Read %d goals", user_id_, (int)goals_.size());
 
   for(int i = 0; i < int(goals_.size()); ++i)
   {
     ROS_INFO_STREAM(goals_[i]->toString());
   }
+
+  if(randomize)
+    randomizePickAndPlaceTask();
 
   if(getNumGoals() > 0)
     setCurrentGoal(0);
@@ -831,6 +834,49 @@ void DemonstrationSceneManager::resetTask()
   setGoalsChanged();
 }
 
+void DemonstrationSceneManager::randomizePickAndPlaceTask()
+{
+  if(goals_.size() > 0)
+  {
+    // assert(goals_.size() % 2 == 0)
+    std::vector<Goal *> random_goals(goals_.size(), 0);
+    int goal_pairs = goals_.size()/2;
+    std::vector<int> ordering;
+    for(int i = 0; i < goal_pairs; ++i)
+    {
+      ordering.push_back(i);
+    }
+    std::srand(unsigned(std::time(0)));
+    std::random_shuffle(ordering.begin(), ordering.end());
+    ROS_INFO("rg size: %d", random_goals.size());
+    for(int i = 0; i < ordering.size(); ++i)
+    {
+      std::cout << ordering[i] << " ";
+    }
+    std::cout << std::endl;
+    ROS_INFO("[SceneManager%d] New task ordering:", user_id_);
+    for(int j = 0; j < goal_pairs; ++j)
+    {
+      goals_[2*j]->setGoalNumber(2*ordering[j]);
+      goals_[2*j+1]->setGoalNumber(2*ordering[j]+1);
+      random_goals[2*ordering[j]] = goals_[2*j];
+      random_goals[2*ordering[j]+1] = goals_[2*j+1];
+    }
+    for(std::vector<Goal *>::iterator it = random_goals.begin();
+	it != random_goals.end(); ++it)
+    {
+      ROS_INFO("\t %s", (*it)->toString().c_str());
+    }
+
+    goals_ = random_goals;
+    ROS_INFO("[SceneManager%d] Task has been randomized", user_id_);
+  }
+  else
+  {
+    ROS_ERROR("[SceneManager%d] No task loaded", user_id_);
+  }
+}
+
 void DemonstrationSceneManager::addMeshFromFile(const std::string &filename, 
 						int mesh_id, 
 						const std::string &label,
@@ -896,7 +942,7 @@ void DemonstrationSceneManager::visualizeMesh(const visualization_msgs::Marker &
   {
     if(int_marker_server_ == 0)
     {
-      ROS_WARN("[SceneManager] Interactive marker server is null.");
+      ROS_WARN("[SceneManager%d] Interactive marker server is null", user_id_);
       return;
     }
 
@@ -962,7 +1008,7 @@ void DemonstrationSceneManager::removeMesh(int mesh_id)
 
     if(!int_marker_server_->erase(marker_name.str()))
     {
-      ROS_ERROR("[SceneManager] Failed to remove interactive marker %s!", marker_name.str().c_str());
+      ROS_ERROR("[SceneManager%d] Failed to remove interactive marker %s!", user_id_, marker_name.str().c_str());
     }
     int_marker_server_->applyChanges();
   }
@@ -982,7 +1028,7 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
 {
   setGoalsChanged(true);
 
-  ROS_INFO("[SceneManager] Adding goal type %s with id %d.", Goal::GoalTypeNames[type], (int)goals_.size());
+  ROS_INFO("[SceneManager%d] Adding goal type %s with id %d", user_id_, Goal::GoalTypeNames[type], (int)goals_.size());
 
   switch(type)
   {
@@ -1054,7 +1100,7 @@ Goal *DemonstrationSceneManager::getGoal(int goal_number)
 {
   if(goal_number < 0 || goal_number >= int(goals_.size()))
   {
-    ROS_ERROR("[SceneManager] Invalid goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
     return 0;
   }
 
@@ -1111,7 +1157,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 				  std::pow(grasp_pose_fixed.position.z - pose.position.z, 2));
       if(distance < 0.15)
       {
-	ROS_INFO("[SceneManager] Approaching the pick up goal! (Distance = %f).", distance);
+	ROS_INFO("[SceneManager%d] Approaching the pick up goal! (Distance = %f)", user_id_, distance);
       }
 
       if(distance < tolerance)
@@ -1133,7 +1179,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 
       if(distance < 0.15)
       {
-	ROS_INFO("[SceneManager] Approaching the place goal! (Distance = %f).", distance);
+	ROS_INFO("[SceneManager%d] Approaching the place goal! (Distance = %f)", user_id_, distance);
       }
 
       if(distance < tolerance)
@@ -1198,7 +1244,7 @@ std::string DemonstrationSceneManager::getGoalDescription(int goal_number) const
 {
   if(goal_number < 0 || goal_number >= getNumGoals())
   {
-    ROS_ERROR("[SceneManager] Invalid goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
     return "";
   }
 
@@ -1209,13 +1255,13 @@ bool DemonstrationSceneManager::setGraspPose(int goal_number, const geometry_msg
 {
   if(goal_number < 0 || goal_number >= getNumGoals())
   {
-    ROS_ERROR("[SceneManager] Invalid goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
     return false;
   }
 
   if(!goals_.at(goal_number)->getType() == Goal::PICK_UP)
   {
-    ROS_ERROR("[SceneManager] Can only set the grasp pose for a pick up goal!");
+    ROS_ERROR("[SceneManager%d] Can only set the grasp pose for a pick up goal!", user_id_);
     return false;
   }
 
@@ -1229,13 +1275,13 @@ geometry_msgs::Pose DemonstrationSceneManager::getGraspPose(int goal_number)
 {
   if(goal_number < 0 || goal_number >= getNumGoals())
   {
-    ROS_ERROR("[SceneManager] Invalid goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
     return geometry_msgs::Pose();
   }
 
   if(!goals_.at(goal_number)->getType() == Goal::PICK_UP)
   {
-    ROS_ERROR("[SceneManager] Can only get the grasp pose for a pick up goal!");
+    ROS_ERROR("[SceneManager%d] Can only get the grasp pose for a pick up goal!", user_id_);
     return geometry_msgs::Pose();
   }
 
@@ -1257,7 +1303,7 @@ void DemonstrationSceneManager::processGoalFeedback(
   if(!moveGoal(atoi(feedback->marker_name.substr(i+1).c_str()),
 	       feedback->pose))
   {
-    ROS_ERROR("[SceneManager] Demonstration scene manager failed to update task goal pose!");
+    ROS_ERROR("[SceneManager%d] Demonstration scene manager failed to update task goal pose!", user_id_);
   }
 
   setGoalsChanged(true);  
@@ -1278,7 +1324,7 @@ void DemonstrationSceneManager::processMeshFeedback(
 		     feedback->pose)
      )
   {
-    ROS_ERROR("[SceneManager] Demonstration scene manager failed to update pose of mesh!");
+    ROS_ERROR("[SceneManager%d] Demonstration scene manager failed to update pose of mesh!", user_id_);
   }  
 }
 
@@ -1291,7 +1337,7 @@ geometry_msgs::Pose DemonstrationSceneManager::getCurrentGoalPose()
 {
   if(getCurrentGoal() < 0 || getCurrentGoal() >= getNumGoals())
   {
-    ROS_ERROR("[SceneManager] Invalid current goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid current goal number!", user_id_);
     return geometry_msgs::Pose();
   }
 
@@ -1315,7 +1361,7 @@ geometry_msgs::Pose DemonstrationSceneManager::getCurrentGoalPose()
     }
   default:
     {
-      ROS_ERROR("[SceneManager] Unknown goal type!");
+      ROS_ERROR("[SceneManager%d] Unknown goal type!", user_id_);
       return geometry_msgs::Pose();
     }
   }
@@ -1386,7 +1432,7 @@ void DemonstrationSceneManager::setEditMeshesMode(bool edit)
 
 	if(!int_marker_server_->erase(int_marker_name.str()))
 	{
-	  ROS_ERROR("[SceneManager] Failed to remove interactive marker on mesh %d!", it->id);
+	  ROS_ERROR("[SceneManager%d] Failed to remove interactive marker on mesh %d!", user_id_, it->id);
 	}
 	int_marker_server_->applyChanges();
 

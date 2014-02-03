@@ -4,7 +4,7 @@
 var DVIZ = DVIZ || {};
 
 // This flag toggles output to the console that may be useful when debugging
-DVIZ.debug = false;
+DVIZ.debug = true;
 
 /**
  * Creates a simple moving average (SMA) filter of size n.
@@ -150,7 +150,7 @@ DVIZ.CameraManager = function(options) {
 DVIZ.CameraManager.prototype.setCamera = function(mode) {
   if(mode !== this.cameraMode) {
     DVIZ.debug && console.log('[DVizClient] Changing from camera mode ' + this.cameraMode
-			 + ' to ' + mode + '.');
+			 + ' to ' + mode);
   }
   this.lastCameraMode = this.cameraMode;
   this.cameraMode = mode;
@@ -292,6 +292,25 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     serviceType : 'dviz_core/Command'
   });
 
+  // var pingResponseTopic = new ROSLIB.Topic({
+  //   ros : ros,
+  //   name : '/dviz_user_' + this.id + '/ping_response',
+  //   messageType : 'std_msgs/Empty',
+  //   compression : 'png'
+  // });
+  // var pingTopic = new ROSLIB.Topic({
+  //   ros : ros,
+  //   name : '/dviz_user_' + this.id + '/ping',
+  //   messageType : 'std_msgs/Empty',
+  //   compression : 'png'
+  // });
+  // pingTopic.subscribe(function(message) {
+  //   // Respond to the ping so that the server does not kill the client
+  //   var response = new ROSLIB.Message({});
+  //   pingResponseTopic.publish(response);
+  //   DVIZ.debug && console.log('[DVizClient] Responded to a ping');
+  // });
+
   var taskTopic = new ROSLIB.Topic({
     ros : ros,
     name : '/dviz_user_' + this.id + '/dviz_task',
@@ -313,7 +332,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       // (i.e. the first goal in the task), do not display a goal
       // completed dialog
       if(currentGoal > 0) {
-	that.goalCompleted(that.currentGoalNumber);
+  	that.goalCompleted(that.currentGoalNumber);
       }
 
       DVIZ.debug && console.log('[DVizClient] Changing from goal ' + that.currentGoalNumber.toString() + ' to goal ' + currentGoal.toString());
@@ -321,28 +340,28 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       that.currentGoalNumber = currentGoal;
 
       if(that.currentGoalNumber >= that.goals.length) {
-	// All goals complete; notify the user
-	that.displayStatusText('All goals completed!');
-	return;
+  	// All goals complete; notify the user
+  	that.displayStatusText('All goals completed!');
+  	return;
       }
 
       $('#currentGoal').html('Current goal: <strong>' + 
-			     message.goals[that.currentGoalNumber].description + '</strong>');
+  			     message.goals[that.currentGoalNumber].description + '</strong>');
 
       var html = '';
       for(var i = 0; i < message.goals.length; ++i) {
-	var color = '000000';
-	if(i < that.currentGoalNumber) {
-	  color = '999999';
-	} else if(i === that.currentGoalNumber) {
-	  color = '0088CC';
-	}
-	html = html + '<a href="#"' + 
-	  (DVIZ.debug ? 
-	   (' onclick="dvizClient.changeGoal(' + message.goals[i].number + ')" ') :
-	   ' ') + 'class="list-group-item">' + 
-	  '<font color="' + color + '">' + 
-	  message.goals[i].description + '</font></a>';
+  	var color = '000000';
+  	if(i < that.currentGoalNumber) {
+  	  color = '999999';
+  	} else if(i === that.currentGoalNumber) {
+  	  color = '0088CC';
+  	}
+  	html = html + '<a href="#"' + 
+  	  (DVIZ.debug ? 
+  	   (' onclick="dvizClient.changeGoal(' + message.goals[i].number + ')" ') :
+  	   ' ') + 'class="list-group-item">' + 
+  	  '<font color="' + color + '">' + 
+  	  message.goals[i].description + '</font></a>';
       }
       $('#task').html(html);
 
@@ -351,25 +370,25 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       // grasp pose)
       that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
-	// Show an interactive gripper marker at the current goal
-	DVIZ.debug && console.log('[DVizClient] Current goal is of type pick-up');
-	that.acceptedGrasp = false;
-	//console.log('ACCEPTED GRASP -> FALSE');
-	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
-	$('#gripperJointAngle').slider('option', 'value', 
-				       that.goals[that.currentGoalNumber].gripper_joint_position);
-	that.showInteractiveGripper(that.currentGoalNumber);
-	$('#playPause').prop('disabled', true);
-	$('#acceptChangeGrasp').prop('disabled', false);
-	$('#acceptChangeGrasp').tooltip('show');
-	$('#freeFollowingCamera').prop('disabled', true);
-	$('#baseHandCamera').prop('disabled', true);
-	$('#rotateHandControls').prop('disabled', true);
-	// Switch the camera back to follow the base of the robot
-	that.cameraManager.setCamera(0);
+  	// Show an interactive gripper marker at the current goal
+  	DVIZ.debug && console.log('[DVizClient] Current goal is of type pick-up');
+  	that.acceptedGrasp = false;
+  	//console.log('ACCEPTED GRASP -> FALSE');
+  	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
+  	$('#gripperJointAngle').slider('option', 'value', 
+  				       that.goals[that.currentGoalNumber].gripper_joint_position);
+  	that.showInteractiveGripper(that.currentGoalNumber);
+  	$('#playPause').prop('disabled', true);
+  	$('#acceptChangeGrasp').prop('disabled', false);
+  	$('#acceptChangeGrasp').tooltip('show');
+  	$('#freeFollowingCamera').prop('disabled', true);
+  	$('#baseHandCamera').prop('disabled', true);
+  	$('#rotateHandControls').prop('disabled', true);
+  	// Switch the camera back to follow the base of the robot
+  	that.cameraManager.setCamera(0);
       } else {
-	// The goal is not of type pick up
-	$('#acceptChangeGrasp').prop('disabled', true);
+  	// The goal is not of type pick up
+  	$('#acceptChangeGrasp').prop('disabled', true);
       }
     }
   });
@@ -392,12 +411,13 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
     // Start recording
     if(workerId !== null && assignmentId !== null) {
       var bagfileName = 'user_' + workerId + '_demonstration_' 
-	+ assignmentId + '.bag';
+	+ assignmentId + '_' + this.id.toString() + '.bag';
       this.beginRecording(bagfileName, assignmentId);
     } else {
       this.beginRecording();
     }
     this.gameStarted = true;
+    $('#done').prop('disabled', false);
   }
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -863,6 +883,16 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
     + ((goalsCompleted * 0.50).toFixed(2)).toString() 
     + '</strong>! Remember to submit your progress on the previous page, after closing this window.';
 
+  // Save all demonstration progress after each goal is completed
+  this.commandClient.callService(new ROSLIB.ServiceRequest({
+    command : 'save_recording',
+    args : []
+  }), function(response) {
+    if(response.response.length > 0) {
+      DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
+    }
+  });
+
   $('#goalCompleteMessage').html(message);
   $('#goalCompleteModal').modal('show');
 }
@@ -1056,6 +1086,20 @@ function init() {
 
       dvizClient.displayStatusText('Connected to the server!');
 
+      $('#done').on('click', function() {
+	$('#confirmEnd').modal('show');
+
+	$('#confirmFalse').on('click', function() {
+	  $('#confirmEnd').modal('hide');
+	});
+
+	$('#confirmTrue').on('click', function() {
+	  $('#confirmEnd').modal('hide');
+	  removeUser();
+	  window.close();
+	});
+      });
+
       // // Intially pause the game
       // DVIZ.debug && console.log('[DVizClient] Pausing the game');
 
@@ -1125,7 +1169,8 @@ function init() {
 }
 
 // Kill the DVizUser when the user exits the page
-window.onbeforeunload = function removeUser() {
+window.onbeforeunload = removeUser;
+function removeUser() {
   if(!watching) {
     // Importantly, ending the demonstration explicitly flushes the progress made in the 
     // demonstration to the appropriate bagfile

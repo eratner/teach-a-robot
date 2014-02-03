@@ -42,10 +42,18 @@ rosbuild_add_executable(dviz_user_node
   src/demonstration_visualizer_user_node.cpp
 )
 
+rosbuild_add_executable(inspect_demonstration
+  src/inspect_demonstration.cpp
+)
+
 target_link_libraries(dviz_core_node
   dviz_core
 )
 
 target_link_libraries(dviz_user_node
+  dviz_core
+)
+
+target_link_libraries(inspect_demonstration
   dviz_core
 )

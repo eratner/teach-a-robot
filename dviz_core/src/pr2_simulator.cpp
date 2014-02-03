@@ -1250,7 +1250,7 @@ void PR2Simulator::processKeyEvent(int key, int type)
 
       updateEndEffectorMarker();
 
-      ROS_INFO("[PR2SimpleSim] Resetting the end-effector marker pose.");
+      ROS_INFO("[PR2Sim] Resetting the end-effector marker pose");
 
       break;
     }
