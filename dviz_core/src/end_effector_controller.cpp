@@ -170,30 +170,30 @@ void EndEffectorController::printStateTransition(State next_state)
   last_state_ = current_state_;
   current_state_ = next_state;
 
-  // Check if the gripper marker should change color.
-  if(last_state_ == INVALID_GOAL && current_state_ != INVALID_GOAL)
-  {
-    // Gripper marker should be green.
-    visualization_msgs::InteractiveMarker r_gripper_marker;
-    int_marker_server_->get(R_GRIPPER_MARKER_NAME, r_gripper_marker);
-    r_gripper_marker.controls[0].markers[0].color.r = 0;
-    r_gripper_marker.controls[0].markers[0].color.g = 1;
-    r_gripper_marker.controls[0].markers[0].color.b = 0;
-    int_marker_server_->insert(r_gripper_marker);
-    int_marker_server_->applyChanges();
-  }
+  // // Check if the gripper marker should change color.
+  // if(last_state_ == INVALID_GOAL && current_state_ != INVALID_GOAL)
+  // {
+  //   // Gripper marker should be green.
+  //   visualization_msgs::InteractiveMarker r_gripper_marker;
+  //   int_marker_server_->get(R_GRIPPER_MARKER_NAME, r_gripper_marker);
+  //   r_gripper_marker.controls[0].markers[0].color.r = 0;
+  //   r_gripper_marker.controls[0].markers[0].color.g = 1;
+  //   r_gripper_marker.controls[0].markers[0].color.b = 0;
+  //   int_marker_server_->insert(r_gripper_marker);
+  //   int_marker_server_->applyChanges();
+  // }
 
-  if(last_state_ != INVALID_GOAL && current_state_ == INVALID_GOAL)
-  {
-    // Gripper marker should be red.
-    visualization_msgs::InteractiveMarker r_gripper_marker;
-    int_marker_server_->get(R_GRIPPER_MARKER_NAME, r_gripper_marker);
-    r_gripper_marker.controls[0].markers[0].color.r = 1;
-    r_gripper_marker.controls[0].markers[0].color.g = 0;
-    r_gripper_marker.controls[0].markers[0].color.b = 0;
-    int_marker_server_->insert(r_gripper_marker);
-    int_marker_server_->applyChanges();
-  }
+  // if(last_state_ != INVALID_GOAL && current_state_ == INVALID_GOAL)
+  // {
+  //   // Gripper marker should be red.
+  //   visualization_msgs::InteractiveMarker r_gripper_marker;
+  //   int_marker_server_->get(R_GRIPPER_MARKER_NAME, r_gripper_marker);
+  //   r_gripper_marker.controls[0].markers[0].color.r = 1;
+  //   r_gripper_marker.controls[0].markers[0].color.g = 0;
+  //   r_gripper_marker.controls[0].markers[0].color.b = 0;
+  //   int_marker_server_->insert(r_gripper_marker);
+  //   int_marker_server_->applyChanges();
+  // }
 }
 
 } // namespace demonstration_visualizer

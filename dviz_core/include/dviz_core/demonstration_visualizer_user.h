@@ -138,6 +138,7 @@ private:
   bool frame_rate_changed_;
   bool accepted_grasp_;
   ros::ServiceServer command_service_;
+  ros::ServiceClient core_command_client_;
 
   ros::Publisher task_pub_;
   ros::Publisher marker_array_pub_;

@@ -70,12 +70,12 @@ void DemonstrationSceneManager::updateScene()
       {
 	if((*it)->getGoalNumber() == current_goal_)
 	{
-	  ROS_INFO("[SceneManager%d] Drawing goal %d", user_id_, (*it)->getGoalNumber());
+	  //ROS_INFO("[SceneManager%d] Drawing goal %d", user_id_, (*it)->getGoalNumber());
 	  drawGoal(*it, false);
 	}
 	else
 	{
-	  ROS_INFO("[SceneManager%d] Hiding goal %d", user_id_, (*it)->getGoalNumber());
+	  //ROS_INFO("[SceneManager%d] Hiding goal %d", user_id_, (*it)->getGoalNumber());
 	  hideGoal(*it);
 	}
       }
@@ -1157,7 +1157,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 				  std::pow(grasp_pose_fixed.position.z - pose.position.z, 2));
       if(distance < 0.15)
       {
-	ROS_INFO("[SceneManager%d] Approaching the pick up goal! (Distance = %f)", user_id_, distance);
+	//ROS_INFO("[SceneManager%d] Approaching the pick up goal! (Distance = %f)", user_id_, distance);
       }
 
       if(distance < tolerance)
@@ -1179,7 +1179,7 @@ bool DemonstrationSceneManager::hasReachedGoal(int goal_number,
 
       if(distance < 0.15)
       {
-	ROS_INFO("[SceneManager%d] Approaching the place goal! (Distance = %f)", user_id_, distance);
+	//ROS_INFO("[SceneManager%d] Approaching the place goal! (Distance = %f)", user_id_, distance);
       }
 
       if(distance < tolerance)

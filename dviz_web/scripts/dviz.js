@@ -292,24 +292,24 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
     serviceType : 'dviz_core/Command'
   });
 
-  // var pingResponseTopic = new ROSLIB.Topic({
-  //   ros : ros,
-  //   name : '/dviz_user_' + this.id + '/ping_response',
-  //   messageType : 'std_msgs/Empty',
-  //   compression : 'png'
-  // });
-  // var pingTopic = new ROSLIB.Topic({
-  //   ros : ros,
-  //   name : '/dviz_user_' + this.id + '/ping',
-  //   messageType : 'std_msgs/Empty',
-  //   compression : 'png'
-  // });
-  // pingTopic.subscribe(function(message) {
-  //   // Respond to the ping so that the server does not kill the client
-  //   var response = new ROSLIB.Message({});
-  //   pingResponseTopic.publish(response);
-  //   DVIZ.debug && console.log('[DVizClient] Responded to a ping');
-  // });
+  var pingResponseTopic = new ROSLIB.Topic({
+    ros : ros,
+    name : '/dviz_user_' + this.id + '/ping_response',
+    messageType : 'std_msgs/Empty',
+    compression : 'png'
+  });
+  var pingTopic = new ROSLIB.Topic({
+    ros : ros,
+    name : '/dviz_user_' + this.id + '/ping',
+    messageType : 'std_msgs/Empty',
+    compression : 'png'
+  });
+  pingTopic.subscribe(function(message) {
+    // Respond to the ping so that the server does not kill the client
+    var response = new ROSLIB.Message({});
+    pingResponseTopic.publish(response);
+    DVIZ.debug && console.log('[DVizClient] Responded to a ping');
+  });
 
   var taskTopic = new ROSLIB.Topic({
     ros : ros,
@@ -871,7 +871,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   // description of the next goal in the task
   var message = 'Goal ' + goalNumber.toString() + ' completed! ';
   if(goalNumber + 1 >= this.goals.length) {
-    message += 'Congradulations, the task is complete! Close this window and your demonstration will automatically be saved. Return to the Mechanical Turk page to submit your results.';
+    message += 'Congradulations, the task is complete! Close this window and your demonstration will automatically be saved.'; // Return to the Mechanical Turk page to submit your results.';
     this.endDemonstration(true);
   } else {
     message += ('Next goal: ' + 
@@ -879,9 +879,9 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   }
 
   message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString() 
-    + ' out of 12 goals</strong>, so you are now eligible for <strong>$'
-    + ((goalsCompleted * 0.50).toFixed(2)).toString() 
-    + '</strong>! Remember to submit your progress on the previous page, after closing this window.';
+    + ' out of 12 goals</strong>. Good job!'; //, so you are now eligible for <strong>$'
+    //+ ((goalsCompleted * 0.50).toFixed(2)).toString() 
+    //+ '</strong>! Remember to submit your progress on the previous page, after closing this window.';
 
   // Save all demonstration progress after each goal is completed
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -1067,70 +1067,91 @@ function init() {
     watching = true;
     dvizClient.displayStatusText('Watching user ' + userId.toString());
   } else {
+    // First check if there are too many users online
+    var usersOnline = 0;
     dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
-      command : 'add_user',
+      command : 'num_users',
       args : []
     }), function(response) {
-      var userId = parseInt(response.response);
-      console.log('[DVizClient] Starting DVizUser ID ' + userId);
-      initializeDemonstration(userId, W, H, ros, viewer);
+      if(response.response.length > 0) {
+	usersOnline = parseInt(response.response);
 
-      dvizClient.loadScene();
-      $('#playPause').prop('disabled', false);
-      $('#playPause').tooltip('show');
+	DVIZ.debug && console.log('[DVizClient] There are ' + usersOnline.toString()
+				  + ' users online');
 
-      $('#rotateHandControls').prop('disabled', false);
-      $('#freeFollowingCamera').prop('disabled', false);
-      $('#baseHandCamera').prop('disabled', false);
-      $('#endDemonstration').prop('disabled', false);
+	if(usersOnline > 5) {
+	  DVIZ.debug && console.log('[DVizClient] Too many users online (' +
+				    usersOnline.toString() + ')');
+	  // @todo show modal dialog
+	  $('#tooManyUsers').modal('show');
+	} else {
+	  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
+	    command : 'add_user',
+	    args : []
+	  }), function(response) {
+	    var userId = parseInt(response.response);
+	    console.log('[DVizClient] Starting DVizUser ID ' + userId);
+	    initializeDemonstration(userId, W, H, ros, viewer);
 
-      dvizClient.displayStatusText('Connected to the server!');
+	    dvizClient.loadScene();
+	    $('#playPause').prop('disabled', false);
+	    $('#playPause').tooltip('show');
 
-      $('#done').on('click', function() {
-	$('#confirmEnd').modal('show');
+	    $('#rotateHandControls').prop('disabled', false);
+	    $('#freeFollowingCamera').prop('disabled', false);
+	    $('#baseHandCamera').prop('disabled', false);
+	    $('#endDemonstration').prop('disabled', false);
 
-	$('#confirmFalse').on('click', function() {
-	  $('#confirmEnd').modal('hide');
-	});
+	    dvizClient.displayStatusText('Connected to the server!');
 
-	$('#confirmTrue').on('click', function() {
-	  $('#confirmEnd').modal('hide');
-	  removeUser();
-	  window.close();
-	});
-      });
+	    // Show the instructions
+	    $('#infoModal').modal('show');
 
-      // // Intially pause the game
-      // DVIZ.debug && console.log('[DVizClient] Pausing the game');
+	    $('#done').on('click', function() {
+	      $('#confirmEnd').modal('show');
 
-      // dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
-      // 	command : 'pass_user_command_threaded',
-      // 	args : [dvizClient.id.toString(), 
-      // 		'pause_now']
-      // }), function(response) {
-      // 	if(response.response.length > 0) {
-      // 	  DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
-      // 	} 
-      // });
+	      $('#confirmFalse').on('click', function() {
+		$('#confirmEnd').modal('hide');
+	      });
 
-      dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
-      	command : 'pass_user_command_threaded',
-      	args : [dvizClient.id.toString(), 
-      		'robot_marker_control',
-	        'false']
-      }), function(response) {
-      	if(response.response.length > 0) {
-      	  DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
-      	} 
-      });
+	      $('#confirmTrue').on('click', function() {
+		$('#confirmEnd').modal('hide');
+		removeUser();
+		window.close();
+	      });
+	    });
+
+	    // // Intially pause the game
+	    // DVIZ.debug && console.log('[DVizClient] Pausing the game');
+
+	    // dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
+	    // 	command : 'pass_user_command_threaded',
+	    // 	args : [dvizClient.id.toString(), 
+	    // 		'pause_now']
+	    // }), function(response) {
+	    // 	if(response.response.length > 0) {
+	    // 	  DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
+	    // 	} 
+	    // });
+
+	    dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
+      	      command : 'pass_user_command_threaded',
+      	      args : [dvizClient.id.toString(), 
+      		      'robot_marker_control',
+	              'false']
+	    }), function(response) {
+      	      if(response.response.length > 0) {
+      		DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
+      	      } 
+	    });
+	  });
+	}
+      }
     });
   }
 
   // Initialize all tooltips
   $('.tip').tooltip();
-
-  // Show the instructions
-  $('#infoModal').modal('show');
 
   // Initialize gameplay settings
   initializeGameplaySettings();

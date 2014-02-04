@@ -83,13 +83,14 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     if(req.args.size() == 1)
     {
       int user_id = atoi(req.args[0].c_str());
+      ROS_INFO("[DVizCore] Killing user %d", user_id);
       if(!passCommandToUser(dviz_core::Command::Request::KILL_USER, res.response, user_id))
       {
-	ROS_ERROR("[DVizCore] Error in kill_user command.");
+	ROS_ERROR("[DVizCore] Error in kill_user command");
       }
       else
       {
-	num_users_--;
+	//num_users_--;
       }
     }
     else
@@ -109,6 +110,10 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
     res.response = ss.str();
     return true;
   } // end NUM_USERS
+  else if(req.command.compare(dviz_core::Command::Request::DECR_USERS) == 0)
+  {
+    num_users_--;
+  }
   else if(req.command.compare(dviz_core::Command::Request::USER_INFO) == 0)
   {
     if(req.args.size() == 1)

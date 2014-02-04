@@ -23,7 +23,7 @@ MotionRecorder::MotionRecorder(int user_id)
 
 MotionRecorder::~MotionRecorder()
 {
-
+  endRecording();
 }
 
 bool MotionRecorder::beginRecording(const std::string &user_id,

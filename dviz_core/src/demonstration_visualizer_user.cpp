@@ -53,6 +53,8 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
 			       &DemonstrationVisualizerUser::pingResponse,
 			       this);
 
+  core_command_client_ = handle.serviceClient<dviz_core::Command>("/dviz_command");
+
   std::string larm_filename;
   std::string rarm_filename;
   ros::NodeHandle nh("/dviz_core_node");
@@ -66,6 +68,13 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
 DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 {
   ROS_INFO("[DVizUser%d] Destructing user", id_);
+
+  dviz_core::Command decr_command;
+  decr_command.request.command = dviz_core::Command::Request::DECR_USERS;
+  if(!core_command_client_.call(decr_command))
+  {
+    ROS_ERROR("[DVizUser%d] Failed to decr users!", id_);
+  }
 
   if(web_)
   {
@@ -120,22 +129,34 @@ void DemonstrationVisualizerUser::run()
     // Update goals and task.
     updateGoalsAndTask();
 
-    // if(ping_count_ > 30)
-    // {
-    //   ROS_ERROR("[DVizUser%d] DVizClient has timed out, destroying user", id_);
-    //   ok_ = false;
-    // }
+    if(ping_count_ > 4)
+    {
+      ROS_ERROR("[DVizUser%d] DVizClient has timed out, destroying user", id_);
+      ok_ = false;
+      // Call kill user so that the core can update the user count
+      // dviz_core::Command kill_command;
+      // kill_command.request.command = dviz_core::Command::Request::KILL_USER;
+      // std::stringstream ss;
+      // ss << id_;
+      // kill_command.request.args.push_back(ss.str());
+      // if(!core_command_client_.call(kill_command))
+      // {
+      // 	ROS_ERROR("[DVizUser%d] Failed to kill self!", id_);
+      // }
+    }
 
-    // if(ping_delay_count_ >= 10)
-    // {
-    //   std_msgs::Empty ping;
-    //   ping_pub_.publish(ping);
-    //   ping_count_++;
-    //   ROS_WARN("[DVizUser%d] Ping count raised to %d", id_, ping_count_);
-    //   ping_delay_count_ = 0;
-    // }
+    if(ping_delay_count_ >= 300)
+    {
+      std_msgs::Empty ping;
+      ping_pub_.publish(ping);
+      ping_count_++;
+      if(ping_count_ >= 2)
+	ROS_WARN("[DVizUser%d] Ping count raised to %d", id_, ping_count_);
 
-    // ping_delay_count_++;
+      ping_delay_count_ = 0;
+    }
+
+    ping_delay_count_++;
 
     ros::spinOnce();
     rate.sleep();
@@ -1481,7 +1502,7 @@ void DemonstrationVisualizerUser::processKeyEvent(int key, int type)
 // @todo move this to demonstration scene manager
 void DemonstrationVisualizerUser::resetTask()
 {
-  ROS_INFO("[DVizUser%d] Resetting task.", id_);
+  ROS_INFO("[DVizUser%d] Resetting task", id_);
   if(demonstration_scene_manager_->getNumGoals() > 0)
   {
     // Reset to the first goal
@@ -1517,7 +1538,9 @@ void DemonstrationVisualizerUser::resetTask()
 
 void DemonstrationVisualizerUser::pingResponse(const std_msgs::Empty &msg)
 {
+  ROS_INFO("[DVizUser%d] User's client is alive, recieved a ping", id_);
   ping_count_ = 0;
+  ping_delay_count_ = 0;
 }
 
 void DemonstrationVisualizerUser::updateGripperMarkers(int goal_number)
