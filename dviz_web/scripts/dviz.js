@@ -151,12 +151,13 @@ DVIZ.CameraManager.prototype.setCamera = function(mode) {
   if(mode !== this.cameraMode) {
     DVIZ.debug && console.log('[DVizClient] Changing from camera mode ' + this.cameraMode
 			 + ' to ' + mode);
-  }
-  this.lastCameraMode = this.cameraMode;
-  this.cameraMode = mode;
 
-  // Update the camera controls
-  this.viewer.cameraControls.update();
+    this.lastCameraMode = this.cameraMode;
+    this.cameraMode = mode;
+
+    // Update the camera controls
+    //this.viewer.cameraControls.update();
+  }
 };
 
 DVIZ.CameraManager.prototype.getCameraMode = function() {
@@ -384,8 +385,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   	$('#freeFollowingCamera').prop('disabled', true);
   	$('#baseHandCamera').prop('disabled', true);
   	$('#rotateHandControls').prop('disabled', true);
-  	// Switch the camera back to follow the base of the robot
-  	that.cameraManager.setCamera(0);
+	that.changeCamera('none');
       } else {
   	// The goal is not of type pick up
   	$('#acceptChangeGrasp').prop('disabled', true);
@@ -456,8 +456,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.isPlaying = function() {
   return this.playing;
 }
 
-DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
-  if(follow === 'base') {
+DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(camera) {
+  if(camera === 'base') {
     DVIZ.debug && console.log('[DVizClient] Changing camera to follow the base');
     this.cameraManager.setCamera(0);
     this.cameraManager.viewer.cameraControls.center.x =
@@ -466,7 +466,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
       this.cameraManager.baseYFilter.back();
     this.cameraManager.viewer.cameraControls.center.z = 0.0;
     // @todo set a default zoom
-  } else if(follow === 'gripper') {
+  } else if(camera === 'gripper') {
     DVIZ.debug && console.log('[DVizClient] Changing camera to follow the gripper');
     this.cameraManager.setCamera(2);
     // console.log('setting camera to r-ee x = ' + 
@@ -479,11 +479,14 @@ DVIZ.DemonstrationVisualizerClient.prototype.changeCamera = function(follow) {
     this.cameraManager.viewer.cameraControls.center.z =
       this.cameraManager.rEndEffectorZFilter.getLatest();
     // @todo set a default zoom
-  } else if(follow === 'none') {
+  } else if(camera === 'none') {
     DVIZ.debug && console.log('[DVizClient] Changing camera to free mode');
     this.cameraManager.setCamera(1);
+  } else if(camera === 'last') {
+    DVIZ.debug && console.log('[DVizClient] Changing camera to last mode');
+    this.cameraManager.setCamera(this.cameraManager.getLastCameraMode());
   } else {
-    DVIZ.debug && console.log('[DVizClient] Unknown camera mode "' + follow + '"');
+    DVIZ.debug && console.log('[DVizClient] Unknown camera mode "' + camera + '"');
   }
 }
 
@@ -741,13 +744,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(g
   } else {
     DVIZ.debug && console.log('[DVizClient] Error switching the camera back');
   }
-
-  // this.changeCamera('none');
-  // this.cameraManager.viewer.cameraControls.center.x =
-  //   this.cameraManager.baseXFilter.back();
-  // this.cameraManager.viewer.cameraControls.center.y =
-  //   this.cameraManager.baseYFilter.back();
-  // this.cameraManager.viewer.cameraControls.center.z = 0.0;
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
     command : 'hide_interactive_gripper',
@@ -1368,18 +1364,6 @@ function initializeDemonstration(id, width, height, ros, viewer) {
   $(window).bind('keyup', function(e) {
     dvizClient.handleKeyRelease(e);
   });
-}
-
-// @todo these need to change with the new user interface
-function setCameraFollowing() {
-  var follow = document.getElementById('cameraFollowing').checked;
-  if(follow) {
-    DVIZ.debug && console.log('[DVizClient] Enabling camera following.');
-    dvizClient.cameraManager.setCamera(0);
-  } else {
-    DVIZ.debug && console.log('[DVizClient] Disabling camera following.');
-    dvizClient.cameraManager.setCamera(1);
-  }
 }
 
 function setCameraFilter() {
