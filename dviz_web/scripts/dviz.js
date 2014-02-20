@@ -7,7 +7,7 @@ var DVIZ = DVIZ || {};
 DVIZ.debug = true;
 
 /**
- * Creates a simple moving average (SMA) filter of size n.
+ * Creates a simple moving average (SMA) filter of size n
  */
 var createSMAFilter = function(n) {
   var pointer = 0;
@@ -871,7 +871,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   // description of the next goal in the task
   var message = 'Goal ' + goalNumber.toString() + ' completed! ';
   if(goalNumber + 1 >= this.goals.length) {
-    message += 'Congradulations, the task is complete! Close this window and your demonstration will automatically be saved.'; // Return to the Mechanical Turk page to submit your results.';
+    message += 'Congratulations, the task is complete! Close this window and your demonstration will automatically be saved.'; // Return to the Mechanical Turk page to submit your results.';
     this.endDemonstration(true);
   } else {
     message += ('Next goal: ' + 

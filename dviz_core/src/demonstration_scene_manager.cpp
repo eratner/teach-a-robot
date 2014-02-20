@@ -1289,6 +1289,58 @@ geometry_msgs::Pose DemonstrationSceneManager::getGraspPose(int goal_number)
   return pick_up_goal->getGraspPose();  
 }
 
+geometry_msgs::Pose DemonstrationSceneManager::getGraspPoseObjectFrame(int goal_number)
+{
+  if(goal_number < 0 || goal_number >= getNumGoals())
+  {
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
+    return geometry_msgs::Pose();
+  }
+
+  if(!goals_.at(goal_number)->getType() == Goal::PICK_UP)
+  {
+    ROS_ERROR("[SceneManager%d] Can only get the grasp pose for a pick up goal!", user_id_);
+    return geometry_msgs::Pose();
+  }
+
+  PickUpGoal *g = static_cast<PickUpGoal *>(getGoal(goal_number));
+  geometry_msgs::Pose obj_pose = g->getInitialObjectPose();
+  geometry_msgs::Pose grasp_pose = g->getGraspPose();
+  KDL::Frame obj_in_map(KDL::Rotation::Quaternion(
+  			  obj_pose.orientation.x,
+  			  obj_pose.orientation.y,
+  			  obj_pose.orientation.z,
+  			  obj_pose.orientation.w),
+  			KDL::Vector(obj_pose.position.x,
+  				    obj_pose.position.y,
+  				    obj_pose.position.z)
+    );
+  KDL::Frame grasp_in_map(KDL::Rotation::Quaternion(
+  			    grasp_pose.orientation.x,
+  			    grasp_pose.orientation.y,
+  			    grasp_pose.orientation.z,
+  			    grasp_pose.orientation.w),
+  			  KDL::Vector(grasp_pose.position.x,
+  				      grasp_pose.position.y,
+  				      grasp_pose.position.z)
+    );
+  KDL::Frame grasp_in_obj = obj_in_map.Inverse() * grasp_in_map;
+  double x, y, z, w;
+  grasp_in_obj.M.GetQuaternion(x, y, z, w);
+  ROS_WARN("[DVizUser%d] Pose of grasp in object frame = <(rotation), (translation)> = <(%f, %f, %f, %f), (%f, %f, %f)>", user_id_, x, y, z, w, grasp_in_obj.p.x(), grasp_in_obj.p.y(), grasp_in_obj.p.z());
+  
+  geometry_msgs::Pose res;
+  res.position.x = grasp_in_obj.p.x();
+  res.position.y = grasp_in_obj.p.y();
+  res.position.z = grasp_in_obj.p.z();
+  res.orientation.x = x;
+  res.orientation.y = y;
+  res.orientation.z = z;
+  res.orientation.w = w;
+
+  return res;
+}
+
 void DemonstrationSceneManager::processGoalFeedback(
     const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback
   )

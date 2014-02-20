@@ -1254,6 +1254,10 @@ bool DemonstrationVisualizerUser::hideInteractiveGripper(int goal_number)
     return false;
   }
 
+  // Get pose of gripper in object frame
+  // geometry_msgs::Pose gripper_pose_in_object = 
+  //   demonstration_scene_manager_->getGraspPoseObjectFrame(goal_number);
+
   visualization_msgs::MarkerArray gripper_markers;
   std::stringstream s;
   s << "grasp_marker_goal_" << goal_number;

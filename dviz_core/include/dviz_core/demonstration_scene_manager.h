@@ -95,7 +95,7 @@ public:
 
   /**
    * @brief Determines whether the given position is at the position of the given goal, 
-   *        within a tolerance (in meters).
+   *        within a tolerance (in meters)
    */
   bool hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose, double tolerance = 0.1);
 
@@ -119,7 +119,15 @@ public:
 
   bool setGraspPose(int goal_number, const geometry_msgs::Pose &grasp);
 
+  /**
+   * @return the pose of the grasp in the map frame
+   */
   geometry_msgs::Pose getGraspPose(int goal_number);
+
+  /**
+   * @return the pose of the grasp in the objects frame
+   */
+  geometry_msgs::Pose getGraspPoseObjectFrame(int goal_number);
 
   geometry_msgs::Pose getObjectPose(int object_id);
 
