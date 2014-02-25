@@ -320,7 +320,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   });
   taskTopic.subscribe(function(message) {
     if(message.goals.length === 0) {
-      document.getElementById('task').innerHTML = 'No task loaded.';
+      //document.getElementById('task').innerHTML = 'No task loaded.';
+      $('#task').html('No task loaded.');
       return;
     }
     that.goals = message.goals;
@@ -346,8 +347,9 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   	return;
       }
 
-      $('#currentGoal').html('Current goal: <strong>' + 
-  			     message.goals[that.currentGoalNumber].description + '</strong>');
+      $('#currentGoal').empty().append('Current goal: <strong>' + 
+  				       message.goals[that.currentGoalNumber].description +
+				       '</strong>');
 
       var html = '';
       for(var i = 0; i < message.goals.length; ++i) {
@@ -364,7 +366,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   	  '<font color="' + color + '">' + 
   	  message.goals[i].description + '</font></a>';
       }
-      $('#task').html(html);
+      $('#task').empty().append(html);
 
       // Check if we need to change the state of the camera (e.g. if the 
       // next goal is a pick up goal, we need to focus the camera at the 
@@ -375,7 +377,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   	DVIZ.debug && console.log('[DVizClient] Current goal is of type pick-up');
   	that.acceptedGrasp = false;
   	//console.log('ACCEPTED GRASP -> FALSE');
-  	$('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
+  	$('#acceptChangeGrasp').empty().append('<img src="images/accept_grasp.png" width="65" height="65" />');
   	$('#gripperJointAngle').slider('option', 'value', 
   				       that.goals[that.currentGoalNumber].gripper_joint_position);
   	that.showInteractiveGripper(that.currentGoalNumber);
@@ -962,19 +964,19 @@ DVIZ.DemonstrationVisualizerClient.prototype.setGripperJointAngle = function(ang
 
 DVIZ.DemonstrationVisualizerClient.prototype.displayStatusText = function(text) {
   DVIZ.debug && console.log('adding status: ' + text);
-  if(this.statusText == null) {
-    this.statusText = document.createElement('div');
-    this.statusText.style.position = 'absolute';
-    this.statusText.style.width = 100;
-    this.statusText.height = 100;
-    this.statusText.style.backgroundColor = 'black';
-    this.statusText.style.color = 'white';
-    this.statusText.style.top = $('#dviz').offset().top + 'px';
-    this.statusText.style.left = $('#dviz').offset().left + 'px';
-    this.statusText.innerHTML = '...';
-    document.body.appendChild(this.statusText);
-  }
-  this.statusText.innerHTML = text;
+  // if(this.statusText == null) {
+  //   this.statusText = document.createElement('div');
+  //   this.statusText.style.position = 'absolute';
+  //   this.statusText.style.width = 100;
+  //   this.statusText.height = 100;
+  //   this.statusText.style.backgroundColor = 'black';
+  //   this.statusText.style.color = 'white';
+  //   this.statusText.style.top = $('#dviz').offset().top + 'px';
+  //   this.statusText.style.left = $('#dviz').offset().left + 'px';
+  //   this.statusText.innerHTML = '...';
+  //   document.body.appendChild(this.statusText);
+  // }
+  // this.statusText.innerHTML = text;
 }
 
 var ros = null;
@@ -1418,11 +1420,14 @@ function showAlert(message, timeout) {
 
   var alertDialog = $('#alertDialog');
   if(alertDialog === null) {
-    $('#alerts').innerHTML = '<div id="alertDialog" class="alert alert-warning"></div>';
+    //$('#alerts').innerHTML = '<div id="alertDialog" class="alert alert-warning"></div>';
+    $('#alerts').html('<div id="alertDialog" class="alert alert-warning"></div>');
   }
 
-  $('#alertDialog').innerHTML = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>' 
-    + message + '</p>';
+  //$('#alertDialog').innerHTML = '<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>' 
+  //  + message + '</p>';
+  $('#alertDialog').empty().append('<a class="close" data-dismiss="alert" href="#" aria-hidden="true">&times;</a><p>'
+				   + message + '</p>');
 
   // Set automatic timeout
   window.setTimeout(function() {

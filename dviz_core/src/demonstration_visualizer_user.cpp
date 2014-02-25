@@ -738,9 +738,8 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
     PickUpGoal *pick_up_goal = static_cast<PickUpGoal *>(current_goal);
     bool goal_reachable = true;
       
-    if(demonstration_scene_manager_->hasReachedGoal(demonstration_scene_manager_->getCurrentGoal(), 
-						    simulator_->getEndEffectorPose(), 0.05) 
-       && !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/ && accepted_grasp_)
+    if(pick_up_goal->isComplete(simulator_->getEndEffectorPose()) && !simulator_->isBaseMoving()
+       && accepted_grasp_)
     {
       ROS_INFO("[DVizUser%d] Reached goal %d!", id_, demonstration_scene_manager_->getCurrentGoal());
 
@@ -754,20 +753,14 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 					   object_pose.position.y,
 					   object_pose.position.z)
 	);
-      KDL::Frame marker_in_map(KDL::Rotation::Quaternion(gripper_pose.orientation.x,
-							 gripper_pose.orientation.y,
-							 gripper_pose.orientation.z,
-							 gripper_pose.orientation.w),
-			       KDL::Vector(gripper_pose.position.x,
-					   gripper_pose.position.y,
-					   gripper_pose.position.z)
+      KDL::Frame gripper_in_map(KDL::Rotation::Quaternion(gripper_pose.orientation.x,
+							  gripper_pose.orientation.y,
+							  gripper_pose.orientation.z,
+							  gripper_pose.orientation.w),
+				KDL::Vector(gripper_pose.position.x,
+					    gripper_pose.position.y,
+					    gripper_pose.position.z)
 	);
-      KDL::Frame gripper_in_marker(KDL::Rotation::Identity(),
-				   KDL::Vector(/*-1.0*pick_up_goal->getGraspDistance()*/0.0,
-					       0.0,
-					       0.0)
-	);
-      KDL::Frame gripper_in_map = marker_in_map * gripper_in_marker;
 
       KDL::Frame object_in_gripper = gripper_in_map.Inverse() * object_in_map;
 	    
@@ -826,9 +819,11 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 	goal_gripper_pose.orientation.z = z;
 	goal_gripper_pose.orientation.w = w;
 
-	marker_in_map.M.GetRPY(roll, pitch, yaw);
-	marker_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
-	gripper_in_map = marker_in_map * gripper_in_marker;
+	gripper_in_map.M.GetRPY(roll, pitch, yaw);
+	gripper_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+	// marker_in_map.M.GetRPY(roll, pitch, yaw);
+	// marker_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+	//gripper_in_map = marker_in_map * gripper_in_marker;
 	object_in_gripper = gripper_in_map.Inverse() * object_in_map;
       }
 
@@ -836,7 +831,6 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       // the object that it must pick up (our collision spheres may not
       // be precise enough to allow for tight grasps of the object while
       // still being free of collision)
-      //ROS_INFO("going to skip object with id %d", pick_up_goal->getObjectID());
       goal_reachable = simulator_->snapEndEffectorTo(goal_gripper_pose,
 						     pick_up_goal->getGripperJointPosition(),
 						     false,
@@ -850,8 +844,6 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       {
 	simulator_->attach(pick_up_goal->getObjectID(), object_in_gripper);
 	  
-	// Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
-
 	demonstration_scene_manager_->setCurrentGoal(demonstration_scene_manager_->getCurrentGoal() + 1);
 
 	goalCompleted();
@@ -870,20 +862,17 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
     geometry_msgs::Pose object_pose = object_manager_->getMarker(place_goal->getObjectID()).pose;
     bool goal_reachable = true;
 
-    if(demonstration_scene_manager_->hasReachedGoal(demonstration_scene_manager_->getCurrentGoal(), 
-						    object_pose, 0.08) 
-       && !simulator_->isBaseMoving() /*&& !simulator_->isEndEffectorMoving()*/)
+    if(place_goal->isComplete(object_pose) && !simulator_->isBaseMoving())
     {
       // Snap the gripper to the correct position so that the object that it is holding moves 
       // smoothly to the goal pose. 
       geometry_msgs::Pose object_goal_pose = place_goal->getPlacePose();
       if(place_goal->ignoreYaw())
       {
-	ROS_INFO("Ignoring yaw...");
 	geometry_msgs::Pose object_pose;
 	if(!simulator_->getObjectPose(object_pose))
 	{
-	  ROS_ERROR("[DVizUser] No attached object!");
+	  ROS_ERROR("[DVizUser%d] No attached object!", id_);
 	  return;
 	}
 
@@ -942,8 +931,6 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
       {
 	simulator_->detach();
 	  
-	// Q_EMIT goalComplete(getSceneManager()->getCurrentGoal());
-
 	demonstration_scene_manager_->setCurrentGoal(demonstration_scene_manager_->getCurrentGoal() + 1);
 
 	goalCompleted();

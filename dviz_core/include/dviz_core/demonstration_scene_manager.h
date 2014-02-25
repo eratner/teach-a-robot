@@ -27,7 +27,7 @@ namespace demonstration_visualizer
  * @brief This manages the demonstration scene and current task. Demonstration
  *        scenes are comprised of a collection of meshes, and tasks are 
  *        essentially ordered lists of goals. Both scenes and tasks can be 
- *        saved to/loaded from scene and task XML files, respectively.
+ *        saved to/loaded from scene and task XML files, respectively
  */
 class DemonstrationSceneManager
 {
@@ -41,14 +41,14 @@ public:
 
   /**
    * @brief Updates the meshes and goal markers according to the current 
-   *        state of the demonstration scene.
+   *        state of the demonstration scene
    */
   void updateScene();
 
   /**
    * @brief Loads a scene file (.xml format), and displays it, overwriting 
-   *        any existing scene that has been displayed.
-   * @return The max mesh id of the meshes in the loaded scene.
+   *        any existing scene that has been displayed
+   * @return The max mesh id of the meshes in the loaded scene
    */
   int loadScene(const std::string &filename);
 
@@ -83,7 +83,9 @@ public:
 
   void removeMesh(int mesh_id);
 
-  // Adds an additional goal to the current task, at the end. 
+  /**
+   * @brief Adds an additional goal to the current task, at the end
+   */
   void addGoal(const std::string &desc = "",
 	       Goal::GoalType type = Goal::PICK_UP,
 	       int object_id = 0,
@@ -92,12 +94,6 @@ public:
   bool moveGoal(int goal_number, const geometry_msgs::Pose &pose);
 
   Goal *getGoal(int goal_number);
-
-  /**
-   * @brief Determines whether the given position is at the position of the given goal, 
-   *        within a tolerance (in meters)
-   */
-  bool hasReachedGoal(int goal_number, const geometry_msgs::Pose &pose, double tolerance = 0.1);
 
   std::vector<visualization_msgs::Marker> getMeshes() const;
 
@@ -168,7 +164,7 @@ private:
   geometry_msgs::Pose initial_robot_pose_;
   double initial_torso_position_;
 
-  ObjectManager* object_manager_;
+  ObjectManager *object_manager_;
 
   void processGoalFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 

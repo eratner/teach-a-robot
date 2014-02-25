@@ -64,6 +64,8 @@ public:
 
   virtual ~PickUpGoal();
 
+  bool isComplete(const geometry_msgs::Pose &end_effector_pose);
+
   GoalType getType() const;
 
   int getObjectID() const;
@@ -98,6 +100,10 @@ public:
 
   void setCameraRadius(double);
 
+  double getCompletionTolerance() const;
+
+  void setCompletionTolerance(double);
+
 private:
   int object_id_;
   geometry_msgs::Pose grasp_pose_;
@@ -114,6 +120,8 @@ private:
   double camera_theta_;
   double camera_radius_;
 
+  double completion_tolerance_;
+
 };
 
 class PlaceGoal : public Goal
@@ -127,6 +135,8 @@ public:
 	    const geometry_msgs::Pose &pose = geometry_msgs::Pose());
 
   virtual ~PlaceGoal();
+
+  bool isComplete(const geometry_msgs::Pose &object_pose);
 
   GoalType getType() const;
 
@@ -142,10 +152,15 @@ public:
 
   void setIgnoreYaw(bool);
 
+  double getCompletionTolerance() const;
+
+  void setCompletionTolerance(double);
+
 private:
   int object_id_;
   geometry_msgs::Pose place_pose_;
   bool ignore_yaw_;
+  double completion_tolerance_;
 
 };
 

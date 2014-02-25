@@ -69,7 +69,8 @@ PickUpGoal::PickUpGoal(int goal_number,
     grasp_pose_(grasp), initial_object_pose_(object_pose), 
     grasp_done_(false),
     gripper_joint_position_(EndEffectorController::GRIPPER_OPEN_ANGLE),
-    camera_phi_(M_PI/4.0), camera_theta_(0.0), camera_radius_(1.0)
+    camera_phi_(M_PI/4.0), camera_theta_(0.0), camera_radius_(1.0),
+    completion_tolerance_(0.05)
 {
 
 }
@@ -77,6 +78,18 @@ PickUpGoal::PickUpGoal(int goal_number,
 PickUpGoal::~PickUpGoal()
 {
 
+}
+
+bool PickUpGoal::isComplete(const geometry_msgs::Pose &end_effector_pose)
+{
+  double distance = std::sqrt(std::pow(grasp_pose_.position.x - end_effector_pose.position.x, 2) +
+			      std::pow(grasp_pose_.position.y - end_effector_pose.position.y, 2) +
+			      std::pow(grasp_pose_.position.z - end_effector_pose.position.z, 2));
+
+  if(distance < completion_tolerance_)
+    return true;
+
+  return false;
 }
 
 Goal::GoalType PickUpGoal::getType() const
@@ -164,6 +177,16 @@ void PickUpGoal::setCameraRadius(double radius)
   camera_radius_ = radius;
 }
 
+double PickUpGoal::getCompletionTolerance() const
+{
+  return completion_tolerance_;
+}
+
+void PickUpGoal::setCompletionTolerance(double tolerance)
+{
+  completion_tolerance_ = tolerance;
+}
+
 PlaceGoal::PlaceGoal()
   : Goal(0, ""), object_id_(0), ignore_yaw_(false)
 {
@@ -172,7 +195,8 @@ PlaceGoal::PlaceGoal()
 
 PlaceGoal::PlaceGoal(int goal_number, const std::string &description, 
 		     int object_id, const geometry_msgs::Pose &pose)
-  : Goal(goal_number, description), object_id_(object_id), place_pose_(pose), ignore_yaw_(false)
+  : Goal(goal_number, description), object_id_(object_id), place_pose_(pose), ignore_yaw_(false),
+    completion_tolerance_(0.08)
 {
 
 }
@@ -180,6 +204,20 @@ PlaceGoal::PlaceGoal(int goal_number, const std::string &description,
 PlaceGoal::~PlaceGoal()
 {
 
+}
+
+bool PlaceGoal::isComplete(const geometry_msgs::Pose &object_pose)
+{
+  double distance = std::sqrt(std::pow(place_pose_.position.x - object_pose.position.x, 2) + 
+			      std::pow(place_pose_.position.y - object_pose.position.y, 2) +
+			      std::pow(place_pose_.position.z - object_pose.position.z, 2));
+
+  // @todo measure the angular distance as well
+
+  if(distance < completion_tolerance_)
+    return true;
+
+  return false;
 }
 
 Goal::GoalType PlaceGoal::getType() const
@@ -215,6 +253,16 @@ bool PlaceGoal::ignoreYaw() const
 void PlaceGoal::setIgnoreYaw(bool ignore)
 {
   ignore_yaw_ = ignore;
+}
+
+double PlaceGoal::getCompletionTolerance() const
+{
+  return completion_tolerance_;
+}
+
+void PlaceGoal::setCompletionTolerance(double tolerance)
+{
+  completion_tolerance_ = tolerance;
 }
 
 }
