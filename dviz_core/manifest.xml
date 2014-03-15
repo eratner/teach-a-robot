@@ -25,6 +25,7 @@
   <depend package="angles" />
   <depend package="sbpl_geometry_utils" />
   <depend package="sbpl_manipulation_components_pr2" />
+  <depend package="nav_core" />
 
   <rosdep name="tinyxml" />
 

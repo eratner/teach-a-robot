@@ -23,7 +23,7 @@ rosbuild_add_library(dviz_core
   src/object.cpp
   src/object_manager.cpp
   src/pr2_simulator.cpp
-  src/base_movement_controller.cpp
+  src/base_carrot_controller.cpp
   src/end_effector_controller.cpp
   src/motion_recorder.cpp
   src/goal.cpp

@@ -1028,11 +1028,16 @@ function init() {
   DVIZ.debug && console.log('[DVizClient] Instantiating the viewer with width '
 		       + W.toString() + ' and height ' + H.toString());
 
+  // The frame rate limit on the viewer (frames/second)
+  var fps = 30.0;
+  DVIZ.debug && console.log('[DVizClient] Capping frame rate at ' + fps.toString() + ' frames/second');
+
   var viewer = new ROS3D.Viewer({
     divID : 'dviz',
     width : W,
     height : H,
-    antialias : true
+    antialias : true,
+    fps : fps
   });
 
   // Request a new DVizUser from the core

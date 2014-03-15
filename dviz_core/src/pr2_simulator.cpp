@@ -12,13 +12,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     user_id_(user_id),
     frame_rate_(10.0),
     move_end_effector_while_dragging_(true),
-    move_base_while_dragging_(false),
     attached_object_(false),
     pviz_(pviz), 
     int_marker_server_(int_marker_server), 
     object_manager_(object_manager),
-    base_movement_controller_(),
     end_effector_controller_(int_marker_server),
+    base_plan_index_(0),
     recorder_(recorder),
     snap_motion_count_(0),
     snap_object_(false),
@@ -31,6 +30,9 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     ignore_collisions_(false)
 {
   ros::NodeHandle nh;
+
+  // Initialize the base planner
+  base_planner_ = new BaseCarrotController();
 
   // Initialize the velocity command (initially at rest).
   vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.linear.z = 0;
@@ -231,7 +233,8 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 
 PR2Simulator::~PR2Simulator()
 {
-
+  delete base_planner_;
+  base_planner_ = 0;
 }
 
 void PR2Simulator::play()
@@ -348,49 +351,64 @@ void PR2Simulator::run()
 
 void PR2Simulator::moveRobot()
 {
-  // First, get the next proposed base pose.
-  geometry_msgs::Twist base_vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
-									      goal_pose_.pose);
-
-  if(base_movement_controller_.getState() == BaseMovementController::DONE ||
-     (isBaseMoving() && base_movement_controller_.getState() == BaseMovementController::INITIAL)
-     )
+  // First, get the next base pose in the plan
+  geometry_msgs::PoseStamped next_base;
+  if(!isBasePlanDone())
   {
-    int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
-    int_marker_server_->applyChanges();
+    next_base = base_plan_.at(base_plan_index_);
+  }
+  else
+  {
+    next_base = base_pose_;
   }
 
-  if(base_movement_controller_.getState() == BaseMovementController::DONE)
-  {
-    base_movement_controller_.setState(BaseMovementController::INITIAL);
-  }
+  // // First, get the next proposed base pose.
+  // geometry_msgs::Twist base_vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
+  // 									      goal_pose_.pose);
+
+  // if(base_movement_controller_.getState() == BaseMovementController::DONE ||
+  //    (isBaseMoving() && base_movement_controller_.getState() == BaseMovementController::INITIAL)
+  //    )
+  // {
+  //   int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
+  //   int_marker_server_->applyChanges();
+  // }
+
+  // if(base_movement_controller_.getState() == BaseMovementController::DONE)
+  // {
+  //   base_movement_controller_.setState(BaseMovementController::INITIAL);
+  // }
   
-  base_vel.linear.x += vel_cmd_.linear.x;
-  base_vel.linear.x += key_vel_cmd_.linear.x;
-  base_vel.linear.y += vel_cmd_.linear.y;
-  base_vel.linear.y += key_vel_cmd_.linear.y;
-  base_vel.angular.z += vel_cmd_.angular.z;
-  base_vel.angular.z += key_vel_cmd_.angular.z;
+  // base_vel.linear.x += vel_cmd_.linear.x;
+  // base_vel.linear.x += key_vel_cmd_.linear.x;
+  // base_vel.linear.y += vel_cmd_.linear.y;
+  // base_vel.linear.y += key_vel_cmd_.linear.y;
+  // base_vel.angular.z += vel_cmd_.angular.z;
+  // base_vel.angular.z += key_vel_cmd_.angular.z;
 
-  // Get the next velocity commands, and apply them to the robot.
-  double theta = tf::getYaw(base_pose_.pose.orientation);
-  double dx = /*(1.0/getFrameRate())**/base_vel.linear.x*std::cos(theta) 
-    - /*(1.0/getFrameRate())**/base_vel.linear.y*std::sin(theta);
-  double dy = /*(1.0/getFrameRate())**/base_vel.linear.y*std::cos(theta)
-    + /*(1.0/getFrameRate())**/base_vel.linear.x*std::sin(theta);
-  double dyaw = /*(1/getFrameRate())**/base_vel.angular.z;
+  // // Get the next velocity commands, and apply them to the robot.
+  // double theta = tf::getYaw(base_pose_.pose.orientation);
+  // double dx = /*(1.0/getFrameRate())**/base_vel.linear.x*std::cos(theta) 
+  //   - /*(1.0/getFrameRate())**/base_vel.linear.y*std::sin(theta);
+  // double dy = /*(1.0/getFrameRate())**/base_vel.linear.y*std::cos(theta)
+  //   + /*(1.0/getFrameRate())**/base_vel.linear.x*std::sin(theta);
+  // double dyaw = /*(1/getFrameRate())**/base_vel.angular.z;
 
-  double new_x = base_pose_.pose.position.x + dx;
-  double new_y = base_pose_.pose.position.y + dy;
-  double new_theta = tf::getYaw(base_pose_.pose.orientation) + dyaw;
+  // double new_x = base_pose_.pose.position.x + dx;
+  // double new_y = base_pose_.pose.position.y + dy;
+  // double new_theta = tf::getYaw(base_pose_.pose.orientation) + dyaw;
 
   BodyPose body_pose;
-  body_pose.x = new_x;
-  body_pose.y = new_y;
+  // body_pose.x = new_x;
+  // body_pose.y = new_y;
+  // body_pose.z = getTorsoPosition();
+  // body_pose.theta = new_theta;
+  body_pose.x = next_base.pose.position.x;
+  body_pose.y = next_base.pose.position.y;
   body_pose.z = getTorsoPosition();
-  body_pose.theta = new_theta;
+  body_pose.theta = tf::getYaw(next_base.pose.orientation);
 
-  double dz = 0;
+  double dx = 0, dy = 0, dz = 0;
   std::vector<double> end_effector_pose(7, 0);
   std::vector<double> solution(7, 0);
   std::vector<double> l_arm_joints(7, 0);
@@ -401,16 +419,16 @@ void PR2Simulator::moveRobot()
 
   if(isSnapDone())
   {
-    // Second, get the next proposed end-effector pose and resulting joint angles.
+    // Second, get the next proposed end-effector pose and resulting joint angles
     geometry_msgs::Twist end_effector_vel = 
       end_effector_controller_.moveTo(end_effector_pose_.pose,
 				      end_effector_goal_pose_.pose);
     
-    dx = /*(1.0/getFrameRate())**/end_effector_vel.linear.x + /*(1.0/getFrameRate())**/end_effector_vel_cmd_.linear.x;
-    dy = /*(1.0/getFrameRate())**/end_effector_vel.linear.y + /*(1.0/getFrameRate())**/end_effector_vel_cmd_.linear.y;
-    dz = /*(1.0/getFrameRate())**/end_effector_vel.linear.z + /*(1.0/getFrameRate())**/end_effector_vel_cmd_.linear.z;
+    dx = end_effector_vel.linear.x + end_effector_vel_cmd_.linear.x;
+    dy = end_effector_vel.linear.y + end_effector_vel_cmd_.linear.y;
+    dz = end_effector_vel.linear.z + end_effector_vel_cmd_.linear.z;
 
-    // Attempt to find joint angles for the arm using the arm IK solver.
+    // Attempt to find joint angles for the arm using the arm IK solver
     std::vector<double> r_arm_joints(7, 0);
     for(int i = 7; i < 14; ++i)
     {
@@ -426,10 +444,10 @@ void PR2Simulator::moveRobot()
     end_effector_pose[5] = end_effector_pose_.pose.orientation.z;
     end_effector_pose[6] = end_effector_pose_.pose.orientation.w;
   
-    // Use IK to find the required joint angles for the arm.
+    // Use IK to find the required joint angles for the arm
     if(!kdl_robot_model_.computeIK(end_effector_pose, r_arm_joints, solution))
     {
-      // Do not attempt an IK search if the simulator is executing a snap motion.
+      // Do not attempt an IK search if the simulator is executing a snap motion
       if(!isSnapDone())
       {
 	ROS_ERROR("[PR2Sim] IK failed in move robot while snapping!");
@@ -437,7 +455,7 @@ void PR2Simulator::moveRobot()
       }
 
       // Try once more to find a valid IK solution by searching locally for valid
-      // end-effector positions.
+      // end-effector positions
       ROS_INFO("[PR2Sim] IK failed at (%f, %f, %f), but...", end_effector_pose[0], 
 	       end_effector_pose[1], end_effector_pose[2]);
       std::vector<std::pair<double, double> > intervals;
@@ -479,14 +497,14 @@ void PR2Simulator::moveRobot()
   }
   else
   {
-    // Snap motion is not done.
+    // Snap motion is not done
     for(int i = 0; i < 7; ++i)
     {
       solution[i] = snap_motion_[snap_motion_count_].position[i];
     }
     joint_states_.position[14] = snap_motion_[snap_motion_count_].position[7];
 
-    // Compute FK to find the end-effector pose.
+    // Compute FK to find the end-effector pose
     std::vector<double> fk_pose;
     if(!kdl_robot_model_.computePlanningLinkFK(solution, fk_pose))
     {
@@ -556,13 +574,14 @@ void PR2Simulator::moveRobot()
   if(validityCheck(solution, l_arm_joints, body_pose, object_pose))
   {
     ROS_DEBUG("[PR2Sim] Collision free!");
-    // All is valid, first move the base pose.
-    base_pose_.pose.position.x = new_x;
-    base_pose_.pose.position.y = new_y;
-    base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(new_theta);
-
-    // Next, set the new joint angles of the right arm and the new 
-    // (right) end-effector pose.
+    // All is valid, first move the base pose
+    // base_pose_.pose.position.x = new_x;
+    // base_pose_.pose.position.y = new_y;
+    // base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(new_theta);
+    base_pose_ = next_base;
+    base_plan_index_++;
+    
+    // Next, set the new joint angles of the right arm and the new right end-effector pose
     if(!recorder_->isReplaying())
     {
       for(int i = 7; i < 14; ++i)
@@ -609,7 +628,8 @@ void PR2Simulator::moveRobot()
   }
 }
 
-void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj){
+void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj)
+{
   KDL::Frame base_in_map(KDL::Rotation::RotZ(bp.theta),
                          KDL::Vector(bp.x, bp.y, 0.0));
   KDL::Frame eef_in_base(KDL::Rotation::Quaternion(eef[3],eef[4],eef[5],eef[6]),
@@ -714,23 +734,36 @@ void PR2Simulator::baseMarkerFeedback(
 {
   switch(feedback->event_type)
   {
-  case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
-  {
-    if(move_base_while_dragging_ && canMoveRobotMarkers())
-    {
-      base_movement_controller_.setState(BaseMovementController::READY);
-      goal_pose_.pose = feedback->pose;
-    }
-    break;
-  }
+  // case visualization_msgs::InteractiveMarkerFeedback::POSE_UPDATE:
+  // {
+  //   if(move_base_while_dragging_ && canMoveRobotMarkers())
+  //   {
+  //     base_movement_controller_.setState(BaseMovementController::READY);
+  //     goal_pose_.pose = feedback->pose;
+  //   }
+  //   break;
+  // }
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_DOWN:
     break;
   case visualization_msgs::InteractiveMarkerFeedback::MOUSE_UP:
   {
-    if(!move_base_while_dragging_ && canMoveRobotMarkers())
+    if(canMoveRobotMarkers())
     {
-      base_movement_controller_.setState(BaseMovementController::READY);
+      base_plan_.clear();
+      base_plan_index_ = 0;
       goal_pose_.pose = feedback->pose;
+      if(!base_planner_->makePlan(base_pose_, goal_pose_, base_plan_))
+      {
+	ROS_ERROR("[PR2Sim] Failed to generate a plan for start pose (%f, %f, %f) and goal pose (%f, %f, %f)", 
+		  base_pose_.pose.position.x, 
+		  base_pose_.pose.position.y,
+		  tf::getYaw(base_pose_.pose.orientation),
+		  goal_pose_.pose.position.x,
+		  goal_pose_.pose.position.y,
+		  tf::getYaw(goal_pose_.pose.orientation));
+      }
+      //base_movement_controller_.setState(BaseMovementController::READY);
+      //goal_pose_.pose = feedback->pose;
       // double yaw = std::atan2(goal_pose_.pose.position.y - base_pose_.pose.position.y,
       // 			      goal_pose_.pose.position.x - base_pose_.pose.position.x);
       // ROS_INFO("[PR2SimpleSim] New goal set at (x, y, yaw) = (%f, %f, %f).", 
@@ -849,16 +882,17 @@ void PR2Simulator::upperArmMarkerFeedback(
 
 void PR2Simulator::setBaseSpeed(double linear, double angular)
 {
+  // @todo now that base planners inherit from nav_core/BaseGlobalPlanner, this 
+  // is not generic anymore
   if(linear != 0)
   {
-    ROS_INFO("[PR2Sim] Setting linear speed to %f.", linear);
-    base_movement_controller_.setLinearSpeed(linear);
+    ROS_INFO("[PR2Sim] Setting linear speed to %f", linear);
+    static_cast<BaseCarrotController *>(base_planner_)->setLinearSpeed(linear);
   }
-
   if(angular != 0)
   {
-    ROS_INFO("[PR2Sim] Setting angular speed to %f.", angular);
-    base_movement_controller_.setAngularSpeed(angular);
+    ROS_INFO("[PR2Sim] Setting angular speed to %f", angular);
+    static_cast<BaseCarrotController *>(base_planner_)->setAngularSpeed(angular);
   }
 }
 
@@ -892,24 +926,23 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
 
   torso_position_ = torso_position;
 
-  // Reset the base pose.
+  // Reset the base pose
   base_pose_.pose = pose;
 
-  // Reset the goal pose.
+  // Reset the goal pose
   goal_pose_ = base_pose_;
   
-  // Reset the base pose interactive marker.
+  // Reset the base pose interactive marker
   int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
   int_marker_server_->applyChanges();
 
-  // Reset the joints. (Leave the left arm joints as they were.)
+  // Reset the joints (Leave the left arm joints as they were)
   joint_states_.position[7] = -0.002109;
   joint_states_.position[8] = 0.655300;
   joint_states_.position[9] = 0.000000;
   joint_states_.position[10] = -1.517650;
   joint_states_.position[11] = -3.138816;
   joint_states_.position[12] = -0.862352;
-  // joint_states_.position[13] = 3.139786;
   joint_states_.position[13] = 0.0;
 
   joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
@@ -918,8 +951,9 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
 
   end_effector_goal_pose_ = end_effector_pose_;
 
-  // Reset the base movement controller.
-  base_movement_controller_.setState(BaseMovementController::INITIAL);
+  // Reset the base plan
+  base_plan_.clear();
+  base_plan_index_ = 0;
 
   // Reset the end effector controller.
   end_effector_controller_.setState(EndEffectorController::INITIAL);
@@ -952,8 +986,7 @@ void PR2Simulator::setRobotPose(const geometry_msgs::Pose &pose)
 {
   base_pose_.pose = pose;
 
-  if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
-     base_movement_controller_.getState() == BaseMovementController::DONE)
+  if(isBasePlanDone())
   {
     int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
     int_marker_server_->applyChanges();
@@ -973,20 +1006,6 @@ void PR2Simulator::setJointStates(const sensor_msgs::JointState &joints)
     }
     else
       ROS_ERROR("[PR2Sim] Failed to find index for joint \"%s\"!", joints.name[i].c_str());
-  }
-}
-
-void PR2Simulator::setRobotBaseCommand(const geometry_msgs::Pose &command)
-{
-  goal_pose_.pose = command;
-
-  int_marker_server_->setPose("base_marker", command);
-  int_marker_server_->applyChanges();
-
-  if(base_movement_controller_.getState() == BaseMovementController::INITIAL ||
-     base_movement_controller_.getState() == BaseMovementController::DONE)
-  {
-    base_movement_controller_.setState(BaseMovementController::READY);
   }
 }
 
@@ -1213,7 +1232,7 @@ void PR2Simulator::processKeyEvent(int key, int type)
     {
     case Qt::Key_Z:
     {
-      // Change the marker to only move in the +/- z-directions.
+      // Change the marker to only move in the +/- z-directions
       visualization_msgs::InteractiveMarker gripper_marker;
       int_marker_server_->get("r_gripper_marker", gripper_marker);
 
@@ -1256,19 +1275,19 @@ void PR2Simulator::processKeyEvent(int key, int type)
     }
     case Qt::Key_W:
       // key_vel_cmd_.linear.x = 0.2;
-      key_vel_cmd_.linear.x = base_movement_controller_.getLinearSpeed();
+      //key_vel_cmd_.linear.x = base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_A:
       // key_vel_cmd_.linear.y = 0.2;
-      key_vel_cmd_.linear.y = base_movement_controller_.getLinearSpeed();
+      //key_vel_cmd_.linear.y = base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_S:
       // key_vel_cmd_.linear.x = -0.2;
-      key_vel_cmd_.linear.x = -base_movement_controller_.getLinearSpeed();
+      //key_vel_cmd_.linear.x = -base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_D:
       // key_vel_cmd_.linear.y = -0.2;
-      key_vel_cmd_.linear.y = -base_movement_controller_.getLinearSpeed();
+      //key_vel_cmd_.linear.y = -base_movement_controller_.getLinearSpeed();
       break;
     case Qt::Key_Up:
     {
@@ -1308,7 +1327,7 @@ void PR2Simulator::processKeyEvent(int key, int type)
     {
     case Qt::Key_Z:
     {
-      // Change the marker back to moving in the xy-plane.
+      // Change the marker back to moving in the xy-plane
       visualization_msgs::InteractiveMarker gripper_marker;
       int_marker_server_->get("r_gripper_marker", gripper_marker);
 
@@ -1400,20 +1419,20 @@ void PR2Simulator::updateEndEffectorMarker()
     end_effector_controller_.setState(EndEffectorController::INITIAL);
   }
 
-  // Get the current pose of the end-effector interactive marker.
+  // Get the current pose of the end-effector interactive marker
   visualization_msgs::InteractiveMarker marker;
   int_marker_server_->get("r_gripper_marker", marker);
   geometry_msgs::Pose pose = marker.pose;
 
-  pose.position.x += /*(1/getFrameRate())**/end_effector_marker_vel_.linear.x;
-  pose.position.y += /*(1/getFrameRate())**/end_effector_marker_vel_.linear.y;
-  pose.position.z += /*(1/getFrameRate())**/end_effector_marker_vel_.linear.z;
+  pose.position.x += end_effector_marker_vel_.linear.x;
+  pose.position.y += end_effector_marker_vel_.linear.y;
+  pose.position.z += end_effector_marker_vel_.linear.z;
 
-  // Update the pose according to the current velocity command.
+  // Update the pose according to the current velocity command
   int_marker_server_->setPose("r_gripper_marker", pose, end_effector_pose_.header);
   int_marker_server_->applyChanges();
 
-  // Update the goal pose.
+  // Update the goal pose
   setEndEffectorGoalPose(pose);
 }
 
@@ -1469,14 +1488,6 @@ void PR2Simulator::updateUpperArmMarker()
   marker_pose.orientation.y = y;
   marker_pose.orientation.z = z;
   marker_pose.orientation.w = w;
-
-  // ROS_INFO("updating pose: (%f, %f, %f), (%f, %f, %f, %f)",
-  //   marker_pose.position.x, marker_pose.position.y, marker_pose.position.z,
-  //   marker_pose.orientation.x, marker_pose.orientation.y, marker_pose.orientation.z,
-  //   marker_pose.orientation.w);
-
-  // int_marker_server_->setPose("r_upper_arm_marker", marker_pose);
-  // int_marker_server_->applyChanges();
 }
 
 void PR2Simulator::updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &vel)
@@ -1577,23 +1588,9 @@ void PR2Simulator::updateTransforms()
 
 bool PR2Simulator::isBaseMoving() const
 {
-  if((base_movement_controller_.getState() == BaseMovementController::DONE ||
-     base_movement_controller_.getState() == BaseMovementController::INITIAL) &&
-     vel_cmd_.linear.x == 0 && vel_cmd_.linear.y == 0 && vel_cmd_.angular.z == 0 &&
+  if(isBasePlanDone() 
+     && vel_cmd_.linear.x == 0 && vel_cmd_.linear.y == 0 && vel_cmd_.angular.z == 0 &&
      key_vel_cmd_.linear.x == 0 && key_vel_cmd_.linear.y == 0 && key_vel_cmd_.angular.z == 0)
-    return false;
-
-  return true;
-}
-
-bool PR2Simulator::isEndEffectorMoving() const
-{
-  // @todo THIS DOESN'T WORK.
-  if((end_effector_controller_.getState() == EndEffectorController::DONE ||
-      end_effector_controller_.getState() == EndEffectorController::INITIAL ||
-       end_effector_controller_.getState() == EndEffectorController::INVALID_GOAL) &&
-     end_effector_vel_cmd_.linear.x == 0 && end_effector_vel_cmd_.linear.y == 0 
-     && end_effector_vel_cmd_.linear.z == 0 && isSnapDone())
     return false;
 
   return true;
@@ -1602,7 +1599,7 @@ bool PR2Simulator::isEndEffectorMoving() const
 bool PR2Simulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
 {
   // Attempt to compute IK for the arm given a goal pose and the current 
-  // configuration.
+  // configuration
   std::vector<double> r_arm_joints(7, 0);
   for(int i = 7; i < 14; ++i)
   {
@@ -1619,7 +1616,7 @@ bool PR2Simulator::isValidEndEffectorPose(const geometry_msgs::Pose &pose)
   goal_end_effector_pose[6] = pose.orientation.w;
   
   // Use IK to find the required joint angles for the arm. If it fails, then this
-  // is not a valid end-effector pose.
+  // is not a valid end-effector pose
   std::vector<double> solution(7, 0);
   if(!kdl_robot_model_.computeIK(goal_end_effector_pose, r_arm_joints, solution))
   {
@@ -1659,19 +1656,18 @@ bool PR2Simulator::validityCheck(const vector<double>& rangles,
   if(ignore_collisions_)
     return true;
   
-  if(attached_object_){
-    //check robot motion
-    // ROS_ERROR("Check robot move (attached)");
+  if(attached_object_)
+  {
+    // Check robot motion
     if(!object_manager_->checkRobotMove(rangles, langles, bp, attached_id_))
       return false;
     
-    // ROS_ERROR("Check object move (attached)");
     if(!object_manager_->checkObjectMove(attached_id_, object_pose, rangles, langles, bp))
       return false;
   }
-  else{
-    //check robot motion
-    // ROS_ERROR("Check robot move");
+  else
+  {
+    // Check robot motion
     if(!object_manager_->checkRobotMove(rangles, langles, bp, -1))
       return false;
   }
@@ -1826,11 +1822,6 @@ geometry_msgs::Pose PR2Simulator::getEndEffectorPoseInBase() const
 void PR2Simulator::setMoveEndEffectorWhileDragging(bool move)
 {
   move_end_effector_while_dragging_ = move;
-}
-
-void PR2Simulator::setMoveBaseWhileDragging(bool move)
-{
-  move_base_while_dragging_ = move;
 }
 
 bool PR2Simulator::closestValidEndEffectorPosition(const geometry_msgs::Pose &current_pose,
@@ -2107,7 +2098,7 @@ double PR2Simulator::getTorsoPosition() const
 
 void PR2Simulator::setTorsoPosition(double position)
 {
-  // @todo check if it is valid (i.e. within limits).
+  // @todo check if it is valid (i.e. within limits)
   torso_position_ = position;
 }
 
@@ -2118,22 +2109,25 @@ void PR2Simulator::setIgnoreCollisions(bool ignore)
 
 void PR2Simulator::setFrameRate(double rate)
 {
-  ROS_INFO("changing frame rate from %f to %f.", frame_rate_, rate);
+  ROS_INFO("[PR2Sim] Changing frame rate from %f to %f", frame_rate_, rate);
   double c = frame_rate_/rate;
-  ROS_INFO("c = %f", c);
   frame_rate_ = rate;
 
-  // Adjust the meter/frame speeds for the new frame rate.
-  ROS_INFO("previous speed = %f, new speed = %f", base_movement_controller_.getLinearSpeed(),
-	   c * base_movement_controller_.getLinearSpeed());
-  base_movement_controller_.setLinearSpeed(base_movement_controller_.getLinearSpeed() * c);
-  base_movement_controller_.setAngularSpeed(base_movement_controller_.getAngularSpeed() * c);
+  // Adjust the meter/frame speeds for the new frame rate
+  BaseCarrotController *base_controller = static_cast<BaseCarrotController *>(base_planner_);
+  base_controller->setLinearSpeed(base_controller->getLinearSpeed() * c);
+  base_controller->setAngularSpeed(base_controller->getAngularSpeed() * c);
   end_effector_controller_.setSpeed(end_effector_controller_.getSpeed() * c);
 }
 
 double PR2Simulator::getFrameRate() const
 {
   return frame_rate_;
+}
+
+bool PR2Simulator::isBasePlanDone() const
+{
+  return (base_plan_index_ >= base_plan_.size());
 }
 
 } // namespace demonstration_visualizer

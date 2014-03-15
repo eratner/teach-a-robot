@@ -12,13 +12,15 @@
 #include <tf/transform_datatypes.h>
 #include <pviz/pviz.h>
 #include <interactive_markers/interactive_marker_server.h>
-#include <dviz_core/base_movement_controller.h>
+//#include <dviz_core/base_movement_controller.h>
+#include <dviz_core/base_carrot_controller.h>
 #include <dviz_core/end_effector_controller.h>
 #include <dviz_core/motion_recorder.h>
 #include <dviz_core/object_manager.h>
 #include <dviz_core/common.h>
 #include <sbpl_manipulation_components_pr2/pr2_kdl_robot_model.h>
 #include <tf/transform_broadcaster.h>
+#include <nav_core/base_global_planner.h>
 
 #include <Qt>
 #include <QEvent>
@@ -120,8 +122,6 @@ public:
 
   void setJointStates(const sensor_msgs::JointState &joints);
 
-  void setRobotBaseCommand(const geometry_msgs::Pose &command);
-
   /**
    * @brief Generates and executes an interpolated trajectory for the end-
    *        effector between its current pose and the specified goal pose.
@@ -139,7 +139,7 @@ public:
 
   /**
    * @brief Provides a way to notify the simulator of key events recieved
-   *        elsewhere.
+   *        elsewhere
    */
   void processKeyEvent(int key, int type);
 
@@ -151,11 +151,9 @@ public:
 
   bool isBaseMoving() const;
 
-  bool isEndEffectorMoving() const;
-
   /**
    * @brief Checks to see if the given pose is a valid pose for the end effector
-   *        using FK with the current joint angles.
+   *        using FK with the current joint angles
    */
   bool isValidEndEffectorPose(const geometry_msgs::Pose &);
 
@@ -196,11 +194,9 @@ public:
 
   void setMoveEndEffectorWhileDragging(bool);
 
-  void setMoveBaseWhileDragging(bool);
-
   /**
    * @brief Performs a basic search to look for the closest valid IK solution for various 
-   *        (x, y, z) positions within a given range of the current position. 
+   *        (x, y, z) positions within a given range of the current position
    *
    */
   bool closestValidEndEffectorPosition(const geometry_msgs::Pose &current_pose,
@@ -231,14 +227,14 @@ public:
 
   double getFrameRate() const;
 
+  bool isBasePlanDone() const;
+
 private:
   bool playing_;
   int user_id_;
   double frame_rate_;
 
-  // @todo find better names for these control modes.
   bool move_end_effector_while_dragging_;
-  bool move_base_while_dragging_;
 
   void updateTransforms();
 
@@ -249,8 +245,11 @@ private:
   ObjectManager* object_manager_;
   PViz *pviz_;
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
-  BaseMovementController base_movement_controller_;
   EndEffectorController end_effector_controller_;
+
+  nav_core::BaseGlobalPlanner *base_planner_;
+  std::vector<geometry_msgs::PoseStamped> base_plan_;
+  int base_plan_index_;
 
   MotionRecorder *recorder_;
 
