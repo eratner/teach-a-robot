@@ -360,49 +360,11 @@ void PR2Simulator::moveRobot()
   else
   {
     next_base = base_pose_;
+    int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
+    int_marker_server_->applyChanges();
   }
 
-  // // First, get the next proposed base pose.
-  // geometry_msgs::Twist base_vel = base_movement_controller_.getNextVelocities(base_pose_.pose,
-  // 									      goal_pose_.pose);
-
-  // if(base_movement_controller_.getState() == BaseMovementController::DONE ||
-  //    (isBaseMoving() && base_movement_controller_.getState() == BaseMovementController::INITIAL)
-  //    )
-  // {
-  //   int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
-  //   int_marker_server_->applyChanges();
-  // }
-
-  // if(base_movement_controller_.getState() == BaseMovementController::DONE)
-  // {
-  //   base_movement_controller_.setState(BaseMovementController::INITIAL);
-  // }
-  
-  // base_vel.linear.x += vel_cmd_.linear.x;
-  // base_vel.linear.x += key_vel_cmd_.linear.x;
-  // base_vel.linear.y += vel_cmd_.linear.y;
-  // base_vel.linear.y += key_vel_cmd_.linear.y;
-  // base_vel.angular.z += vel_cmd_.angular.z;
-  // base_vel.angular.z += key_vel_cmd_.angular.z;
-
-  // // Get the next velocity commands, and apply them to the robot.
-  // double theta = tf::getYaw(base_pose_.pose.orientation);
-  // double dx = /*(1.0/getFrameRate())**/base_vel.linear.x*std::cos(theta) 
-  //   - /*(1.0/getFrameRate())**/base_vel.linear.y*std::sin(theta);
-  // double dy = /*(1.0/getFrameRate())**/base_vel.linear.y*std::cos(theta)
-  //   + /*(1.0/getFrameRate())**/base_vel.linear.x*std::sin(theta);
-  // double dyaw = /*(1/getFrameRate())**/base_vel.angular.z;
-
-  // double new_x = base_pose_.pose.position.x + dx;
-  // double new_y = base_pose_.pose.position.y + dy;
-  // double new_theta = tf::getYaw(base_pose_.pose.orientation) + dyaw;
-
   BodyPose body_pose;
-  // body_pose.x = new_x;
-  // body_pose.y = new_y;
-  // body_pose.z = getTorsoPosition();
-  // body_pose.theta = new_theta;
   body_pose.x = next_base.pose.position.x;
   body_pose.y = next_base.pose.position.y;
   body_pose.z = getTorsoPosition();
@@ -526,11 +488,12 @@ void PR2Simulator::moveRobot()
   }
   
   bool upper_arm_roll_changed = false;
-  // upper arm roll
+  // Process any changes to the upper arm roll joint angle
   if(delta_arm_roll_ != 0)
   {
     upper_arm_roll_changed = true;
 
+    // @todo this should be a constant/is this a good step size?
     double step_size = 0.02;
     if(std::abs(delta_arm_roll_) < step_size)
     {
@@ -542,7 +505,6 @@ void PR2Simulator::moveRobot()
 
     // ROS_INFO("step_size = %f, delta_arm_roll = %f", step_size, delta_arm_roll_);
 
-    // solution[2] += step_size;
     delta_arm_roll_ -= step_size;
     
     std::vector<double> r_arm_joints = solution;
@@ -575,9 +537,6 @@ void PR2Simulator::moveRobot()
   {
     ROS_DEBUG("[PR2Sim] Collision free!");
     // All is valid, first move the base pose
-    // base_pose_.pose.position.x = new_x;
-    // base_pose_.pose.position.y = new_y;
-    // base_pose_.pose.orientation = tf::createQuaternionMsgFromYaw(new_theta);
     base_pose_ = next_base;
     base_plan_index_++;
     
@@ -604,6 +563,7 @@ void PR2Simulator::moveRobot()
       object_manager_->moveObject(attached_id_, object_pose);
     }
 
+    // If the upper arm roll was changed, adjust the orientation of the control
     if(upper_arm_roll_changed)
     {
       visualization_msgs::InteractiveMarker marker;
@@ -623,8 +583,8 @@ void PR2Simulator::moveRobot()
   }
   else
   {
+    // The robot is an invalid state
     //ROS_ERROR("[PR2Sim] Invalid movement!");
-    // @todo indicate that the robot is in an invalid state
   }
 }
 
@@ -634,11 +594,6 @@ void PR2Simulator::computeObjectPose(vector<double> eef, BodyPose bp, geometry_m
                          KDL::Vector(bp.x, bp.y, 0.0));
   KDL::Frame eef_in_base(KDL::Rotation::Quaternion(eef[3],eef[4],eef[5],eef[6]),
                          KDL::Vector(eef[0],eef[1],eef[2]));
-
-  // double r, p, y;
-  // eef_in_base.M.GetRPY(r, p, y);
-  // ROS_INFO("computeObjectPose() end effector pose in base (%f, %f, %f), (%f, %f, %f)",
-  // 	   eef[0], eef[1], eef[2], r, p, y);
 
   KDL::Frame obj_in_map = base_in_map * eef_in_base * attached_transform_;
   obj.position.x = obj_in_map.p.x();
@@ -663,7 +618,6 @@ void PR2Simulator::visualizeRobot()
   {
     l_joints_pos[i] = joint_states_.position.at(i);
     r_joints_pos[i] = joint_states_.position.at(i+7);
-    // ROS_INFO("right arm joint %d: %f", i+7, r_joints_pos[i]);
   }
   r_joints_pos[7] = joint_states_.position.at(14);
 
@@ -867,11 +821,11 @@ void PR2Simulator::upperArmMarkerFeedback(
     current_roll = r;
     ROS_INFO("Current RPY: (%f, %f, %f)", r, p, y);
 
-    // ROS_INFO("Current r_upper_arm_roll_joint value = %f", joint_states_.position[9]);
+    ROS_INFO("Current r_upper_arm_roll_joint value = %f", joint_states_.position[9]);
 
     double angle = next_roll - current_roll;
 
-    delta_arm_roll_ = /*-1.0 * */ angles::normalize_angle(angle);
+    delta_arm_roll_ = angles::normalize_angle(angle);
 
     break;
   }
