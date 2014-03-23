@@ -3,7 +3,7 @@
 namespace demonstration_visualizer
 {
 
-// @todo this should be set to a better location. 
+// @todo this should be set to a better location
 const std::string MotionRecorder::DEFAULT_DEMONSTRATION_PATH = "/home/eratner/demonstrations";
 
 MotionRecorder::MotionRecorder(int user_id)
@@ -137,7 +137,7 @@ bool MotionRecorder::beginReplay(const std::string &file)
   //   return false;
   // }
 
-  // Load appropriate bag file, and get the user demonstration data. 
+  // Load appropriate bag file, and get the user demonstration data
   try
   {
     read_bag_.open(file, rosbag::bagmode::Read);
@@ -159,7 +159,7 @@ bool MotionRecorder::beginReplay(const std::string &file)
     return false;
   }
 
-  // Get information about the user demonstration.
+  // Get information about the user demonstration
   ROS_INFO("[MotionRec] Replaying demonstration from user %s with id %s performing task \"%s\" on the date %s with the following steps:",
 	   loaded_demo->user_id.c_str(),
 	   loaded_demo->demo_id.c_str(),
@@ -180,7 +180,7 @@ bool MotionRecorder::beginReplay(const std::string &file)
   joint_states_.clear();
   joint_states_count_ = 0;
 
-  // Populate a vector of poses and joint states from the waypoints.
+  // Populate a vector of poses and joint states from the waypoints
   for(std::vector<dviz_core::Step>::const_iterator s_it = loaded_demo->steps.begin();
       s_it != loaded_demo->steps.end(); ++s_it)
   {
@@ -341,7 +341,7 @@ sensor_msgs::JointState MotionRecorder::getNextJoints()
 {
   if(joint_states_count_ >= joint_states_.size())
   {
-    ROS_INFO("[MotionRec] Done replaying joint states.");
+    ROS_INFO("[MotionRec] Done replaying joint states");
     return sensor_msgs::JointState();
   }
 
@@ -371,7 +371,7 @@ int MotionRecorder::getNumJoints() const
   return joint_states_.size();
 }
 
-void MotionRecorder::goTo(int i)
+bool MotionRecorder::goTo(int i)
 {
   ROS_INFO("[MotionRec] Fast-forwarding to frame %d", i);
 
@@ -379,10 +379,12 @@ void MotionRecorder::goTo(int i)
   {
     pose_count_ = i;
     joint_states_count_ = i;
+    return true;
   }
   else
   {
     ROS_ERROR("[MotionRec] Cannot fast-forward to frame %d", i);
+    return false;
   }
 }
 

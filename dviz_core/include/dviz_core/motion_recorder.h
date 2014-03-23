@@ -100,7 +100,7 @@ public:
 
   int getNumJoints() const;
 
-  void goTo(int i);
+  bool goTo(int i);
 
   void saveRecording();
 

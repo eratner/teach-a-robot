@@ -265,6 +265,8 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   this.basicGripperControls = true;
   this.playing = true;
   this.gameStarted = false;
+  this.replayMode = false;
+  this.replayBagfile = null;
   this.acceptedGrasp = false;
   //console.log('ACCEPTED GRASP -> FALSE');
 
@@ -406,20 +408,66 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
     .tooltip('fixTitle')
     .tooltip('show');
   
-  // If the user has not started the game yet, load the task
+
   if(!this.gameStarted) {
-    this.loadTask();
-    this.robotMarkerControl(true);
-    // Start recording
-    if(workerId !== null && assignmentId !== null) {
-      var bagfileName = 'user_' + workerId + '_demonstration_' 
-	+ assignmentId + '_' + this.id.toString() + '.bag';
-      this.beginRecording(bagfileName, assignmentId);
+    if(this.replayMode) {
+      // If in replay mode, load the bagfile and begin replaying
+      dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
+	command : 'begin_replay',
+	// @todo we should have some way of specifying the path
+	args : ['/home/eratner/demonstrations/' + this.replayBagfile]
+      }), function(response) {
+	if(response.response.length > 0) {
+	  DVIZ.debug && console.log('[DVizClient] Error response: ' + response.response);
+	} else {
+	  DVIZ.debug && console.log('[DVizClient] Loaded bagfile');
+	  dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
+	    command : 'num_frames_in_recording',
+	    args : []
+	  }), function(response) {
+	    var frames = parseInt(response.response);
+	    if(isNaN(frames)) {
+	      DVIZ.debug && console.log('[DVizClient] Error: recieved NaN as frame count');
+	    } else {
+	      $('#fastForwardReplay').slider({
+		value : 0,
+		min : 0,
+		max : frames-1,
+		step : 1
+	      });
+	      $('#fastForwardReplay').slider().on('slideStop', function(ev) {
+		var index = parseInt($('#fastForwardReplay').data('slider').getValue());
+		DVIZ.debug && console.log('[DVizClient] Fast-forwarding to frame '
+					  + index.toString());
+		if(!isNaN(index)) {
+		  dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
+		    command : 'fast_forward_replay',
+		    args : [index.toString()]
+		  }), function(response) {
+		    
+		  });
+		}
+	      });
+	    }
+	  });
+	}
+      });
+      this.gameStarted = true;
     } else {
-      this.beginRecording();
+      // If the user has not started the game yet, load the task
+      this.loadTask();
+      this.robotMarkerControl(true);
+      // Start recording
+      if(workerId !== null && assignmentId !== null) {
+	var bagfileName = 'user_' + workerId + '_demonstration_' 
+	  + assignmentId + '_' + this.id.toString() + '.bag';
+	this.beginRecording(bagfileName, assignmentId);
+      } else {
+	this.beginRecording();
+      }
+      this.gameStarted = true;
+      $('#done').prop('disabled', false);
     }
-    this.gameStarted = true;
-    $('#done').prop('disabled', false);
   }
 
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -433,6 +481,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.pause = function(now) {
+  if(!this.playing) {
+    return;
+  }
+
   DVIZ.debug && console.log('[DVizClient] Pausing simulator...');
   this.playing = false;
 
@@ -963,26 +1015,28 @@ DVIZ.DemonstrationVisualizerClient.prototype.setGripperJointAngle = function(ang
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.displayStatusText = function(text) {
-  DVIZ.debug && console.log('adding status: ' + text);
-  // if(this.statusText == null) {
-  //   this.statusText = document.createElement('div');
-  //   this.statusText.style.position = 'absolute';
-  //   this.statusText.style.width = 100;
-  //   this.statusText.height = 100;
-  //   this.statusText.style.backgroundColor = 'black';
-  //   this.statusText.style.color = 'white';
-  //   this.statusText.style.top = $('#dviz').offset().top + 'px';
-  //   this.statusText.style.left = $('#dviz').offset().left + 'px';
-  //   this.statusText.innerHTML = '...';
-  //   document.body.appendChild(this.statusText);
-  // }
-  // this.statusText.innerHTML = text;
+  DVIZ.debug && console.log('[DVizClient] Adding status: ' + text);
+  if(this.statusText == null) {
+    this.statusText = document.createElement('div');
+    this.statusText.style.position = 'absolute';
+    this.statusText.style.width = 100;
+    this.statusText.height = 100;
+    this.statusText.style.backgroundColor = 'black';
+    this.statusText.style.color = 'white';
+    this.statusText.style.top = $('#dviz').offset().top + 'px';
+    this.statusText.style.left = $('#dviz').offset().left + 'px';
+    this.statusText.innerHTML = '...';
+    document.body.appendChild(this.statusText);
+  }
+  this.statusText.innerHTML = text;
 }
 
 var ros = null;
 var dvizCoreCommandClient = null;
 var dvizClient = null;
 var watching = false;
+var replayMode = false;
+var replayBagfile = null;
 
 // Mechanical Turk information
 var hitId = null;
@@ -1008,6 +1062,9 @@ function init() {
       previewMode = (assignmentId === 'ASSIGNMENT_ID_NOT_AVAILABLE');
     } else if(variables[i][0] === 'workerId') {
       workerId = variables[i][1];
+    } else if(variables[i][0] === 'replayBagfile') {
+      replayBagfile = variables[i][1];
+      replayMode = true;
     }
   }
 
@@ -1108,7 +1165,9 @@ function init() {
 	    dvizClient.displayStatusText('Connected to the server!');
 
 	    // Show the instructions
-	    $('#infoModal').modal('show');
+	    if(!replayMode) {
+	      $('#infoModal').modal('show');
+	    }
 
 	    $('#done').on('click', function() {
 	      $('#confirmEnd').modal('show');
@@ -1259,6 +1318,13 @@ function initializeDemonstration(id, width, height, ros, viewer) {
     viewerHeight : height,
     id : id
   });
+
+  // If in replay mode, set up 
+  if(replayMode) {
+    DVIZ.debug && console.log('[DVizClient] Replaying from bagfile "' + replayBagfile + '"');
+    dvizClient.replayMode = true;
+    dvizClient.replayBagfile = replayBagfile;
+  }
 
   // Initialize button click callbacks
   $('#playPause').on('click', function() {

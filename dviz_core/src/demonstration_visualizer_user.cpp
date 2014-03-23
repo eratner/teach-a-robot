@@ -422,6 +422,13 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end BEGIN_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::NUM_FRAMES_IN_RECORDING) == 0)
+  {
+    int frames = std::min(recorder_->getNumPoses(), recorder_->getNumJoints());
+    std::stringstream ss;
+    ss << frames;
+    res.response = ss.str();
+  } // end NUM_FRAMES_IN_RECORDING
   else if(req.command.compare(dviz_core::Command::Request::BEGIN_REPLAY) == 0)
   {
     if(req.args.size() == 1)
@@ -442,10 +449,45 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
   {
     recorder_->endRecording();
   } // end END_RECORDING
+  else if(req.command.compare(dviz_core::Command::Request::FAST_FORWARD_REPLAY) == 0)
+  {
+    if(!recorder_->isReplaying())
+    {
+      ROS_ERROR("[DVizUser%d] Cannot fast-forward when not replaying", id_);
+      std::stringstream ss;
+      ss << "Cannot fast-forward when not replaying";
+      res.response = ss.str();
+      return false;
+    }
+    else
+    {
+      if(req.args.size() == 1)
+      {
+	int index = atoi(req.args[0].c_str());
+	if(!recorder_->goTo(index))
+	{
+	  ROS_ERROR("[DVizUser%d] Invalid index to fast-forward to (%d)", id_, index);
+	  std::stringstream ss;
+	  ss << "Invalid index to fast-forward to (%d)" << index;
+	  res.response = ss.str();
+	  return false;
+	}
+      }
+      else
+      {
+	ROS_ERROR("[DVizUser%d] Invalid number of arguments for fast_forward_replay (%d given, 1 required)",
+		  id_, (int)req.args.size());
+	std::stringstream ss;
+	ss << "Invalid number of arguments for fast_forward_replay (" << req.args.size() << " given, 1 required)";
+	res.response = ss.str();
+	return false;
+      }
+    }
+  } // end FAST_FORWARD_REPLAY
   else if(req.command.compare(dviz_core::Command::Request::SAVE_RECORDING) == 0)
   {
     recorder_->saveRecording();
-  }
+  } // end SAVE_RECORDING
   else if(req.command.compare(dviz_core::Command::Request::PROCESS_KEY) == 0)
   {
     if(req.args.size() == 2)

@@ -32,12 +32,16 @@ string GRIPPER_CONTROLS = gripper_controls
 string RESET_TASK = reset_task
 # BEGIN_RECORDING: arguments = { user-name, [demo-name], [bagfile-name], [path] }
 string BEGIN_RECORDING = begin_recording
+# NUM_FRAMES_IN_RECORDING: arguments = { }
+string NUM_FRAMES_IN_RECORDING = num_frames_in_recording
 # BEGIN_REPLAY: arguments = { file }
 string BEGIN_REPLAY = begin_replay
 # END_RECORDING: arguments = { }
 string END_RECORDING = end_recording
 # END_REPLAY: arguments = { }
 string END_REPLAY = end_replay
+# FAST_FORWARD_REPLAY = { index }
+string FAST_FORWARD_REPLAY = fast_forward_replay
 # SAVE_RECORDING: arguments = { }
 string SAVE_RECORDING = save_recording
 # PROCESS_KEY: arguments = { key, type }
@@ -62,7 +66,7 @@ string ROBOT_MARKER_CONTROL = robot_marker_control
 string SET_GRIPPER_JOINT = set_gripper_joint
 # SET_JOINT_STATES = { }
 string SET_JOINT_STATES = set_joint_states
-# DECR_USERS
+# DECR_USERS = { }
 string DECR_USERS = decr_users
 
 # A valid string command.
