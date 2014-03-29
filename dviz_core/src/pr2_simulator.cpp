@@ -355,13 +355,21 @@ void PR2Simulator::moveRobot()
   geometry_msgs::PoseStamped next_base;
   if(!isBasePlanDone())
   {
+    ROS_WARN("Executing base plan (index = %d, size = %d)", base_plan_index_, base_plan_.size());
     next_base = base_plan_.at(base_plan_index_);
   }
   else
   {
+    ROS_WARN("Base plan done (index = %d, size = %d)", base_plan_index_, base_plan_.size());
     next_base = base_pose_;
-    int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
-    int_marker_server_->applyChanges();
+    // @todo this is BaseCarrotController specific code and should be generalized
+    BaseCarrotController *base_controller = static_cast<BaseCarrotController *>(base_planner_);
+    if(base_controller->getState() == BaseCarrotController::DONE)
+    {
+      int_marker_server_->setPose("base_marker", base_pose_.pose, base_pose_.header);
+      int_marker_server_->applyChanges();
+      base_controller->setState(BaseCarrotController::INITIAL);
+    }
   }
 
   BodyPose body_pose;
@@ -706,6 +714,13 @@ void PR2Simulator::baseMarkerFeedback(
       base_plan_.clear();
       base_plan_index_ = 0;
       goal_pose_.pose = feedback->pose;
+      ROS_WARN("[PR2Sim] Goal pose set to (%f, %f, %f); start pose (%f, %f, %f)",
+	       goal_pose_.pose.position.x,
+	       goal_pose_.pose.position.y,
+	       tf::getYaw(goal_pose_.pose.orientation),
+	       base_pose_.pose.position.x,
+	       base_pose_.pose.position.y,
+	       tf::getYaw(base_pose_.pose.orientation));
       if(!base_planner_->makePlan(base_pose_, goal_pose_, base_plan_))
       {
 	ROS_ERROR("[PR2Sim] Failed to generate a plan for start pose (%f, %f, %f) and goal pose (%f, %f, %f)", 

@@ -10,7 +10,7 @@ BaseCarrotController::BaseCarrotController()
   : last_state_(INITIAL), frames_(0),
     linear_speed_(DEFAULT_LINEAR_SPEED),
     angular_speed_(DEFAULT_ANGULAR_SPEED),
-    print_transitions_(false)
+    print_transitions_(true)
 {
   initialize("", 0);
 }
