@@ -433,21 +433,30 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
 		value : 0,
 		min : 0,
 		max : frames-1,
-		step : 1
-	      });
-	      $('#fastForwardReplay').slider().on('slideStop', function(ev) {
-		var index = parseInt($('#fastForwardReplay').data('slider').getValue());
-		DVIZ.debug && console.log('[DVizClient] Fast-forwarding to frame '
-					  + index.toString());
-		if(!isNaN(index)) {
-		  dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
-		    command : 'fast_forward_replay',
-		    args : [index.toString()]
-		  }), function(response) {
-		    
-		  });
+		step : 1,
+		slide : function(event, ui) {
+		  var index = parseInt(ui.value);
+		  DVIZ.debug && console.log('[DVizClient] Fast-forwarding to frame '
+					    + index.toString() + ' of ' 
+					    + frames.toString() + ' frames');
+		  if(!isNaN(index)) {
+		    dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
+		      command : 'fast_forward_replay',
+		      args : [index.toString()]
+		    }), function(response) {
+		      
+		    });
+		  }
 		}
 	      });
+
+	      // @todo We need the slider to move along with the replay
+	      // setInterval(function() {
+	      // 	var currentFrame = parseInt(
+	      // 	  $('#fastForwardReplay').slider('getValue'));
+	      // 	$('#fastForwardReplay').slider('setValue', currentFrame+3);
+	      // }, 100);
+	      // Note: 30 fps => trigger every 33.33333... ms => 3 frames every 100 ms
 	    }
 	  });
 	}
