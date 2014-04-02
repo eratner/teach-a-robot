@@ -35,32 +35,32 @@
   <body onload="init()">
     <div class="container">
 
-      <!-- <div class="jumbotron"> -->
-      <!-- 	<h1>Teach-A-Robot</h1> -->
-      <!-- </div> -->
-
-      <!-- End demonstration confirmation box -->
-      <div class="modal fade" id="confirmEnd">
-	<div class="modal-dialog">
-	  <div class="modal-content">
-	    <div class="modal-body">
-              <p>Are you sure you want to end the demonstration and close the window?</p>
-	      <p>Your progress will be saved to the server, but you must still press the submit button on the HIT page. If this window does not close automatically, please do so manually.</p>
-	    </div>
-	    <div class="modal-footer">
-              <button class="btn" id="confirmFalse">Wait! I want to continue.</button>
-              <button class="btn btn-primary" id="confirmTrue">Yes, I'm done!</button>
-	    </div>
-	  </div>
-	</div>
-      </div>
-
       <!-- Too many users notification -->
       <div class="modal fade" id="tooManyUsers">
 	<div class="modal-dialog">
 	  <div class="modal-content">
 	    <div class="modal-body">
               <p>There are too many users online right now! Please wait some time before re-accepting this HIT. Thank you for your patience!</p>
+	    </div>
+	  </div>
+	</div>
+      </div>
+
+      <!-- (MTurk) Ask the user for workerID and give them their unique assignment ID -->
+      <div class="modal fade" id="mturkInfo" data-backdrop="static" data-keyboard="false">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-header">
+	      <h4>Welcome to Teach-A-Robot!</h4>
+	    </div>
+	    <div class="modal-body">
+	      <label for="workerId">Please enter your Mechanical Turk Worker ID: </label>
+	      <input id="workerId" type="text" />
+	      <p>Your Teach-A-Robot Demonstration ID is <strong id="assignmentId"></strong></p>
+	      <p><font color="red" id="mturkInfoError"></font><p>
+	    </div>
+	    <div class="modal-footer">
+	      <button class="btn btn-primary" id="confirmInfo">Submit</button>
 	    </div>
 	  </div>
 	</div>

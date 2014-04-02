@@ -153,6 +153,13 @@ bool MotionRecorder::beginReplay(const std::string &file)
   rosbag::View view(read_bag_, rosbag::TopicQuery("/demonstration"));
   rosbag::View::iterator iter = view.begin();
   dviz_core::UserDemonstration::ConstPtr loaded_demo = (*iter).instantiate<dviz_core::UserDemonstration>();
+  // Get the last demonstration in the file
+  while(iter != view.end())
+  {
+    loaded_demo = (*iter).instantiate<dviz_core::UserDemonstration>();
+    iter++;
+  }
+
   if(loaded_demo == NULL)
   {
     ROS_ERROR("[MotionRec] Failed to load user demonstration from bag file!");

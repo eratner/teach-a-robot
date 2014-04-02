@@ -378,7 +378,6 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
   	// Show an interactive gripper marker at the current goal
   	DVIZ.debug && console.log('[DVizClient] Current goal is of type pick-up');
   	that.acceptedGrasp = false;
-  	//console.log('ACCEPTED GRASP -> FALSE');
   	$('#acceptChangeGrasp').empty().append('<img src="images/accept_grasp.png" width="65" height="65" />');
   	$('#gripperJointAngle').slider('option', 'value', 
   				       that.goals[that.currentGoalNumber].gripper_joint_position);
@@ -659,8 +658,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.handleKeyPress = function(e) {
 }
 
 DVIZ.DemonstrationVisualizerClient.prototype.handleKeyRelease = function(e) {
-  //console.log('[DVizClient] Handling key release event: ' + e.which + '.');
-
   if(e.which === 90) {
     if(this.zMode) {
         DVIZ.debug && console.log('[DVizClient] Disabling z-mode');
@@ -709,20 +706,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
   this.robotMarkerControl(false);
   this.pause();
 
-  //$('#gripperJointAngle').slider('option', 'disabled', false);
-
   this.changeCamera('none');
   $('#baseHandCamera').prop('disabled', true);
-  // @todo there should be a centerCameraAt(x,y,z) method in DVIZ.CameraManager
-  /*
-  this.cameraManager.viewer.cameraControls.center.x = 
-    this.goals[this.currentGoalNumber].initial_object_pose.position.x;
-  this.cameraManager.viewer.cameraControls.center.y = 
-    this.goals[this.currentGoalNumber].initial_object_pose.position.y;
-  this.cameraManager.viewer.cameraControls.center.z = 
-    this.goals[this.currentGoalNumber].initial_object_pose.position.z;
-  this.cameraManager.viewer.cameraControls.update();
-  */
 
   var objectX = this.goals[goalNumber].initial_object_pose.position.x;
   var objectY = this.goals[goalNumber].initial_object_pose.position.y;
@@ -747,8 +732,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.showInteractiveGripper = function(g
 
 DVIZ.DemonstrationVisualizerClient.prototype.hideInteractiveGripper = function(goalNumber) {
   DVIZ.debug && console.log('[DVizClient] Hiding interactive gripper for goal ' + goalNumber.toString());
-
-  //$('#gripperJointAngle').slider('option', 'disabled', true);
 
   this.robotMarkerControl(true);
   
@@ -827,7 +810,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     $('#baseHandCamera').attr('disabled', true);
     $('#rotateHandControls').attr('disabled', true);
     this.acceptedGrasp = false;
-    //console.log('ACCEPTED GRASP -> FALSE');
 
     $('#acceptChangeGrasp').html('<img src="images/accept_grasp.png" width="65" height="65" />');
     $('#acceptChangeGrasp').tooltip('hide')
@@ -846,7 +828,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.acceptGrasp = function() {
     }
     $('#rotateHandControls').attr('disabled', false);
     this.acceptedGrasp = true;
-    //console.log('ACCEPTED GRASP -> TRUE');
 
     // Hide the interactive gripper of the current goal
     this.hideInteractiveGripper(this.currentGoalNumber);
@@ -930,7 +911,8 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   // description of the next goal in the task
   var message = 'Goal ' + goalNumber.toString() + ' completed! ';
   if(goalNumber + 1 >= this.goals.length) {
-    message += 'Congratulations, the task is complete! Close this window and your demonstration will automatically be saved.'; // Return to the Mechanical Turk page to submit your results.';
+    message += 'Congratulations, the task is complete! Close this window and your demonstration '
+    + ' will automatically be saved. Don\'t forget to submit the Mechanical Turk HIT results.';
     this.endDemonstration(true);
   } else {
     message += ('Next goal: ' + 
@@ -938,9 +920,11 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   }
 
   message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString() 
-    + ' out of 12 goals</strong>. Good job!'; //, so you are now eligible for <strong>$'
-    //+ ((goalsCompleted * 0.50).toFixed(2)).toString() 
-    //+ '</strong>! Remember to submit your progress on the previous page, after closing this window.';
+    + ' out of 12 goals</strong>. You are now eligible for <strong>$'
+    + ((goalsCompleted * 0.50).toFixed(2)).toString() 
+    + '</strong>! <br />If you\'re done, remember to submit your <strong>Teach-A-Robot'
+    + ' Demonstration ID (' + assignmentId + ')</strong> on the Mechanical Turk HIT page'
+    + ' so that we can pay you.';
 
   // Save all demonstration progress after each goal is completed
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -964,35 +948,6 @@ DVIZ.DemonstrationVisualizerClient.prototype.endDemonstration = function(complet
   if(this.gameStarted) {
     this.gameStarted = false;
     this.endRecording();
-    // @todo do all the post-game 'clean up': save demonstration files,
-    // etc. 
-    // this can be called when a game is prematurely terminated
-    // if(hitId !== null && assignmentId !== null) {
-    //   DVIZ.debug && console.log('[DVizClient] Submitting ' + goalsCompleted.toString() +
-    // 				' goals completed to Mechanical Turk');
-
-    //   var form = $('<form />', {
-    // 	action : externalSubmitURL,
-    // 	method : 'POST',
-    // 	style : 'display : none;'
-    //   });
-    //   $('<input />', {
-    // 	type : 'hidden',
-    // 	name : 'assignmentId',
-    // 	value : assignmentId
-    //   }).appendTo(form);
-    //   $('<input />', {
-    // 	type : 'hidden',
-    // 	name : 'goalsCompleted',
-    // 	value : goalsCompleted
-    //   }).appendTo(form);
-    //   $('<input />', {
-    // 	type : 'hidden',
-    // 	name : 'taskCompleted',
-    // 	value : taskCompleted
-    //   }).appendTo(form);
-    //   form.appendTo('body').submit();
-    // }
   }
 }
 
@@ -1054,8 +1009,6 @@ var assignmentId = null;
 var previewMode = false;
 
 var goalsCompleted = 0;
-var externalSubmitURL = DVIZ.debug ? 'https://workersandbox.mturk.com/mturk/externalSubmit' : 
-                                     'https://www.mturk.com/mturk/externalSubmit';
 
 function init() {
   $('#debugControls').hide();
@@ -1173,37 +1126,26 @@ function init() {
 
 	    dvizClient.displayStatusText('Connected to the server!');
 
-	    // Show the instructions
+	    // Show the instructions and prompt the user to input their id
 	    if(!replayMode) {
-	      $('#infoModal').modal('show');
+	      // TODO: Prompt the user for their worker ID and give them a randomly 
+	      // generated completion string
+	      assignmentId = generateRandomString(8);
+	      DVIZ.debug && console.log('[DVizClient] Random assignment ID: ' + assignmentId);
+	      $('#assignmentId').html(assignmentId);		
+	      $('#mturkInfo').modal('show');
+	      $('#confirmInfo').on('click', function() {
+		// TODO: Grab worker ID
+		workerId = $('#workerId').val();
+		if(workerId.length > 0) {
+		  DVIZ.debug && console.log('[DVizClient] Worker ID: ' + workerId);
+		  $('#mturkInfo').modal('hide');
+		  $('#infoModal').modal('show');
+		} else {
+		  $('#mturkInfoError').html('Please enter your worker ID!');
+		}
+	      });
 	    }
-
-	    $('#done').on('click', function() {
-	      $('#confirmEnd').modal('show');
-
-	      $('#confirmFalse').on('click', function() {
-		$('#confirmEnd').modal('hide');
-	      });
-
-	      $('#confirmTrue').on('click', function() {
-		$('#confirmEnd').modal('hide');
-		removeUser();
-		window.close();
-	      });
-	    });
-
-	    // // Intially pause the game
-	    // DVIZ.debug && console.log('[DVizClient] Pausing the game');
-
-	    // dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
-	    // 	command : 'pass_user_command_threaded',
-	    // 	args : [dvizClient.id.toString(), 
-	    // 		'pause_now']
-	    // }), function(response) {
-	    // 	if(response.response.length > 0) {
-	    // 	  DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
-	    // 	} 
-	    // });
 
 	    dvizClient.coreCommandClient.callService(new ROSLIB.ServiceRequest({
       	      command : 'pass_user_command_threaded',
@@ -1668,4 +1610,13 @@ function getUrlVariables() {
   }
   
   return info;
+}
+
+function generateRandomString(size) {
+  var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  var res = '';
+  for(var i = 0; i < size; ++i) {
+    res += chars[Math.round(Math.random() * (chars.length - 1))];
+  }
+  return res;
 }

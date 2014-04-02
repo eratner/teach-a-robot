@@ -355,12 +355,12 @@ void PR2Simulator::moveRobot()
   geometry_msgs::PoseStamped next_base;
   if(!isBasePlanDone())
   {
-    ROS_WARN("Executing base plan (index = %d, size = %d)", base_plan_index_, base_plan_.size());
+    //ROS_WARN("Executing base plan (index = %d, size = %d)", base_plan_index_, base_plan_.size());
     next_base = base_plan_.at(base_plan_index_);
   }
   else
   {
-    ROS_WARN("Base plan done (index = %d, size = %d)", base_plan_index_, base_plan_.size());
+    //ROS_WARN("Base plan done (index = %d, size = %d)", base_plan_index_, base_plan_.size());
     next_base = base_pose_;
     // @todo this is BaseCarrotController specific code and should be generalized
     BaseCarrotController *base_controller = static_cast<BaseCarrotController *>(base_planner_);
