@@ -74,11 +74,13 @@ bool MotionRecorder::beginRecording(const std::string &user_id,
     }
     catch(const rosbag::BagException &e)
     {
-      ROS_ERROR("[MotionRec] Failed to open bagfile %s: %s", file_path.str().c_str(), e.what());
+      ROS_ERROR("[MotionRec%d] Failed to open bagfile %s: %s", user_id_, file_path.str().c_str(), e.what());
       return false;
     }
 
-    // Initialize the user demonstration message that will be written to the bagfile.
+    last_time_ = ros::Time::now();
+
+    // Initialize the user demonstration message that will be written to the bagfile
     demo_.user_id = user_name;
     demo_.time = ros::Time::now();
 
@@ -94,11 +96,11 @@ bool MotionRecorder::beginRecording(const std::string &user_id,
 
     bag_count_++;
 
-    ROS_INFO("[MotionRec] Beginning to record motion to %s", file_path.str().c_str());
+    ROS_INFO("[MotionRec%d] Beginning to record motion to %s", user_id_, file_path.str().c_str());
   }
   else
   {
-    ROS_ERROR("[MotionRec] Cannot begin recording while replaying a bagfile!");
+    ROS_ERROR("[MotionRec%d] Cannot begin recording while replaying a bagfile!", user_id_);
     return false;
   }
 
@@ -112,13 +114,13 @@ void MotionRecorder::endRecording()
     is_recording_ = false;
 
     // Compute the total time taken for the user demonstration
-    // @todo
+    demo_.demo_duration = ros::Time::now() - demo_.time;
 
     // Record the demonstration to a bag file
     flush();
 
     // Stop recording
-    ROS_INFO("[MotionRec] Recording finished with %d messages", write_bag_.getSize());
+    ROS_INFO("[MotionRec%d] Recording finished with %d messages", user_id_, write_bag_.getSize());
     write_bag_.close();
 
     // if(!getBasePath(write_bag_path_, base_path_))
@@ -144,11 +146,11 @@ bool MotionRecorder::beginReplay(const std::string &file)
   }
   catch(const rosbag::BagException &e)
   {
-    ROS_ERROR("[MotionRec] Failed to open bagfile %s: %s", file.c_str(), e.what());
+    ROS_ERROR("[MotionRec%d] Failed to open bagfile %s: %s", user_id_, file.c_str(), e.what());
     return false;
   }
 
-  ROS_INFO("[MotionRec] Beginning replay from file %s", file.c_str());
+  ROS_INFO("[MotionRec%d] Beginning replay from file %s", user_id_, file.c_str());
 
   rosbag::View view(read_bag_, rosbag::TopicQuery("/demonstration"));
   rosbag::View::iterator iter = view.begin();
@@ -162,12 +164,13 @@ bool MotionRecorder::beginReplay(const std::string &file)
 
   if(loaded_demo == NULL)
   {
-    ROS_ERROR("[MotionRec] Failed to load user demonstration from bag file!");
+    ROS_ERROR("[MotionRec%d] Failed to load user demonstration from bag file!", user_id_);
     return false;
   }
 
   // Get information about the user demonstration
-  ROS_INFO("[MotionRec] Replaying demonstration from user %s with id %s performing task \"%s\" on the date %s with the following steps:",
+  ROS_INFO("[MotionRec%d] Replaying demonstration from user %s with id %s performing task \"%s\" on the date %s with the following steps:",
+	   user_id_,
 	   loaded_demo->user_id.c_str(),
 	   loaded_demo->demo_id.c_str(),
 	   loaded_demo->task_name.c_str(),
@@ -199,7 +202,7 @@ bool MotionRecorder::beginReplay(const std::string &file)
     }
   }
 
-  ROS_INFO("[MotionRec] Added %d poses and %d joint states messages", (int)poses_.size(), (int)joint_states_.size());
+  ROS_INFO("[MotionRec%d] Added %d poses and %d joint states messages", user_id_, (int)poses_.size(), (int)joint_states_.size());
 
   read_bag_.close();
 
@@ -236,7 +239,7 @@ bool MotionRecorder::getBasePath(const std::string &file, visualization_msgs::Ma
   }
   catch(const rosbag::BagException &e)
   {
-    ROS_ERROR("[MotionRec] Failed to open %s when constructing base path: %s", file.c_str(), e.what());
+    ROS_ERROR("[MotionRec%d] Failed to open %s when constructing base path: %s", user_id_, file.c_str(), e.what());
     return false;
   }
 
@@ -284,8 +287,8 @@ void MotionRecorder::recordWaypoint(const dviz_core::Waypoint &waypoint)
   {
     if(demo_.steps.size() <= current_goal_)
     {
-      ROS_ERROR("[MotionRec] Not enough steps in the current demonstration! (current goal = %d, number of steps = %d)",
-	current_goal_, (int)demo_.steps.size());
+      ROS_ERROR("[MotionRec%d] Not enough steps in the current demonstration! (current goal = %d, number of steps = %d)",
+	user_id_, current_goal_, (int)demo_.steps.size());
     }
     else
     {
@@ -298,6 +301,14 @@ void MotionRecorder::addStep(const std::string &action,
 			     const std::string &object_type,
 			     const geometry_msgs::Pose &grasp)
 {
+  if(current_goal_ >= 0)
+  {
+    demo_.steps[current_goal_].step_duration = ros::Time::now() - last_time_;
+    ROS_INFO("[MotionRec%d] Step %d finished in %f seconds", user_id_, current_goal_,
+	     demo_.steps[current_goal_].step_duration.toSec());
+    last_time_ = ros::Time::now();
+  }
+
   current_goal_++;
   
   dviz_core::Step step;
@@ -317,7 +328,7 @@ bool MotionRecorder::changeCurrentStep(int goal_number)
   }
   else
   {
-    ROS_ERROR("[MotionRec] Invalid goal number %d!", goal_number);
+    ROS_ERROR("[MotionRec%d] Invalid goal number %d!", user_id_, goal_number);
     return false;
   }
 
@@ -348,7 +359,7 @@ sensor_msgs::JointState MotionRecorder::getNextJoints()
 {
   if(joint_states_count_ >= joint_states_.size())
   {
-    ROS_INFO("[MotionRec] Done replaying joint states");
+    ROS_INFO("[MotionRec%d] Done replaying joint states", user_id_);
     return sensor_msgs::JointState();
   }
 
@@ -360,7 +371,7 @@ geometry_msgs::Pose MotionRecorder::getNextBasePose()
 {
   if(pose_count_ >= poses_.size())
   {
-    ROS_INFO("[MotionRec] Done replaying poses");
+    ROS_INFO("[MotionRec%d] Done replaying poses", user_id_);
     return geometry_msgs::Pose();
   }
   
@@ -380,17 +391,21 @@ int MotionRecorder::getNumJoints() const
 
 bool MotionRecorder::goTo(int i)
 {
-  ROS_INFO("[MotionRec] Fast-forwarding to frame %d", i);
+  ROS_INFO("[MotionRec%d] Fast-forwarding to frame %d", user_id_, i);
 
   if(i >= 0 && i < poses_.size() && i < joint_states_.size())
   {
+    if(!isReplaying())
+    {
+      is_replaying_ = true;
+    }
     pose_count_ = i;
     joint_states_count_ = i;
     return true;
   }
   else
   {
-    ROS_ERROR("[MotionRec] Cannot fast-forward to frame %d", i);
+    ROS_ERROR("[MotionRec%d] Cannot fast-forward to frame %d", user_id_, i);
     return false;
   }
 }
@@ -405,7 +420,7 @@ void MotionRecorder::saveRecording()
 
 void MotionRecorder::flush()
 {
-  ROS_INFO("[MotionRec] Flushing user demonstration to file: %d steps", (int)demo_.steps.size());
+  ROS_INFO("[MotionRec%d] Flushing user demonstration to file: %d steps", user_id_, (int)demo_.steps.size());
 
   write_bag_.write("/demonstration", ros::Time::now(), demo_);
 }

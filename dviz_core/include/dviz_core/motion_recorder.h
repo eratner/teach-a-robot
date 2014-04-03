@@ -113,6 +113,7 @@ private:
   std::string write_bag_path_;
   rosbag::Bag write_bag_;
   rosbag::Bag read_bag_;
+  ros::Time last_time_;
 
   int user_id_;
   int current_goal_;

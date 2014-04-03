@@ -332,7 +332,7 @@ void PR2Simulator::run()
 	recorder_->endReplay();
 	// @todo fix the base path
 	//marker_pub_.publish(recorder_->getBasePath());
-	ROS_INFO("[PR2Sim] Done replaying.");
+	ROS_INFO("[PR2Sim] Done replaying");
       }
 
       if(recorder_->getJointsRemaining() > 0)

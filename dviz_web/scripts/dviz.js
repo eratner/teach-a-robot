@@ -4,7 +4,7 @@
 var DVIZ = DVIZ || {};
 
 // This flag toggles output to the console that may be useful when debugging
-DVIZ.debug = true;
+DVIZ.debug = false;
 
 /**
  * Creates a simple moving average (SMA) filter of size n
@@ -438,6 +438,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
 		  DVIZ.debug && console.log('[DVizClient] Fast-forwarding to frame '
 					    + index.toString() + ' of ' 
 					    + frames.toString() + ' frames');
+		  var duration = ((frames/10)/60).toFixed(2);
+		  var framesHtml = index.toString() + '/' + frames.toString()
+		    + ' frames (approximately ' + duration.toString() + ' minutes)';
+		  $('#fastForwardFrames').html(framesHtml);
 		  if(!isNaN(index)) {
 		    dvizClient.commandClient.callService(new ROSLIB.ServiceRequest({
 		      command : 'fast_forward_replay',
@@ -448,7 +452,11 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
 		  }
 		}
 	      });
-
+	      
+	      var duration = ((frames/10)/60).toFixed(2);
+	      var framesHtml = '0/' + frames.toString()
+		+ ' frames (approximately ' + duration.toString() + ' minutes)';
+	      $('#fastForwardFrames').html(framesHtml);
 	      // @todo We need the slider to move along with the replay
 	      // setInterval(function() {
 	      // 	var currentFrame = parseInt(
@@ -1007,6 +1015,7 @@ var hitId = null;
 var workerId = null;
 var assignmentId = null;
 var previewMode = false;
+var development = false;
 
 var goalsCompleted = 0;
 
@@ -1014,6 +1023,7 @@ function init() {
   $('#debugControls').hide();
 
   var variables = getUrlVariables();
+
 
   // Get any variables that are associated with a Mechanical Turk HIT
   for(var i = 0; i < variables.length; i++) {
@@ -1027,8 +1037,17 @@ function init() {
     } else if(variables[i][0] === 'replayBagfile') {
       replayBagfile = variables[i][1];
       replayMode = true;
+    } else if(variables[i][0] == 'dev') {
+      development = true;
     }
   }
+
+  // SERVER DOWN MESSAGE
+  // if(!development) {
+  //   $('#serverDown').modal('show');
+  //   return;
+  // }
+
 
   if(hitId !== null && assignmentId !== null) {
     DVIZ.debug && console.log('[DVizClient] Processing HIT with hitId ' + hitId.toString()

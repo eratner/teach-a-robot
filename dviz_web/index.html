@@ -35,6 +35,17 @@
   <body onload="init()">
     <div class="container">
 
+      <!-- Server down notification -->
+      <div class="modal fade" id="serverDown" data-backdrop="static" data-keyboard="false">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-body">
+              <p>The server is currently down for maintenance. We will re-start it shortly. Thank you for your patience!</p>
+	    </div>
+	  </div>
+	</div>
+      </div>
+
       <!-- Too many users notification -->
       <div class="modal fade" id="tooManyUsers">
 	<div class="modal-dialog">
@@ -319,7 +330,7 @@
 	</div>
 
 	<div class="row top-margin">
-	  <div id="fastForwardReplay"></div>
+	  <div id="fastForwardReplay"></div><div id="fastForwardFrames"></div>
 	</div>
 	
 	<!-- Gameplay controls -->
