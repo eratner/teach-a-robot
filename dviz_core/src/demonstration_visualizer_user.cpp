@@ -92,7 +92,6 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
     }
   }
 
-  // Just in case, end the recording before the user dies
   recorder_->endRecording();
 
   delete int_marker_server_;
@@ -120,13 +119,13 @@ void DemonstrationVisualizerUser::run()
       frame_rate_changed_ = false;
     }
 
-    // Run the simulator.
+    // Run the simulator
     simulator_->run();
 
-    // Update the demonstration scene.
+    // Update the demonstration scene
     demonstration_scene_manager_->updateScene();
 
-    // Update goals and task.
+    // Update goals and task
     updateGoalsAndTask();
 
     if(ping_count_ > 4)
@@ -204,12 +203,12 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
 	std::stringstream ss;
 	ss << ros::package::getPath(package) << path;
 	// Load the task, and randomize it
-	demonstration_scene_manager_->loadTask(ss.str(), true);
+	demonstration_scene_manager_->loadTask(ss.str(), true, 6);
       }
       else
       {
 	// Load the task, and randomize it
-	demonstration_scene_manager_->loadTask(req.args[0], true);
+	demonstration_scene_manager_->loadTask(req.args[0], true, 6);
       }
     }
     else
@@ -1087,6 +1086,8 @@ void DemonstrationVisualizerUser::goalCompleted()
     if(demonstration_scene_manager_->taskDone())
     {
       ROS_INFO("[DVizUser%d] Task done!", id_);
+      // Add an end-of-task (EOT) step
+      recorder_->addStep("", "EOT", geometry_msgs::Pose());
     }
     else if(demonstration_scene_manager_->getNumGoals() > 0)
     {

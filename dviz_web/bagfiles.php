@@ -18,8 +18,10 @@ else
   {
     if(preg_match('/.+\.(bag)/', $entry, $output))
     {
+      //echo($directory->path . '/' . $entry);
+      $filesize = filesize($directory->path . '/' . $entry);
       echo('<li><a href=\'http://sbpl.net:21890/?replayBagfile=' . $entry . '\'>' 
-      . $entry . '</a></li>');
+      . $entry . '</a> (' . $filesize . ' bytes)</li>');
     }
   }
 

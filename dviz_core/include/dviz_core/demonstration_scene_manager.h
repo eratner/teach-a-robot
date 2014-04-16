@@ -54,7 +54,7 @@ public:
 
   void saveScene(const std::string &filename);
 
-  bool loadTask(const std::string &filename, bool randomize = false);
+  bool loadTask(const std::string &filename, bool randomize = false, int max_goals = 0);
 
   void saveTask(const std::string &filename);
 

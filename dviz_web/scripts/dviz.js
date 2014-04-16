@@ -928,7 +928,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   }
 
   message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString() 
-    + ' out of 12 goals</strong>. You are now eligible for <strong>$'
+    + ' out of 6 goals</strong>. You are now eligible for <strong>$'
     + ((goalsCompleted * 0.50).toFixed(2)).toString() 
     + '</strong>! <br />If you\'re done, remember to submit your <strong>Teach-A-Robot'
     + ' Demonstration ID (' + assignmentId + ')</strong> on the Mechanical Turk HIT page'
@@ -1042,7 +1042,7 @@ function init() {
     }
   }
 
-  // SERVER DOWN MESSAGE
+  //SERVER DOWN MESSAGE
   // if(!development) {
   //   $('#serverDown').modal('show');
   //   return;
@@ -1067,7 +1067,7 @@ function init() {
 		       + W.toString() + ' and height ' + H.toString());
 
   // The frame rate limit on the viewer (frames/second)
-  var fps = 30.0;
+  var fps = 15.0;
   DVIZ.debug && console.log('[DVizClient] Capping frame rate at ' + fps.toString() + ' frames/second');
 
   var viewer = new ROS3D.Viewer({

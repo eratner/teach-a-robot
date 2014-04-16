@@ -49,10 +49,10 @@ DemonstrationSceneManager::~DemonstrationSceneManager()
 
 void DemonstrationSceneManager::updateScene()
 {
-  // First, update the goals.
+  // First, update the goals
   if(goals_.size() > 0 && !taskDone() && goalsChanged())
   {
-    // Draw each of the goals in the current task. 
+    // Draw each of the goals in the current task
     if(editGoalsMode())
     {
       std::vector<Goal *>::iterator it;
@@ -61,10 +61,10 @@ void DemonstrationSceneManager::updateScene()
 	drawGoal(*it, true);
       }
     }
-    else // Otherwise, just draw the current goal.
+    else // Otherwise, just draw the current goal
     {
       // Clear the existing goal markers and interactive markers, and just draw the 
-      // current goal.
+      // current goal
       std::vector<Goal *>::iterator it;
       for(it = goals_.begin(); it != goals_.end(); ++it)
       {
@@ -84,7 +84,7 @@ void DemonstrationSceneManager::updateScene()
     setGoalsChanged(false);    
   }
 
-  // Second, update the positions of the objects. 
+  // Second, update the positions of the objects
   std::vector<visualization_msgs::Marker> meshes = object_manager_->getMovedMarkers();  
   if(meshes.size() > 0)
   {
@@ -99,10 +99,10 @@ void DemonstrationSceneManager::updateScene()
 	it->type = visualization_msgs::Marker::MESH_RESOURCE;
 	it->mesh_use_embedded_materials = true;
 
-	// First remove the old markers.
+	// First remove the old markers
 	marker_pub_.publish(*it);
 
-	// Then add the markers again, but this time with interactive markers.
+	// Then add the markers again, but this time with interactive markers
 	it->action = visualization_msgs::Marker::ADD;
 	visualizeMesh(*it, true);
       }
@@ -512,9 +512,9 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
   doc.SaveFile(filename.c_str());
 }
 
-bool DemonstrationSceneManager::loadTask(const std::string &filename, bool randomize)
+bool DemonstrationSceneManager::loadTask(const std::string &filename, bool randomize, int max_goals)
 {
-  // Clear the existing task.
+  // Clear the existing task
   for(int i = 0; i < int(goals_.size()); ++i)
   {
     delete goals_[i];
@@ -523,7 +523,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
   goals_.clear();
   setGoalsChanged(true);
 
-  // Load the demonstration scene from the specified file.
+  // Load the demonstration scene from the specified file
   TiXmlDocument doc(filename.c_str());
   if(!doc.LoadFile())
   {
@@ -549,7 +549,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
   // @todo for now, we assume the user has loaded the appropriate scene file, but 
   // in the future there should be a tag at the top of the file:
   // <scene_file path="..." />
-  // where path is relative to the package://dviz_core path.
+  // where path is relative to the package://dviz_core path
   TiXmlElement *scene_file = root_handle.FirstChild("scene_file").Element();
   if(scene_file == NULL)
   {
@@ -572,7 +572,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
     }
   }
 
-  // There is also an optional task info tag specified at the top of the task file; right now, this only contains the name of the task.
+  // There is also an optional task info tag specified at the top of the task file; right now, this only contains the name of the task
   TiXmlElement *task_info = root_handle.FirstChild("task_info").Element();
   if(task_info == NULL)
   {
@@ -592,7 +592,7 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
     }
   }
 
-  // Read each goal.
+  // Read each goal
   element = root_handle.FirstChild("goal").Element();
 
   int goal_type = 0;
@@ -747,6 +747,20 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
 
   if(randomize)
     randomizePickAndPlaceTask();
+
+  // If the max number of goals is greater than the number loaded, remove the last 
+  // tasks (there must be at least one goal)
+  if(max_goals > 0 && goals_.size() > max_goals)
+  {
+    int must_delete = goals_.size() - max_goals;
+    ROS_INFO("[SceneManager%d] Removing %d goals", user_id_, must_delete);
+    for(int i = goals_.size()-1; i >= must_delete; --i)
+    {
+      delete goals_[i];
+      goals_[i] = 0;
+      goals_.pop_back();
+    }
+  }
 
   if(getNumGoals() > 0)
     setCurrentGoal(0);
