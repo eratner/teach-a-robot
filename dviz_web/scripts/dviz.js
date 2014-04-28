@@ -1067,7 +1067,7 @@ function init() {
 		       + W.toString() + ' and height ' + H.toString());
 
   // The frame rate limit on the viewer (frames/second)
-  var fps = 15.0;
+  var fps = 14.0;
   DVIZ.debug && console.log('[DVizClient] Capping frame rate at ' + fps.toString() + ' frames/second');
 
   var viewer = new ROS3D.Viewer({
@@ -1143,7 +1143,8 @@ function init() {
 	    $('#baseHandCamera').prop('disabled', false);
 	    $('#endDemonstration').prop('disabled', false);
 
-	    dvizClient.displayStatusText('Connected to the server!');
+	    dvizClient.displayStatusText('Connected to the server! (Capped at ' + 
+					fps.toString() + ' FPS)');
 
 	    // Show the instructions and prompt the user to input their id
 	    if(!replayMode) {
@@ -1154,7 +1155,6 @@ function init() {
 	      $('#assignmentId').html(assignmentId);		
 	      $('#mturkInfo').modal('show');
 	      $('#confirmInfo').on('click', function() {
-		// TODO: Grab worker ID
 		workerId = $('#workerId').val();
 		if(workerId.length > 0) {
 		  DVIZ.debug && console.log('[DVizClient] Worker ID: ' + workerId);
@@ -1163,6 +1163,11 @@ function init() {
 		} else {
 		  $('#mturkInfoError').html('Please enter your worker ID!');
 		}
+	      });
+	      $('#anonymousStart').on('click', function() {
+		workerId = 'ANON' + generateRandomString(10);
+		$('#mturkInfo').modal('hide');
+		$('#infoModal').modal('show');
 	      });
 	    }
 

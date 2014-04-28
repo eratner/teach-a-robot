@@ -1,5 +1,5 @@
 <collision_model>
-    <object label="eggs" mesh_resource="package://dviz_core/meshes/web/eggs/eggs.dae" />
+    <object label="eggs" mesh_resource="package://dviz_core/meshes/web/eggs/eggs_reduced.dae" />
 
     <sphere id="1" x="0" y="-0.04" z="-0.01" radius="0.02" />
     <sphere id="2" x="0.04" y="-0.04" z="-0.01" radius="0.02" />
