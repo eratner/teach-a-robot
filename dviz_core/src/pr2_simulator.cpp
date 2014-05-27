@@ -13,10 +13,11 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
     frame_rate_(10.0),
     move_end_effector_while_dragging_(true),
     attached_object_(false),
+    object_manager_(object_manager),
     pviz_(pviz), 
     int_marker_server_(int_marker_server), 
-    object_manager_(object_manager),
     end_effector_controller_(int_marker_server),
+    base_planner_(0),
     base_plan_index_(0),
     recorder_(recorder),
     snap_motion_count_(0),
@@ -34,11 +35,11 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   // Initialize the base planner
   base_planner_ = new BaseCarrotController();
 
-  // Initialize the velocity command (initially at rest).
+  // Initialize the velocity command (initially at rest)
   vel_cmd_.linear.x = vel_cmd_.linear.y = vel_cmd_.linear.z = 0;
   vel_cmd_.angular.x = vel_cmd_.angular.y = vel_cmd_.angular.z = 0;
 
-  // Initialize the velocity command for the end-effector (initially at rest).
+  // Initialize the velocity command for the end-effector (initially at rest)
   end_effector_vel_cmd_.linear.x = end_effector_vel_cmd_.linear.y = end_effector_vel_cmd_.linear.z = 0;
   end_effector_vel_cmd_.angular.x = end_effector_vel_cmd_.angular.y = end_effector_vel_cmd_.angular.z = 0;
 

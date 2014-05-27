@@ -9,15 +9,15 @@ namespace demonstration_visualizer
 {
 
 ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filename, int user_id, bool core)
-  : user_id_(user_id), bounding_box_dimensions_(3, 0), bounding_box_origin_(3, 0), is_core_(core)
+  : user_id_(user_id), is_core_(core), shared_occupancy_grid_(0), collision_checker_(0), rarm_file_(rarm_filename), larm_file_(larm_filename), enable_debug_visualizations_(false), disable_collision_checking_(true), load_objects_from_voxels_file_(false), visualize_collision_models_(false), bounding_box_dimensions_(3, 0), bounding_box_origin_(3, 0)
 {
-  rarm_file_ = rarm_filename;
-  larm_file_ = larm_filename;
-  enable_debug_visualizations_ = false;
-  disable_collision_checking_ = true;
-  load_objects_from_voxels_file_ = false;
-  visualize_collision_models_ = false;
-  collision_checker_ = NULL;
+  // rarm_file_ = rarm_filename;
+  // larm_file_ = larm_filename;
+  // enable_debug_visualizations_ = false;
+  // disable_collision_checking_ = true;
+  // load_objects_from_voxels_file_ = false;
+  // visualize_collision_models_ = false;
+  // collision_checker_ = NULL;
 
   ros::NodeHandle ph("~");
   ph.param("enable_debug_visualizations", enable_debug_visualizations_, false);
@@ -36,7 +36,7 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
 
 ObjectManager::~ObjectManager()
 {
-  // Clean up the collision checker.
+  // Clean up the collision checker
   if(collision_checker_ != 0)
   {
     delete collision_checker_;
@@ -47,7 +47,7 @@ ObjectManager::~ObjectManager()
   {
     // Remove distance fields from shared memory
     boost::interprocess::managed_shared_memory segment(boost::interprocess::open_only, "SharedDistanceField");
-    ROS_INFO("[ObjectManager] DVizCore removing distance field data from shared memory.");
+    ROS_INFO("[ObjectManager] DVizCore removing distance field data from shared memory");
     segment.destroy<ShmemVectorVectorVector>("df");
 
     // @todo check if it exists before removing it (this is probably the cause of the boost::interprocess::interprocess_exception 
@@ -62,11 +62,11 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 					       const vector<double> &origin,
                                                const std::string &name)
 {
-  ROS_DEBUG("[ObjectManager%d] Initializing the collision checker.", user_id_);
+  ROS_DEBUG("[ObjectManager%d] Initializing the collision checker", user_id_);
 
   if(disable_collision_checking_)
   {
-    ROS_INFO("[ObjectManager%d] Collision checking is disabled. Not initializing the collision checker.", user_id_);
+    ROS_DEBUG("[ObjectManager%d] Collision checking is disabled. Not initializing the collision checker", user_id_);
     return true;
   }
 
@@ -86,7 +86,7 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 
   if(collision_checker_ != 0)
   {
-    ROS_ERROR("[ObjectManager%d] Deleting the previous collision checker. Initializing new one.", user_id_);
+    ROS_ERROR("[ObjectManager%d] Deleting the previous collision checker; initializing new one", user_id_);
     delete collision_checker_;
     collision_checker_ = 0;
   }
@@ -94,7 +94,7 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
   FILE* rarm_fp = NULL;
   FILE* larm_fp = NULL;
 
-  ROS_INFO("[ObjectManager%d] Opening the arm config files to instantiate the arms.", user_id_); 
+  ROS_DEBUG("[ObjectManager%d] Opening the arm config files to instantiate the arms", user_id_); 
   fflush(stdout);
   // create the left & right arm models
   if((rarm_fp = fopen(rarm_file_.c_str(),"r")) == NULL)
@@ -111,7 +111,7 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 
   if(!r_arm_model->initKDLChainFromParamServer() || !l_arm_model->initKDLChainFromParamServer())
   {
-    ROS_ERROR("[ObjectManager%d] Failed to initialize arm models.", user_id_);
+    ROS_ERROR("[ObjectManager%d] Failed to initialize arm models", user_id_);
     return false;
   }
 
@@ -120,15 +120,15 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 
   if(!is_core_)
   {
-    ROS_INFO("[ObjectManager%d] Initializing shared distance field as DVizUser.", user_id_);
+    ROS_INFO("[ObjectManager%d] Initializing shared distance field as user", user_id_);
     if(!shared_occupancy_grid_->initSharedDistanceField(is_core_, "df"))
     {
-      ROS_ERROR("[ObjectManager%d] Failed to initialize shared distance field as DVizUser.", user_id_);
+      ROS_ERROR("[ObjectManager%d] Failed to initialize shared distance field as user", user_id_);
       return false;
     }
   }
 
-  ROS_INFO("[ObjectManager%d] Constructing the collision checker.", user_id_);
+  ROS_DEBUG("[ObjectManager%d] Constructing the collision checker", user_id_);
 
   std::stringstream visualization_ns;
   visualization_ns << "dviz_user_" << user_id_ << "/collisions";
@@ -137,18 +137,18 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
 								    shared_occupancy_grid_,
     visualization_ns.str());
 
-  ROS_INFO("[ObjectManager%d] Initializing the collision checker.", user_id_);
+  ROS_DEBUG("[ObjectManager%d] Initializing the collision checker", user_id_);
 
   if(!collision_checker_->init("dviz_core_node"))
   {
-    ROS_ERROR("[ObjectManager%d] Failed to initialize the collision checker.", user_id_);
+    ROS_ERROR("[ObjectManager%d] Failed to initialize the collision checker", user_id_);
     return false;
   }
 
-  ROS_INFO("[ObjectManager%d] Initialized the collision checker.", user_id_);
+  ROS_DEBUG("[ObjectManager%d] Initialized the collision checker", user_id_);
 
   collision_checker_->visualizeResult(enable_debug_visualizations_);
-  ROS_INFO("[ObjectManager%d] Done.", user_id_);
+  ROS_DEBUG("[ObjectManager%d] Done", user_id_);
 
   return true;
 }
@@ -162,13 +162,13 @@ void ObjectManager::addObject(Object o)
 
   if(is_core_ && !o.movable && !load_objects_from_voxels_file_)
   {
-    ROS_INFO("[ObjectManager%d] DVizCore, placing static objects in distance field.", user_id_);
+    ROS_DEBUG("[ObjectManager] (Core) Placing static objects in distance field");
     if(!collision_checker_->addCollisionObjectMesh(o.mesh_marker_.mesh_resource,
 						   o.mesh_marker_.scale,
 						   o.mesh_marker_.pose,
 						   o.label))
     {
-      ROS_ERROR("[ObjectManager%d] Failed to add static object.", user_id_);
+      ROS_ERROR("[ObjectManager] (Core) Failed to add static object");
     }
   }
 }
@@ -177,7 +177,7 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
 				      const std::string &collision_model_file,
 				      bool movable)
 {
-  ROS_INFO("[ObjectManager%d] Adding object from file %s.", user_id_, collision_model_file.c_str());
+  ROS_DEBUG("[ObjectManager%d] Adding object from file \"%s\"", user_id_, collision_model_file.c_str());
   TiXmlDocument doc(collision_model_file.c_str());
   if(!doc.LoadFile())
   {
@@ -198,7 +198,7 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
 
   root_handle = TiXmlHandle(element);
 
-  ROS_INFO("[ObjectManager%d] Reading %s...", user_id_, element->Value());
+  ROS_DEBUG("[ObjectManager%d] Reading %s...", user_id_, element->Value());
 
   // Read the mesh information.
   element = root_handle.FirstChild("object").Element();
@@ -267,7 +267,7 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
           s.v.z(sph[k][2]);
           o.group_.spheres.push_back(s);
         }
-        ROS_INFO("[ObjectManager%d] Generated %d spheres for object group '%s'.", user_id_, int(o.group_.spheres.size()), label.c_str());
+        ROS_DEBUG("[ObjectManager%d] Generated %d spheres for object group \"%s\".", user_id_, int(o.group_.spheres.size()), label.c_str());
       }
     }
     else
@@ -279,39 +279,39 @@ bool ObjectManager::addObjectFromFile(visualization_msgs::Marker &mesh_marker,
         int id;
         if(element->QueryIntAttribute("id", &id) != TIXML_SUCCESS)
         {
-          ROS_ERROR("[om] Failed to read id for sphere!");
+          ROS_ERROR("[ObjectManager%d] Failed to read id for sphere!", user_id_);
           return false;
         }
         s.name = boost::lexical_cast<string>(id);
         double temp;
         if(element->QueryDoubleAttribute("x", &temp) != TIXML_SUCCESS)
         {
-          ROS_ERROR("[om] Failed to read x-value for sphere!");
+          ROS_ERROR("[ObjectManager%d] Failed to read x-value for sphere!", user_id_);
           return false;
         }
         s.v.x(temp);
         if(element->QueryDoubleAttribute("y", &temp) != TIXML_SUCCESS)
         {
-          ROS_ERROR("[ObjectManager] Failed to read y-value for sphere!");
+          ROS_ERROR("[ObjectManager%d] Failed to read y-value for sphere!", user_id_);
           return false;
         }
         s.v.y(temp);
         if(element->QueryDoubleAttribute("z", &temp) != TIXML_SUCCESS)
         {
-          ROS_ERROR("[ObjectManager] Failed to read z-value for sphere!");
+          ROS_ERROR("[ObjectManager%d] Failed to read z-value for sphere!", user_id_);
           return false;
         }
         s.v.z(temp);
         if(element->QueryDoubleAttribute("radius", &s.radius) != TIXML_SUCCESS)
         {
-          ROS_ERROR("[ObjectManager] Failed to read radius for sphere!");
+          ROS_ERROR("[ObjectManager%d] Failed to read radius for sphere!", user_id_);
           return false;
         }
         s.priority = 1;
         o.group_.spheres.push_back(s);
-        ROS_DEBUG("[ObjectManager] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
+        ROS_DEBUG("[ObjectManager%d] [sphere] name: %s  x: %0.3f y: %0.3f z: %0.3f radius: %0.3f", user_id_, s.name.c_str(), s.v.x(), s.v.y(), s.v.z(), s.radius);
       }
-      ROS_INFO("[ObjectManager] label: %s   #_spheres: %d", o.group_.name.c_str(), int(o.group_.spheres.size()));
+      ROS_INFO("[ObjectManager%d] label: %s   #_spheres: %d", user_id_, o.group_.name.c_str(), int(o.group_.spheres.size()));
     }
     if(enable_debug_visualizations_ && !disable_collision_checking_)
       collision_checker_->visualizeGroup(o.group_, o.label+ boost::lexical_cast<string>(o.mesh_marker_.id), 0);
@@ -335,8 +335,10 @@ vector<Marker> ObjectManager::getMovedMarkers()
 {
   vector<Marker> markers;
   map<int, Object>::iterator it;
-  for(it = objects_.begin(); it != objects_.end(); ++it){
-    if(it->second.redraw){
+  for(it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    if(it->second.redraw)
+    {
       markers.push_back((it->second).mesh_marker_);
       it->second.redraw = false;
     }
@@ -404,7 +406,8 @@ bool ObjectManager::checkRobotMove(const vector<double> &rangles,
 }
 
 bool ObjectManager::checkObjectMove(int id, Pose p,
-                                    vector<double> rangles, vector<double> langles, BodyPose bp){
+                                    vector<double> rangles, vector<double> langles, BodyPose bp)
+{
   //if this is a static object (one that isn't supposed to move) we can put it anywhere
   if(!objects_[id].movable || disable_collision_checking_)
     return true;
@@ -446,25 +449,29 @@ bool ObjectManager::checkObjectMove(int id, Pose p,
   return objects_[id].checkConstraints(p);
 }
 
-void ObjectManager::moveObject(int id, Pose p){
+void ObjectManager::moveObject(int id, const Pose &p)
+{
   objects_[id].setPose(p);
   objects_[id].redraw = true;
 }
 
-void ObjectManager::scaleObject(int id, double x, double y, double z) {
+void ObjectManager::scaleObject(int id, double x, double y, double z)
+{
   objects_[id].mesh_marker_.scale.x = x;
   objects_[id].mesh_marker_.scale.y = y;
   objects_[id].mesh_marker_.scale.z = z;
 
-  if(objects_[id].movable){
-    for(unsigned int i=0; i<objects_[i].group_.spheres.size(); i++){
-      KDL::Vector v = objects_[i].group_.spheres[i].v;
-      double radius = objects_[i].group_.spheres[i].radius;
+  if(objects_[id].movable)
+  {
+    for(unsigned int i=0; i<objects_[id].group_.spheres.size(); i++)
+    {
+      KDL::Vector v = objects_[id].group_.spheres[i].v;
+      double radius = objects_[id].group_.spheres[i].radius;
 
-      objects_[i].group_.spheres[i].radius = radius*x;
-      objects_[i].group_.spheres[i].v.x(v.x()*x);
-      objects_[i].group_.spheres[i].v.y(v.y()*y);
-      objects_[i].group_.spheres[i].v.z(v.z()*z);
+      objects_[id].group_.spheres[i].radius = radius*x;
+      objects_[id].group_.spheres[i].v.x(v.x()*x);
+      objects_[id].group_.spheres[i].v.y(v.y()*y);
+      objects_[id].group_.spheres[i].v.z(v.z()*z);
     }
   }
 }
@@ -491,11 +498,11 @@ std::string ObjectManager::getObjectLabel(int id)
   return objects_[id].label;
 }
 
-bool ObjectManager::addObjectsFromOccupiedVoxelsFile(std::string filename)
+bool ObjectManager::addObjectsFromOccupiedVoxelsFile(const std::string &filename)
 {
   if(!is_core_)
   {
-    ROS_INFO("[DVizUser] DVizUser cannot populate the distance field");
+    ROS_ERROR("[ObjectManager%d] User cannot populate the distance field", user_id_);
     return false;
   }
 
@@ -509,7 +516,7 @@ bool ObjectManager::addObjectsFromOccupiedVoxelsFile(std::string filename)
   return true;
 }
 
-bool ObjectManager::writeObjectsToOccupiedVoxelsFile(std::string filename)
+bool ObjectManager::writeObjectsToOccupiedVoxelsFile(const std::string &filename)
 {
   if(collision_checker_ == NULL || disable_collision_checking_)
     return false;
@@ -544,7 +551,7 @@ bool ObjectManager::initSharedDistanceField()
 {
   if(shared_occupancy_grid_ == 0)
   {
-    ROS_ERROR("[ObjectManager] In initializing shared distance field, shared occupancy grid null!");
+    ROS_ERROR("[ObjectManager] (Core) In initializing shared distance field, shared occupancy grid null!");
     return false;
   }
 

@@ -1,22 +1,24 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-#include<visualization_msgs/Marker.h>
-#include<geometry_msgs/Pose.h>
+#include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Pose.h>
 #include <tinyxml.h>
-#include<ros/ros.h>
+#include <ros/ros.h>
 #include <pr2_collision_checker/pr2_collision_space.h>
 #include <string>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
-class Object{
-  public:
+class Object
+{
+public:
     Object();
-    Object(visualization_msgs::Marker mesh_marker);
-    Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_path);
-    void setPose(geometry_msgs::Pose p);
-    bool checkConstraints(geometry_msgs::Pose p);
+    Object(const visualization_msgs::Marker &mesh_marker);
+    Object(const visualization_msgs::Marker &mesh_marker, const std::string &sphere_list_path);
+    void setPose(const geometry_msgs::Pose &p);
+    bool checkConstraints(const geometry_msgs::Pose &p);
     
     visualization_msgs::Marker mesh_marker_;
     bool movable;

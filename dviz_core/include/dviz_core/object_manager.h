@@ -56,7 +56,7 @@ public:
 
     bool checkObjectMove(int id, geometry_msgs::Pose p,
                          std::vector<double> rangles, std::vector<double> langles, BodyPose bp);
-    void moveObject(int id, geometry_msgs::Pose p);
+    void moveObject(int id, const geometry_msgs::Pose &p);
 
     void scaleObject(int id, double x, double y, double z);
 
@@ -66,9 +66,9 @@ public:
 
     std::string getObjectLabel(int id);
 
-    bool addObjectsFromOccupiedVoxelsFile(std::string filename);
+    bool addObjectsFromOccupiedVoxelsFile(const std::string &filename);
 
-    bool writeObjectsToOccupiedVoxelsFile(std::string filename);
+    bool writeObjectsToOccupiedVoxelsFile(const std::string &filename);
 
     void visualizeObjectCollisionModels();
 

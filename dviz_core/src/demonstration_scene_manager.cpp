@@ -319,50 +319,62 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
   element = element->NextSiblingElement("mesh");
   visualization_msgs::Marker mesh_marker;
 
-  for(element; element; element = element->NextSiblingElement("mesh"))
+  // for(element; element; element = element->NextSiblingElement("mesh"))
+  while(element)
   {
-    if(element->QueryIntAttribute("id", &mesh_marker.id) != TIXML_SUCCESS){
+    if(element->QueryIntAttribute("id", &mesh_marker.id) != TIXML_SUCCESS)
+    {
       ROS_ERROR("id is missing");
       return -1;
     }
     std::string label = std::string(element->Attribute("label"));
-    if(element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("position_x", &mesh_marker.pose.position.x) != TIXML_SUCCESS)
+    {
       ROS_ERROR("position_x is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("position_y", &mesh_marker.pose.position.y) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("position_y", &mesh_marker.pose.position.y) != TIXML_SUCCESS)
+    {
       ROS_ERROR("position_y is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("position_z", &mesh_marker.pose.position.z) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("position_z", &mesh_marker.pose.position.z) != TIXML_SUCCESS)
+    {
       ROS_ERROR("position_z is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("orientation_x", &mesh_marker.pose.orientation.x) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("orientation_x", &mesh_marker.pose.orientation.x) != TIXML_SUCCESS)
+    {
       ROS_ERROR("orientation_x is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("orientation_y", &mesh_marker.pose.orientation.y) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("orientation_y", &mesh_marker.pose.orientation.y) != TIXML_SUCCESS)
+    {
       ROS_ERROR("orientation_y is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("orientation_z", &mesh_marker.pose.orientation.z) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("orientation_z", &mesh_marker.pose.orientation.z) != TIXML_SUCCESS)
+    {
       ROS_ERROR("orientation_z is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("orientation_w", &mesh_marker.pose.orientation.w) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("orientation_w", &mesh_marker.pose.orientation.w) != TIXML_SUCCESS)
+    {
       ROS_ERROR("orientation_w is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("scale_x", &mesh_marker.scale.x) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("scale_x", &mesh_marker.scale.x) != TIXML_SUCCESS)
+    {
       ROS_ERROR("scale_x is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("scale_y", &mesh_marker.scale.y) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("scale_y", &mesh_marker.scale.y) != TIXML_SUCCESS)
+    {
       ROS_ERROR("scale_y is missing");
       return -1;
     }
-    if(element->QueryDoubleAttribute("scale_z", &mesh_marker.scale.z) != TIXML_SUCCESS){
+    if(element->QueryDoubleAttribute("scale_z", &mesh_marker.scale.z) != TIXML_SUCCESS)
+    {
       ROS_ERROR("scale_z is missing");
       return -1;
     }
@@ -391,6 +403,8 @@ int DemonstrationSceneManager::loadScene(const std::string &filename)
 
     if(mesh_marker.id > max_mesh_id)
       max_mesh_id = mesh_marker.id;
+
+    element = element->NextSiblingElement("mesh");
   }
 
   ROS_INFO("[dsm] Finished getting all the elements...now setting the meshes.");
@@ -488,15 +502,15 @@ void DemonstrationSceneManager::saveScene(const std::string &filename)
       {
 	std::vector<pr2_collision_checker::Sphere> spheres = it->group_.spheres;
 
-	std::vector<pr2_collision_checker::Sphere>::iterator it;
-	for(it = spheres.begin(); it != spheres.end(); ++it)
+	std::vector<pr2_collision_checker::Sphere>::iterator sit;
+	for(sit = spheres.begin(); sit != spheres.end(); ++sit)
 	{
 	  TiXmlElement *sphere = new TiXmlElement("sphere");
-	  sphere->SetAttribute("id", it->name);
-	  sphere->SetDoubleAttribute("x", it->v.x());
-	  sphere->SetDoubleAttribute("y", it->v.y());
-	  sphere->SetDoubleAttribute("z", it->v.z());
-	  sphere->SetDoubleAttribute("radius", it->radius);
+	  sphere->SetAttribute("id", sit->name);
+	  sphere->SetDoubleAttribute("x", sit->v.x());
+	  sphere->SetDoubleAttribute("y", sit->v.y());
+	  sphere->SetDoubleAttribute("z", sit->v.z());
+	  sphere->SetDoubleAttribute("radius", sit->radius);
 	  cm_file_root->LinkEndChild(sphere);
 	}
       }
@@ -599,7 +613,8 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
   int goal_number = 0;
   std::string goal_description = "";
 
-  for(element; element; element = element->NextSiblingElement())
+  // for(element; element; element = element->NextSiblingElement())
+  while(element)
   {
     if(element->QueryIntAttribute("type", &goal_type) != TIXML_SUCCESS)
     {
@@ -736,6 +751,8 @@ bool DemonstrationSceneManager::loadTask(const std::string &filename, bool rando
     default:
       break;
     }
+
+    element = element->NextSiblingElement();
   }
 
   ROS_INFO("[SceneManager%d] Read %d goals", user_id_, (int)goals_.size());
@@ -863,12 +880,12 @@ void DemonstrationSceneManager::randomizePickAndPlaceTask()
     std::srand(unsigned(std::time(0)));
     std::random_shuffle(ordering.begin(), ordering.end());
     ROS_INFO("rg size: %d", random_goals.size());
-    for(int i = 0; i < ordering.size(); ++i)
-    {
-      std::cout << ordering[i] << " ";
-    }
-    std::cout << std::endl;
-    ROS_INFO("[SceneManager%d] New task ordering:", user_id_);
+    // for(int i = 0; i < ordering.size(); ++i)
+    // {
+    //   std::cout << ordering[i] << " ";
+    // }
+    // std::cout << std::endl;
+    // ROS_DEBUG("[SceneManager%d] New task ordering:", user_id_);
     for(int j = 0; j < goal_pairs; ++j)
     {
       goals_[2*j]->setGoalNumber(2*ordering[j]);
@@ -876,14 +893,13 @@ void DemonstrationSceneManager::randomizePickAndPlaceTask()
       random_goals[2*ordering[j]] = goals_[2*j];
       random_goals[2*ordering[j]+1] = goals_[2*j+1];
     }
-    for(std::vector<Goal *>::iterator it = random_goals.begin();
-	it != random_goals.end(); ++it)
-    {
-      ROS_INFO("\t %s", (*it)->toString().c_str());
-    }
+    // for(std::vector<Goal *>::iterator it = random_goals.begin(); it != random_goals.end(); ++it)
+    // {
+    //   ROS_INFO("\t %s", (*it)->toString().c_str());
+    // }
 
     goals_ = random_goals;
-    ROS_INFO("[SceneManager%d] Task has been randomized", user_id_);
+    ROS_DEBUG("[SceneManager%d] Task has been randomized", user_id_);
   }
   else
   {
@@ -897,7 +913,7 @@ void DemonstrationSceneManager::addMeshFromFile(const std::string &filename,
                                                 bool movable,
                                                 bool attach_interactive_marker)
 {
-  // Spawn the mesh at the origin.
+  // Spawn the mesh at the origin
   geometry_msgs::PoseStamped pose_stamped;
   pose_stamped.header.frame_id = resolveName("map", user_id_);
   pose_stamped.header.stamp = ros::Time();
@@ -930,7 +946,7 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
   if(movable)
   {
     ROS_INFO("adding movable");
-    // Add a movable object.
+    // Add a movable object
     Object o = Object(marker);
     o.label = label;
     o.movable = true;
@@ -939,7 +955,7 @@ void DemonstrationSceneManager::addMesh(const visualization_msgs::Marker &marker
   else
   {
     ROS_INFO("adding unmovable");
-    // Add a nonmovable object.
+    // Add a nonmovable object
     Object o = Object(marker);
     o.label = label;
     o.movable = false;
@@ -1047,28 +1063,28 @@ void DemonstrationSceneManager::addGoal(const std::string &desc,
   switch(type)
   {
   case Goal::PICK_UP:
-    {
-      PickUpGoal *goal = new PickUpGoal(goals_.size(), desc);
+  {
+    PickUpGoal *goal = new PickUpGoal(goals_.size(), desc);
 
-      geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
-      goal->setGraspPose(object_pose);
-      goal->setInitialObjectPose(object_pose);
-      goal->setObjectID(object_id);
+    geometry_msgs::Pose object_pose = object_manager_->getMarker(object_id).pose;
+    goal->setGraspPose(object_pose);
+    goal->setInitialObjectPose(object_pose);
+    goal->setObjectID(object_id);
 
-      goals_.push_back(goal);
+    goals_.push_back(goal);
 
-      break;
-    }
+    break;
+  }
   case Goal::PLACE:
-    {
-      PlaceGoal *goal = new PlaceGoal(goals_.size(), desc, object_id);
+  {
+    PlaceGoal *goal = new PlaceGoal(goals_.size(), desc, object_id);
 
-      goal->setIgnoreYaw(ignore_yaw);
+    goal->setIgnoreYaw(ignore_yaw);
 
-      goals_.push_back(goal);
+    goals_.push_back(goal);
 
-      break;
-    }
+    break;
+  }
   default:
     break;
   }
@@ -1081,7 +1097,7 @@ bool DemonstrationSceneManager::moveGoal(int goal_number, const geometry_msgs::P
 {
   if(goal_number < 0 || goal_number >= int(goals_.size()))
   {
-    ROS_ERROR("Invalid goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
     return false;
   }
 
@@ -1160,7 +1176,7 @@ void DemonstrationSceneManager::setGoalDescription(int goal_number, const std::s
 {
   if(goal_number < 0 || goal_number >= getNumGoals())
   {
-    ROS_ERROR("Invalid goal number!");
+    ROS_ERROR("[SceneManager%d] Invalid goal number!", user_id_);
     return;
   }
 
@@ -1323,26 +1339,26 @@ geometry_msgs::Pose DemonstrationSceneManager::getCurrentGoalPose()
   switch(goals_.at(getCurrentGoal())->getType())
   {
   case Goal::PICK_UP:
-    {
-      PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(getCurrentGoal()));
+  {
+    PickUpGoal *goal = static_cast<PickUpGoal *>(getGoal(getCurrentGoal()));
 
-      return goal->getGraspPose();
+    return goal->getGraspPose();
 
-      break;
-    }
+    break;
+  }
   case Goal::PLACE:
-    {
-      PlaceGoal *goal = static_cast<PlaceGoal *>(getGoal(getCurrentGoal()));
+  {
+    PlaceGoal *goal = static_cast<PlaceGoal *>(getGoal(getCurrentGoal()));
 
-      return goal->getPlacePose();
+    return goal->getPlacePose();
 
-      break;
-    }
+    break;
+  }
   default:
-    {
-      ROS_ERROR("[SceneManager%d] Unknown goal type!", user_id_);
-      return geometry_msgs::Pose();
-    }
+  {
+    ROS_ERROR("[SceneManager%d] Unknown goal type!", user_id_);
+    return geometry_msgs::Pose();
+  }
   }
 }
 
@@ -1494,7 +1510,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 				       5*pick_up_goal->getGoalNumber(), 
 				       pick_up_goal->getGripperJointPosition(), gripper_markers);
 
-      ROS_INFO("[SceneManager%d] PICK UP GOAL.", user_id_);
+      ROS_DEBUG("[SceneManager%d] PICK UP GOAL.", user_id_);
 
       for(int i = 0; i < int(gripper_markers.size()); ++i)
       {
@@ -1504,8 +1520,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
 	// "http://resources.robotwebtools.org/" to make the meshes web-compatible.
 	gripper_markers[i].mesh_resource = "http://resources.robotwebtools.org/"
 	  + gripper_markers[i].mesh_resource.substr(10);
-	ROS_WARN("[SceneManager%d] Gripper marker path = %s", user_id_,
-		 gripper_markers[i].mesh_resource.c_str());
+	ROS_DEBUG("[SceneManager%d] Gripper marker path = %s", user_id_, gripper_markers[i].mesh_resource.c_str());
 	gripper_markers[i].color.a = 0.3;
 	marker_pub_.publish(gripper_markers[i]);
       }
@@ -1561,9 +1576,7 @@ void DemonstrationSceneManager::drawGoal(Goal *goal, bool attach_interactive_mar
       // Attach a 6-DOF control for moving the place goal around.
       attach6DOFControl(int_marker);
 
-      int_marker_server_->insert(int_marker,
-				 goal_feedback_
-	);
+      int_marker_server_->insert(int_marker, goal_feedback_);
       int_marker_server_->applyChanges();
     }
     else

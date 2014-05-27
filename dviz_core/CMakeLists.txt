@@ -3,6 +3,8 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 project(dviz_core)
 
 set(ROS_BUILD_TYPE Debug)
+#set(ROS_BUILD_TYPE Release)
+#set(ROS_BUILD_TYPE RelWithDebInfo)
 
 rosbuild_init()
 rosbuild_genmsg()

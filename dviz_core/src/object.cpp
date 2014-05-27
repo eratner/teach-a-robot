@@ -2,25 +2,25 @@
 #include <boost/lexical_cast.hpp>
 #include <kdl/frames.hpp>
 
-namespace demonstration_visualizer {
+namespace demonstration_visualizer
+{
 
-Object::Object() {
-  movable = false;
+Object::Object()
+  : movable(false), redraw(false), label("")
+{
 }
 
-Object::Object(visualization_msgs::Marker mesh_marker){
-  mesh_marker_ = mesh_marker;
-  movable = false;
-  redraw = true;
+Object::Object(const visualization_msgs::Marker &mesh_marker)
+  : mesh_marker_(mesh_marker), movable(false), redraw(false), label("")
+{
 }
 
-Object::Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_path){
-  mesh_marker_ = mesh_marker;
-  movable = true;
-  redraw = true;
-
+Object::Object(const visualization_msgs::Marker &mesh_marker, const std::string &sphere_list_path)
+  : mesh_marker_(mesh_marker), movable(true), redraw(true)
+{
   TiXmlDocument doc(sphere_list_path.c_str());
-  if(!doc.LoadFile()){
+  if(!doc.LoadFile())
+  {
     ROS_ERROR("Object failed to load file %s!", sphere_list_path.c_str());
     return;
   }
@@ -37,7 +37,7 @@ Object::Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_p
 
   root_handle = TiXmlHandle(element);
 
-  ROS_INFO("Reading %s...", element->Value());
+  ROS_DEBUG("Reading %s...", element->Value());
 
   // read each 
   element = root_handle.FirstChild().Element();
@@ -61,11 +61,13 @@ Object::Object(visualization_msgs::Marker mesh_marker, std::string sphere_list_p
 
 }
 
-void Object::setPose(geometry_msgs::Pose p){
+void Object::setPose(const geometry_msgs::Pose &p)
+{
   mesh_marker_.pose = p;
 
-  if(movable){
-    KDL::Vector v(p.position.x,p.position.y,p.position.z);
+  if(movable)
+  {
+    KDL::Vector v(p.position.x, p.position.y, p.position.z);
     group_.f.p = v;
     group_.f.M = KDL::Rotation::Quaternion(p.orientation.x,
                           p.orientation.y,
@@ -74,7 +76,9 @@ void Object::setPose(geometry_msgs::Pose p){
   }
 }
 
-bool Object::checkConstraints(geometry_msgs::Pose p){
+bool Object::checkConstraints(const geometry_msgs::Pose &p)
+{
+  // @todo
   return true;
 }
 

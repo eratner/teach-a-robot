@@ -1,11 +1,10 @@
-
 #include <dviz_core/demonstration_visualizer_core.h>
 
 namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
-  : last_id_(1), num_users_(0), scene_loaded_(false)
+  : last_id_(1), num_users_(0), object_manager_(0), demonstration_scene_manager_(0), scene_loaded_(false)
 {
   if(!init(argc, argv))
     ROS_ERROR("[DVizCore] Unable to connect to master!");
