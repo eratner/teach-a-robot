@@ -4,7 +4,7 @@
 var DVIZ = DVIZ || {};
 
 // This flag toggles output to the console that may be useful when debugging
-DVIZ.debug = false;
+DVIZ.debug = true;
 
 /**
  * Creates a simple moving average (SMA) filter of size n
@@ -91,6 +91,9 @@ DVIZ.CameraManager = function(options) {
   this.tfClient.subscribe('/dviz_user_' + this.id + '/base_footprint', function(message) {
     var tf = new ROSLIB.Transform(message);
 
+    console.log('base x = ' + tf.translation.x.toString()
+		+ ' y = ' + tf.translation.y.toString());
+
     that.baseXFilter.push(tf.translation.x);
     that.baseYFilter.push(tf.translation.y);
 
@@ -112,9 +115,9 @@ DVIZ.CameraManager = function(options) {
   this.tfClient.subscribe('/dviz_user_' + this.id + '/right_end_effector', function(message) {
     var tf = new ROSLIB.Transform(message);
 
-    // console.log('r-ee x = ' + tf.translation.x.toString()
-    // 		+ ' y = ' + tf.translation.y.toString()
-    // 		+ ' z = ' + tf.translation.z.toString());
+    console.log('r-ee x = ' + tf.translation.x.toString()
+    		+ ' y = ' + tf.translation.y.toString()
+    		+ ' z = ' + tf.translation.z.toString());
     that.rEndEffectorXFilter.push(tf.translation.x);
     that.rEndEffectorYFilter.push(tf.translation.y);
     that.rEndEffectorZFilter.push(tf.translation.z);
@@ -1024,7 +1027,6 @@ function init() {
 
   var variables = getUrlVariables();
 
-
   // Get any variables that are associated with a Mechanical Turk HIT
   for(var i = 0; i < variables.length; i++) {
     if(variables[i][0] === 'hitId') {
@@ -1043,11 +1045,10 @@ function init() {
   }
 
   //SERVER DOWN MESSAGE
-  // if(!development) {
-  //   $('#serverDown').modal('show');
-  //   return;
-  // }
-
+  if(!development) {
+    $('#serverDown').modal('show');
+    return;
+  }
 
   if(hitId !== null && assignmentId !== null) {
     DVIZ.debug && console.log('[DVizClient] Processing HIT with hitId ' + hitId.toString()
@@ -1148,7 +1149,7 @@ function init() {
 
 	    // Show the instructions and prompt the user to input their id
 	    if(!replayMode) {
-	      // TODO: Prompt the user for their worker ID and give them a randomly 
+	      // Prompt the user for their worker ID and give them a randomly 
 	      // generated completion string
 	      assignmentId = generateRandomString(8);
 	      DVIZ.debug && console.log('[DVizClient] Random assignment ID: ' + assignmentId);
@@ -1244,6 +1245,7 @@ function removeUser() {
 }
 
 function initializeDemonstration(id, width, height, ros, viewer) {
+  DVIZ.debug && console.log('[DVizClient] Fixed frame = /dviz_user_' + id + '/map');
   var tfClient = new ROSLIB.TFClient({
     ros : ros,
     angularThres : 0.01,
@@ -1264,7 +1266,7 @@ function initializeDemonstration(id, width, height, ros, viewer) {
     ros : ros,
     tfClient : tfClient,
     topic : '/dviz_user_' + id + '/interactive_markers',
-    path : 'http://resources.robotwebtools.org/',
+    //path : 'http://resources.robotwebtools.org/',
     camera : viewer.camera,
     rootObject : viewer.selectableObjects
   });
@@ -1273,7 +1275,7 @@ function initializeDemonstration(id, width, height, ros, viewer) {
     ros : ros,
     tfClient : tfClient,
     topic : '/dviz_user_' + id + '/visualization_marker_array',
-    path : 'http://resources.robotwebtools.org/',
+    //path : 'http://resources.robotwebtools.org/',
     rootObject : viewer.scene
   });
 
