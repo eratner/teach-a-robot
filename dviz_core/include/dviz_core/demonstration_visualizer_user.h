@@ -13,6 +13,7 @@
 #include <dviz_core/Command.h>
 #include <dviz_core/Goal.h>
 #include <dviz_core/Task.h>
+#include <dviz_core/performance.h>
 
 #include <std_msgs/Empty.h>
 

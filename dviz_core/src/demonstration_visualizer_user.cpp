@@ -63,6 +63,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   object_manager_ = new ObjectManager(rarm_filename, larm_filename, id_);
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_, id_);
   demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_, id_);
+  ProcessInfo::initCPU();
 }
 
 DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
@@ -1057,24 +1058,15 @@ double DemonstrationVisualizerUser::getFrameRate() const
 
 void DemonstrationVisualizerUser::getUserProcessInfo()
 {
-  // Interested primarily in RES (physical memory) and SHR (shared memory)
-  std::stringstream ss;
-  ss << "/proc/" << getpid() << "/stat";
-  std::ifstream proc;
-  proc.open(ss.str().c_str(), std::ios::in);
-  std::string buf;
-  if(proc.is_open())
-  {
-    for(int i = 0; i < 24; ++i)
-    {
-      proc >> buf;
-    }
-    ROS_INFO("[DVizUser%d] Resident memory size = %s bytes", id_, buf.c_str());
-    proc.close();
-    return;
-  }
-  ROS_ERROR("[DVizUser%d] Unable to open file \"%s\"!", id_, ss.str().c_str());
-  return;
+  double ram = ProcessInfo::getProcessPhysicalMemory();
+  ROS_INFO("[DVizUser%d] Physical memory in use: %0.4f", id_, ram);
+  double vmem = ProcessInfo::getProcessVirtualMemory();
+  ROS_INFO("[DVizUser%d] Virtual memory in use: %0.4f", id_, vmem);
+  double cpu = ProcessInfo::getProcessCPU();
+  if (cpu < 0)
+    ROS_ERROR("[DVizUser%d] Invalid CPU percent!", id_);
+  else
+    ROS_INFO("[DVizUser%d] Percent CPU in use: %0.4f", id_, cpu);
 }
 
 void DemonstrationVisualizerUser::goalCompleted()

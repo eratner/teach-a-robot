@@ -1019,6 +1019,7 @@ var workerId = null;
 var assignmentId = null;
 var previewMode = false;
 var development = false;
+var serverDown = false;
 
 var goalsCompleted = 0;
 
@@ -1045,7 +1046,7 @@ function init() {
   }
 
   //SERVER DOWN MESSAGE
-  if(!development) {
+  if(serverDown && !development) {
     $('#serverDown').modal('show');
     return;
   }
