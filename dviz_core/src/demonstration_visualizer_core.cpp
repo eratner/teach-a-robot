@@ -4,7 +4,7 @@ namespace demonstration_visualizer
 {
 
 DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
-  : last_id_(1), num_users_(0), object_manager_(0), demonstration_scene_manager_(0), scene_loaded_(false)
+  : last_id_(1), num_users_(0), object_manager_(0), demonstration_scene_manager_(0), scene_loaded_(false), stats_counter_(0)
 {
   if(!init(argc, argv))
     ROS_ERROR("[DVizCore] Unable to connect to master!");
@@ -16,6 +16,7 @@ DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
   nh.param<std::string>("right_arm_description_file", rarm_filename, "");
   object_manager_ = new ObjectManager(rarm_filename, larm_filename, 0, true);
   demonstration_scene_manager_ = new DemonstrationSceneManager(0, 0, object_manager_, 0);
+  ProcessInfo::initCPU();
 }
 
 DemonstrationVisualizerCore::~DemonstrationVisualizerCore()
@@ -27,9 +28,7 @@ DemonstrationVisualizerCore::~DemonstrationVisualizerCore()
   }
 
   delete object_manager_;
-  object_manager_ = 0;
   delete demonstration_scene_manager_;
-  demonstration_scene_manager_ = 0;
 }
 
 bool DemonstrationVisualizerCore::init(int argc, char **argv)
@@ -147,6 +146,21 @@ bool DemonstrationVisualizerCore::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end USER_INFO
+  else if(req.command.compare(dviz_core::Command::Request::WRITE_STATS) == 0)
+  {
+    if(req.args.size() == 1)
+    {
+      int user_id = atoi(req.args[0].c_str());
+      if(!passCommandToUser(dviz_core::Command::Request::WRITE_STATS, res.response, user_id))
+      {
+        ROS_ERROR("Failed to write stats for user %d", user_id);
+      }
+    }
+    else
+    {
+      writeStats();
+    }
+  }
   else if(req.command.compare(dviz_core::Command::Request::LOAD_SCENE) == 0)
   {
     if(req.args.size() == 2)
@@ -276,6 +290,7 @@ int DemonstrationVisualizerCore::addUser()
     user_command_services_[id] = nh.serviceClient<dviz_core::Command>(resolveName("dviz_command", id));
   }
 
+  writeStats();
   return id;
 }
 
@@ -352,8 +367,32 @@ void DemonstrationVisualizerCore::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
+    if (stats_counter_ % 300 == 0)
+      writeStats();
+
+    stats_counter_++;
     ros::spinOnce();
     rate.sleep();
+  }
+}
+
+void DemonstrationVisualizerCore::writeStats()
+{
+  ROS_INFO("[DVizCore] Writing stats...");
+  // Write the system stats
+  std::stringstream ss;
+  ss << ros::Time::now().sec << " " << "CORE" << " " << num_users_ << " " << ProcessInfo::getTotalCPU() << " "
+     << ProcessInfo::getUsedPhysicalMemory() << " " << ProcessInfo::getUsedVirtualMemory() << "\n";
+  ProcessInfo::writeStats(ss.str(), true);
+  // Write the process stats for each user process
+  for(std::map<int, ros::ServiceClient>::iterator it = user_command_services_.begin();
+      it != user_command_services_.end(); ++it)
+  {
+    std::string response;
+    if(!passCommandToUser(dviz_core::Command::Request::WRITE_STATS, response, it->first))
+    {
+      ROS_WARN("Failed to write stats for user %d", it->first);
+    }
   }
 }
 

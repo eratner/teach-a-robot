@@ -29,6 +29,7 @@ rosbuild_add_library(dviz_core
   src/end_effector_controller.cpp
   src/motion_recorder.cpp
   src/goal.cpp
+  src/performance.cpp
 )
 
 target_link_libraries(dviz_core

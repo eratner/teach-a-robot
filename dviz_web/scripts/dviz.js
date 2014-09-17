@@ -932,7 +932,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
 
   message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString() 
     + ' out of 6 goals</strong>. You are now eligible for <strong>$'
-    + ((goalsCompleted * 0.50).toFixed(2)).toString() 
+    + ((goalsCompleted * 0.30).toFixed(2)).toString()
     + '</strong>! <br />If you\'re done, remember to submit your <strong>Teach-A-Robot'
     + ' Demonstration ID (' + assignmentId + ')</strong> on the Mechanical Turk HIT page'
     + ' so that we can pay you.';
@@ -1057,8 +1057,8 @@ function init() {
   }
 
   ros = new ROSLIB.Ros({
-    url : 'ws://sbpl.net:21891'
-    //url : 'ws://localhost:9090'
+//    url : 'ws://sbpl.net:21891'
+    url : 'ws://localhost:9090'
   });
 
   // Width and height of the viewer, in pixels

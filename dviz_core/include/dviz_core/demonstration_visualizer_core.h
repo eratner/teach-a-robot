@@ -10,9 +10,11 @@
 #include <dviz_core/common.h>
 #include <dviz_core/object_manager.h>
 #include <dviz_core/demonstration_scene_manager.h>
+#include <dviz_core/performance.h>
 
 #include <boost/thread.hpp>
 #include <cmath>
+#include <fstream>
 
 namespace demonstration_visualizer 
 {
@@ -24,6 +26,8 @@ namespace demonstration_visualizer
 class DemonstrationVisualizerCore
 {
 public:
+  static const std::string STATS_DIRECTORY;
+
   DemonstrationVisualizerCore(int argc, char **argv);
 
   virtual ~DemonstrationVisualizerCore();
@@ -56,6 +60,8 @@ public:
    * @brief The main run loop of DVizCore
    */
   void run();
+
+  void writeStats();
 
 private:
   /**
@@ -96,6 +102,7 @@ private:
   //            "warehouse" --> "df2"
   //            ...
   bool scene_loaded_;
+  int stats_counter_;
 
 };
 

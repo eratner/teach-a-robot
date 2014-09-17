@@ -6,6 +6,7 @@
 #include <interactive_markers/interactive_marker_server.h>
 
 #include <dviz_core/demonstration_scene_manager.h>
+#include <dviz_core/demonstration_visualizer_core.h>
 #include <dviz_core/pr2_simulator.h>
 #include <dviz_core/object_manager.h>
 #include <dviz_core/motion_recorder.h>
@@ -84,6 +85,8 @@ public:
    * @brief Get statistics on this DVizUser process, such as CPU and memory usage.
    */
   void getUserProcessInfo();
+
+  void writeStats();
 
   /**
    * @brief Encapsulates a series of steps that must be taken once a goal has completed.

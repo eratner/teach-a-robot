@@ -696,6 +696,10 @@ bool DemonstrationVisualizerUser::processCommand(dviz_core::Command::Request &re
       return false;
     }
   } // end SET_GRIPPER_JOINT
+  else if(req.command.compare(dviz_core::Command::Request::WRITE_STATS) == 0)
+  {
+    writeStats();
+  } // end WRITE_STATS
   else
   {
     ROS_ERROR("[DVizUser%d] Invalid command \"%s\".", id_, req.command.c_str());
@@ -1069,9 +1073,21 @@ void DemonstrationVisualizerUser::getUserProcessInfo()
     ROS_INFO("[DVizUser%d] Percent CPU in use: %0.4f", id_, cpu);
 }
 
+void DemonstrationVisualizerUser::writeStats()
+{
+  ROS_INFO("[DVizUser%d] Writing stats...", id_);
+  std::stringstream ss;
+  ss << ros::Time::now().sec << " " << "USER" << " " << id_ << " " << ProcessInfo::getProcessCPU() << " "
+     << ProcessInfo::getProcessPhysicalMemory() << " " << ProcessInfo::getProcessVirtualMemory() << " "
+     << ProcessInfo::getTotalCPU() << " " << ProcessInfo::getTotalPhysicalMemory() << " "
+     << ProcessInfo::getTotalVirtualMemory() << "\n";
+  ProcessInfo::writeStats(ss.str(), true);
+}
+
 void DemonstrationVisualizerUser::goalCompleted()
 {
   ROS_INFO("[DVizUser%d] Goal completed!", id_);
+  writeStats();
 
   if(recorder_->isRecording())
   {

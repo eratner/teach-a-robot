@@ -68,6 +68,8 @@ string SET_GRIPPER_JOINT = set_gripper_joint
 string SET_JOINT_STATES = set_joint_states
 # DECR_USERS = { }
 string DECR_USERS = decr_users
+# WRITE_STATS = { [user-id] }
+string WRITE_STATS = write_stats
 
 # A valid string command.
 string command

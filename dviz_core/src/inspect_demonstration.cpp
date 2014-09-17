@@ -4,8 +4,8 @@
 
 #include <dviz_core/UserDemonstration.h>
 #include <dviz_core/Step.h>
-#include <dviz_core/OldUserDemonstration.h>
-#include <dviz_core/OldStep.h>
+//#include <dviz_core/OldUserDemonstration.h>
+//#include <dviz_core/OldStep.h>
 #include <dviz_core/Waypoint.h>
 
 // Kitchen scene-specific constants
@@ -88,20 +88,22 @@ int main(int argv, char **argc)
   if(output) ROS_INFO("View contains %d saves", view.size());
   rosbag::View::iterator iter = view.begin();
   dviz_core::UserDemonstration::ConstPtr new_loaded_demo;
-  dviz_core::OldUserDemonstration::ConstPtr old_loaded_demo;
+//  dviz_core::OldUserDemonstration::ConstPtr old_loaded_demo;
   for(; iter != view.end(); iter++)
   {
     dviz_core::UserDemonstration::ConstPtr new_loaded_demo = (*iter).instantiate<dviz_core::UserDemonstration>();
     if(new_loaded_demo == NULL)
     {
       // Try the old bagfile type
-      if(output) ROS_ERROR("Failed to load (new) user demonstration from bag file!");
-      old_loaded_demo = (*iter).instantiate<dviz_core::OldUserDemonstration>();
-      if(old_loaded_demo == NULL)
-      {
-	if(output) ROS_ERROR("Failed to load (old) user demonstration from bag file");
-	return false;
-      }
+//      if(output) ROS_ERROR("Failed to load (new) user demonstration from bag file!");
+//      old_loaded_demo = (*iter).instantiate<dviz_core::OldUserDemonstration>();
+//      if(old_loaded_demo == NULL)
+//      {
+//	if(output) ROS_ERROR("Failed to load (old) user demonstration from bag file");
+//	return false;
+//      }
+      ROS_ERROR("New demonstration failed to load, and old demonstration format not supported!");
+      return false;
     }
 
     int goals_completed = 0;
@@ -139,38 +141,38 @@ int main(int argv, char **argc)
 	}
       }
     }
-    else
-    {
-      // Get information about the user demonstration
-      if(output)
-      {
-	ROS_INFO("Demonstration from user %s with id %s performing task \"%s\" on the date %s with the following steps:",
-		 old_loaded_demo->user_id.c_str(),
-		 old_loaded_demo->demo_id.c_str(),
-		 old_loaded_demo->task_name.c_str(),
-		 old_loaded_demo->date.c_str());
-      }
-      user = old_loaded_demo->user_id;
-      for(int i = 0; i < old_loaded_demo->steps.size(); i++)
-      {
-	if(output)
-	{
-	  ROS_INFO("\t [Step %d] goal number: %d; action: \"%s\"; object type: \"%s\"; waypoints: %d",
-		   i,
-		   old_loaded_demo->steps[i].goal_number,
-		   old_loaded_demo->steps[i].action.c_str(),
-		   old_loaded_demo->steps[i].object_type.c_str(),
-		   (int)old_loaded_demo->steps[i].waypoints.size());
-	}
-	if(i < old_loaded_demo->steps.size()-1)
-	{
-	  goals_completed += 1;
-	  recordGoalCompleted(goal_completed, old_loaded_demo->steps[i].action, old_loaded_demo->steps[i].object_type, goal_time);
-	}
-      }      
-    }
-    total_goals_completed = std::max(total_goals_completed, goals_completed);
-    total_time = std::max(total_time, time);
+//    else
+//    {
+//      // Get information about the user demonstration
+//      if(output)
+//      {
+//	ROS_INFO("Demonstration from user %s with id %s performing task \"%s\" on the date %s with the following steps:",
+//		 old_loaded_demo->user_id.c_str(),
+//		 old_loaded_demo->demo_id.c_str(),
+//		 old_loaded_demo->task_name.c_str(),
+//		 old_loaded_demo->date.c_str());
+//      }
+//      user = old_loaded_demo->user_id;
+//      for(int i = 0; i < old_loaded_demo->steps.size(); i++)
+//      {
+//	if(output)
+//	{
+//	  ROS_INFO("\t [Step %d] goal number: %d; action: \"%s\"; object type: \"%s\"; waypoints: %d",
+//		   i,
+//		   old_loaded_demo->steps[i].goal_number,
+//		   old_loaded_demo->steps[i].action.c_str(),
+//		   old_loaded_demo->steps[i].object_type.c_str(),
+//		   (int)old_loaded_demo->steps[i].waypoints.size());
+//	}
+//	if(i < old_loaded_demo->steps.size()-1)
+//	{
+//	  goals_completed += 1;
+//	  recordGoalCompleted(goal_completed, old_loaded_demo->steps[i].action, old_loaded_demo->steps[i].object_type, goal_time);
+//	}
+//      }
+//    }
+//    total_goals_completed = std::max(total_goals_completed, goals_completed);
+//    total_time = std::max(total_time, time);
   }
   bag.close();
 
