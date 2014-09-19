@@ -1075,13 +1075,13 @@ void DemonstrationVisualizerUser::getUserProcessInfo()
 
 void DemonstrationVisualizerUser::writeStats()
 {
-  ROS_INFO("[DVizUser%d] Writing stats...", id_);
-  std::stringstream ss;
-  ss << ros::Time::now().sec << " " << "USER" << " " << id_ << " " << ProcessInfo::getProcessCPU() << " "
-     << ProcessInfo::getProcessPhysicalMemory() << " " << ProcessInfo::getProcessVirtualMemory() << " "
-     << ProcessInfo::getTotalCPU() << " " << ProcessInfo::getTotalPhysicalMemory() << " "
-     << ProcessInfo::getTotalVirtualMemory() << "\n";
-  ProcessInfo::writeStats(ss.str(), true);
+  // ROS_INFO("[DVizUser%d] Writing stats...", id_);
+  // std::stringstream ss;
+  // ss << ros::Time::now().sec << " " << "USER" << " " << id_ << " " << ProcessInfo::getProcessCPU() << " "
+  //    << ProcessInfo::getProcessPhysicalMemory() << " " << ProcessInfo::getProcessVirtualMemory() << " "
+  //    << ProcessInfo::getTotalCPU() << " " << ProcessInfo::getTotalPhysicalMemory() << " "
+  //    << ProcessInfo::getTotalVirtualMemory() << "\n";
+  // ProcessInfo::writeStats(ss.str(), true);
 }
 
 void DemonstrationVisualizerUser::goalCompleted()

@@ -1057,8 +1057,8 @@ function init() {
   }
 
   ros = new ROSLIB.Ros({
-//    url : 'ws://sbpl.net:21891'
-    url : 'ws://localhost:9090'
+    url : 'ws://sbpl.net:21891'
+//    url : 'ws://localhost:9090'
   });
 
   // Width and height of the viewer, in pixels
