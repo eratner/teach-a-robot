@@ -1300,8 +1300,10 @@ void DemonstrationSceneManager::processGoalFeedback(
   {
     ROS_ERROR("[SceneManager%d] Demonstration scene manager failed to update task goal pose!", user_id_);
   }
-
-  setGoalsChanged(true);  
+  else
+  {
+    setGoalsChanged(true);
+  }
 }
 
 void DemonstrationSceneManager::processMeshFeedback(
