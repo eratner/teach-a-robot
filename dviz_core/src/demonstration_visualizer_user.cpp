@@ -1101,6 +1101,11 @@ void DemonstrationVisualizerUser::goalCompleted()
     {
       int current_goal = demonstration_scene_manager_->getCurrentGoal();
       Goal *goal = demonstration_scene_manager_->getGoal(current_goal);
+      if (!goal)
+      {
+        ROS_ERROR("[DVizUser%d] In goal completed, no such goal number %d!", id_, current_goal);
+        return;
+      }
       std::string object_label = "";
       geometry_msgs::Pose grasp_pose;
       // Object type and grasp pose is only relevant if the the goal type is PICK_UP
@@ -1129,7 +1134,7 @@ bool DemonstrationVisualizerUser::showInteractiveGripper(int goal_number)
 {
   accepted_grasp_ = false;
 
-  if(demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
+  if(!demonstration_scene_manager_->getGoal(goal_number) || demonstration_scene_manager_->getGoal(goal_number)->getType() != Goal::PICK_UP)
   {
     ROS_ERROR("[DVizUser%d] Cannot show a gripper for a goal that is not of type PICK_UP", id_);
     return false;
@@ -1335,6 +1340,11 @@ void DemonstrationVisualizerUser::gripperMarkerFeedback(
   int goal_number = atoi(feedback->marker_name.substr(i+1).c_str());
 
   Goal *goal = demonstration_scene_manager_->getGoal(goal_number);
+  if(!goal)
+  {
+    ROS_ERROR("[DVizUser%d] In gripper marker feedback, no such goal %d!", id_, goal_number);
+    return;
+  }
   if(goal->getType() == Goal::PICK_UP)
   {
     // geometry_msgs::Pose gripper_pose = static_cast<PickUpGoal *>(goal)->getGraspPose();

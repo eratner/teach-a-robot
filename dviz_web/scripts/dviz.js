@@ -925,6 +925,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
     message += 'Congratulations, the task is complete! Close this window and your demonstration '
     + ' will automatically be saved. Don\'t forget to submit the Mechanical Turk HIT results.';
     this.endDemonstration(true);
+    $('#playPause').prop('disabled', true);
   } else {
     message += ('Next goal: ' + 
 		this.goals[goalNumber + 1].description);
@@ -1131,8 +1132,8 @@ function init() {
 	  dvizCoreCommandClient.callService(new ROSLIB.ServiceRequest({
 	    command : 'add_user',
 	    args : []
-	  }), function(response) {
-	    var userId = parseInt(response.response);
+      }), function(response) {
+        var userId = parseInt(response.response);
 	    console.log('[DVizClient] Starting DVizUser ID ' + userId);
 	    initializeDemonstration(userId, W, H, ros, viewer);
 
@@ -1183,8 +1184,8 @@ function init() {
       		DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
       	      } 
 	    });
-	  });
-	}
+      });
+    }
       }
     });
   }
