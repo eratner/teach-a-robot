@@ -1123,7 +1123,7 @@ function init() {
 	DVIZ.debug && console.log('[DVizClient] There are ' + usersOnline.toString()
 				  + ' users online');
 
-	if(usersOnline > 5) {
+    if(usersOnline > 5) {
 	  DVIZ.debug && console.log('[DVizClient] Too many users online (' +
 				    usersOnline.toString() + ')');
 	  // @todo show modal dialog

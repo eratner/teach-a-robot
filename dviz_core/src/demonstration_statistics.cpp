@@ -53,6 +53,11 @@ const geometry_msgs::Pose InitialObjectPoses[] =
   makePose(0.635449, 4.29259,0.940121)      // Eggs
 };
 
+const geometry_msgs::Pose FinalObjectPoses[] =
+{
+  makePose(0, 0, 0) // TODO
+};
+
 double euclideanDistance(const geometry_msgs::Pose &first, const geometry_msgs::Pose &second);
 
 std::vector<double> getTotalJointDistances(const dviz_core::Step &step, bool output = false);
