@@ -6,6 +6,122 @@ var DVIZ = DVIZ || {};
 // This flag toggles output to the console that may be useful when debugging
 DVIZ.debug = true;
 
+/********************/
+DVIZ.MultiTFClient = function(options) {
+  options = options || {};
+  this.ros = options.ros;
+  this.fixedFrame = options.fixedFrame || '/base_link';
+  this.angularThres = options.angularThres || 2.0;
+  this.transThres = options.transThres || 0.01;
+  this.rate = options.rate || 10.0;
+  this.goalUpdateDelay = options.goalUpdateDelay || 50;
+  this.userId = options.userId || 0;
+
+  this.currentGoal = false;
+  this.frameInfos = {};
+  this.goalUpdateRequested = false;
+  
+  var ns = '/';
+  if (this.userId > 0) {
+    ns = '/dviz_user_' + this.userId.toString() + '/';
+  }
+  // Create an ActionClient
+  this.actionClient = new ROSLIB.ActionClient({
+    ros : this.ros,
+    serverName : ns + 'tf2_web_republisher',
+    actionName : 'tf2_web_republisher/TFSubscriptionAction'
+  });
+};
+
+DVIZ.MultiTFClient.prototype.processFeedback = function(tf) {
+  var that = this;
+  tf.transforms.forEach(function(transform) {
+    var frameID = transform.child_frame_id;
+    if (frameID[0] === '/') {
+      frameID = frameID.substring(1);
+    }
+    var info = that.frameInfos[frameID];
+    if (info !== undefined) {
+      info.transform = new ROSLIB.Transform({
+        translation : transform.transform.translation,
+        rotation : transform.transform.rotation
+      });
+      info.cbs.forEach(function(cb) {
+        cb(info.transform);
+      });
+    }
+  });
+};
+
+DVIZ.MultiTFClient.prototype.updateGoal = function() {
+  // Anytime the list of frames changes, we will need to send a new goal.
+  if (this.currentGoal) {
+    this.currentGoal.cancel();
+  }
+
+  var goalMessage = {
+    source_frames : [],
+    target_frame : this.fixedFrame,
+    angular_thres : this.angularThres,
+    trans_thres : this.transThres,
+    rate : this.rate
+  };
+
+  for (var frame in this.frameInfos) {
+    goalMessage.source_frames.push(frame);
+  }
+
+  this.currentGoal = new ROSLIB.Goal({
+    actionClient : this.actionClient,
+    goalMessage : goalMessage
+  });
+  this.currentGoal.on('feedback', this.processFeedback.bind(this));
+  this.currentGoal.send();
+  this.goalUpdateRequested = false;
+};
+
+DVIZ.MultiTFClient.prototype.subscribe = function(frameID, callback) {
+  // remove leading slash, if it's there
+  if (frameID[0] === '/') {
+    frameID = frameID.substring(1);
+  }
+  // if there is no callback registered for the given frame, create emtpy callback list
+  if (this.frameInfos[frameID] === undefined) {
+    this.frameInfos[frameID] = {
+      cbs : []
+    };
+    if (!this.goalUpdateRequested) {
+      setTimeout(this.updateGoal.bind(this), this.goalUpdateDelay);
+      this.goalUpdateRequested = true;
+    }
+  } else {
+    // if we already have a transform, call back immediately
+    if (this.frameInfos[frameID].transform !== undefined) {
+      callback(this.frameInfos[frameID].transform);
+    }
+  }
+  this.frameInfos[frameID].cbs.push(callback);
+};
+
+DVIZ.MultiTFClient.prototype.unsubscribe = function(frameID, callback) {
+  // remove leading slash, if it's there
+  if (frameID[0] === '/') {
+    frameID = frameID.substring(1);
+  }
+  var info = this.frameInfos[frameID];
+  if (info !== undefined) {
+    var cbIndex = info.cbs.indexOf(callback);
+    if (cbIndex >= 0) {
+      info.cbs.splice(cbIndex, 1);
+      if (info.cbs.length === 0) {
+        delete this.frameInfos[frameID];
+      }
+      this.needUpdate = true;
+    }
+  }
+};
+/********************/
+
 /**
  * Creates a simple moving average (SMA) filter of size n
  */
@@ -1123,7 +1239,8 @@ function init() {
 	DVIZ.debug && console.log('[DVizClient] There are ' + usersOnline.toString()
 				  + ' users online');
 
-    if(usersOnline > 5) {
+//    if(usersOnline > 5) {
+	  if(usersOnline > 20) {
 	  DVIZ.debug && console.log('[DVizClient] Too many users online (' +
 				    usersOnline.toString() + ')');
 	  // @todo show modal dialog
@@ -1248,12 +1365,14 @@ function removeUser() {
 
 function initializeDemonstration(id, width, height, ros, viewer) {
   DVIZ.debug && console.log('[DVizClient] Fixed frame = /dviz_user_' + id + '/map');
-  var tfClient = new ROSLIB.TFClient({
+//  var tfClient = new ROSLIB.TFClient({
+  var tfClient = new DVIZ.MultiTFClient({
     ros : ros,
     angularThres : 0.01,
     transThres : 0.01,
     rate : 30.0,
-    fixedFrame : '/dviz_user_' + id + '/map'
+    fixedFrame : '/dviz_user_' + id + '/map',
+    userId : id
   });
   
   var meshClient = new ROS3D.MarkerClient({

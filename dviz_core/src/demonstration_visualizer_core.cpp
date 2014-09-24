@@ -290,7 +290,7 @@ int DemonstrationVisualizerCore::addUser()
     user_command_services_[id] = nh.serviceClient<dviz_core::Command>(resolveName("dviz_command", id));
   }
 
-  writeStats();
+  //writeStats();
   return id;
 }
 
@@ -367,10 +367,10 @@ void DemonstrationVisualizerCore::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
-    // if (stats_counter_ % 300 == 0)
-    //   writeStats();
+    if(stats_counter_ % 200 == 0)
+      writeStats();
 
-    // stats_counter_++;
+    stats_counter_++;
     ros::spinOnce();
     rate.sleep();
   }
@@ -378,12 +378,12 @@ void DemonstrationVisualizerCore::run()
 
 void DemonstrationVisualizerCore::writeStats()
 {
-  // ROS_INFO("[DVizCore] Writing stats...");
-  // // Write the system stats
-  // std::stringstream ss;
-  // ss << ros::Time::now().sec << " " << "CORE" << " " << num_users_ << " " << ProcessInfo::getTotalCPU() << " "
-  //    << ProcessInfo::getUsedPhysicalMemory() << " " << ProcessInfo::getUsedVirtualMemory() << "\n";
-  // ProcessInfo::writeStats(ss.str(), true);
+  ROS_INFO("[DVizCore] Writing stats...");
+  // Write the system stats
+  std::stringstream ss;
+  ss << ros::Time::now().sec << " " << "CORE" << " " << num_users_ << " " << ProcessInfo::getTotalCPU() << " "
+     << ProcessInfo::getUsedPhysicalMemory() << " " << ProcessInfo::getUsedVirtualMemory() << "\n";
+  ProcessInfo::writeStats(ss.str(), true);
   // // Write the process stats for each user process
   // for(std::map<int, ros::ServiceClient>::iterator it = user_command_services_.begin();
   //     it != user_command_services_.end(); ++it)

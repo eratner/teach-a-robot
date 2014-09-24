@@ -171,8 +171,8 @@ int main(int argv, char **argc)
 //	}
 //      }
 //    }
-//    total_goals_completed = std::max(total_goals_completed, goals_completed);
-//    total_time = std::max(total_time, time);
+    total_goals_completed = std::max(total_goals_completed, goals_completed);
+    total_time = std::max(total_time, time);
   }
   bag.close();
 
