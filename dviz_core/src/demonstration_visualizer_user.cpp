@@ -16,6 +16,7 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   // For web purposes, we need to fork a process to run an interactive marker proxy node
   if(web_)
   {
+    // Fork a new process for the interactive_marker_proxy
     int rosrun = fork();
     if(rosrun == 0)
     {
@@ -26,11 +27,24 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
       char proxy_name[256];
       sprintf(proxy_name, "__name:=proxy%d", id_);
       execlp("rosrun", "rosrun", "interactive_marker_proxy", "proxy", topic_ns, target_frame, proxy_name, (char *)0);
-      ROS_WARN("execlp probably failed in addUser()!");
+      ROS_WARN("execlp probably failed to spawn interactive marker proxy in addUser()!");
     }
     else if(rosrun < 0)
     {
-      ROS_ERROR("[DVizUser%d] fork failed in constructor!", id_);
+      ROS_ERROR("[DVizUser%d] fork for interactive marker proxy failed in constructor!", id_);
+    }
+    // Fork a new process for the tf2_web_republisher
+    rosrun = fork();
+    if(rosrun == 0)
+    {
+      char node_name[256];
+      sprintf(node_name, "__ns:=dviz_user_%d", id_);
+      execlp("rosrun", "rosrun", "tf2_web_republisher", "tf2_web_republisher", node_name, (char *)0);
+      ROS_WARN("execlp probably failed to spawn tf2 web republisher in addUser()!");
+    }
+    else if(rosrun < 0)
+    {
+      ROS_ERROR("[DVizUser%d] fork for interactive marker proxy failed in constructor!", id_);
     }
   }
 
@@ -79,17 +93,31 @@ DemonstrationVisualizerUser::~DemonstrationVisualizerUser()
 
   if(web_)
   {
+    // Kill the interactive_marker_proxy process
     int rosnode = fork();
     if(rosnode == 0)
     {
       char proxy_name[256];
       sprintf(proxy_name, "/proxy%d", id_);
       execlp("rosnode", "rosnode", "kill", proxy_name, (char *)0);
-      ROS_WARN("execlp probably failed in destructor!");
+      ROS_WARN("execlp probably failed for interactive marker proxy in destructor!");
     }
     else if(rosnode < 0)
     {
-      ROS_ERROR("[DVizUser%d] fork failed in destructor!", id_);
+      ROS_ERROR("[DVizUser%d] fork failed for interactive marker proxy in destructor!", id_);
+    }
+    // Kill the tf2_web_republisher process
+    rosnode = fork();
+    if(rosnode == 0)
+    {
+      char node_name[256];
+      sprintf(node_name, "/dviz_user_%d/tf2_web_republisher", id_);
+      execlp("rosnode", "rosnode", "kill", node_name, (char *)0);
+      ROS_WARN("execlp probably failed for tf2 web republisher in destructor!");
+    }
+    else if(rosnode < 0)
+    {
+      ROS_ERROR("[DVizUser%d] fork failed for tf2 web republisher in destructor!", id_);
     }
   }
 
@@ -1075,19 +1103,19 @@ void DemonstrationVisualizerUser::getUserProcessInfo()
 
 void DemonstrationVisualizerUser::writeStats()
 {
-  // ROS_INFO("[DVizUser%d] Writing stats...", id_);
-  // std::stringstream ss;
-  // ss << ros::Time::now().sec << " " << "USER" << " " << id_ << " " << ProcessInfo::getProcessCPU() << " "
-  //    << ProcessInfo::getProcessPhysicalMemory() << " " << ProcessInfo::getProcessVirtualMemory() << " "
-  //    << ProcessInfo::getTotalCPU() << " " << ProcessInfo::getTotalPhysicalMemory() << " "
-  //    << ProcessInfo::getTotalVirtualMemory() << "\n";
-  // ProcessInfo::writeStats(ss.str(), true);
+  ROS_INFO("[DVizUser%d] Writing stats...", id_);
+  std::stringstream ss;
+  ss << ros::Time::now().sec << " " << "USER" << " " << id_ << " " << ProcessInfo::getProcessCPU() << " "
+     << ProcessInfo::getProcessPhysicalMemory() << " " << ProcessInfo::getProcessVirtualMemory() << " "
+     << ProcessInfo::getTotalCPU() << " " << ProcessInfo::getTotalPhysicalMemory() << " "
+     << ProcessInfo::getTotalVirtualMemory() << "\n";
+  ProcessInfo::writeStats(ss.str(), true);
 }
 
 void DemonstrationVisualizerUser::goalCompleted()
 {
   ROS_INFO("[DVizUser%d] Goal completed!", id_);
-  writeStats();
+  //writeStats();
 
   if(recorder_->isRecording())
   {
