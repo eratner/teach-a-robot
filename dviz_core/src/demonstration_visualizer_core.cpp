@@ -12,8 +12,10 @@ DemonstrationVisualizerCore::DemonstrationVisualizerCore(int argc, char **argv)
   std::string rarm_filename;
   std::string larm_filename;
   ros::NodeHandle nh("~");
-  nh.param<std::string>("left_arm_description_file", larm_filename, "");
-  nh.param<std::string>("right_arm_description_file", rarm_filename, "");
+  std::string default_larm_filename = ros::package::getPath("pr2_collision_checker") + "/config/pr2_left_arm.cfg";
+  std::string default_rarm_filename = ros::package::getPath("pr2_collision_checker") + "/config/pr2_right_arm.cfg";
+  nh.param<std::string>("left_arm_description_file", larm_filename, default_larm_filename);
+  nh.param<std::string>("right_arm_description_file", rarm_filename, default_rarm_filename);
   object_manager_ = new ObjectManager(rarm_filename, larm_filename, 0, true);
   demonstration_scene_manager_ = new DemonstrationSceneManager(0, 0, object_manager_, 0);
   ProcessInfo::initCPU();

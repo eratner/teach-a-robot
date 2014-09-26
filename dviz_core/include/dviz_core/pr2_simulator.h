@@ -36,6 +36,13 @@ namespace demonstration_visualizer
 class PR2Simulator
 {
 public:
+  enum Arm
+  {
+    RIGHT_ARM = 0,
+    LEFT_ARM,
+    NUM_ARMS
+  };
+
   PR2Simulator(MotionRecorder *recorder, 
 	       PViz *pviz, 
 	       interactive_markers::InteractiveMarkerServer *int_marker_server,
@@ -92,11 +99,11 @@ public:
    * @brief Updates the pose of the end-effector in Cartesian space
    *        based on the current joint angles, using forward kinematics.
    */
-  void updateEndEffectorPose();
+  void updateEndEffectorPose(Arm arm = RIGHT_ARM);
 
-  bool setEndEffectorGoalPose(const geometry_msgs::Pose &);
+  bool setEndEffectorGoalPose(const geometry_msgs::Pose &pose, Arm arm = RIGHT_ARM);
 
-  void updateEndEffectorVelocity(const geometry_msgs::Twist &);
+  void updateEndEffectorVelocity(const geometry_msgs::Twist &twist, Arm arm = RIGHT_ARM);
 
   void baseMarkerFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 
@@ -107,12 +114,12 @@ public:
   /**
    * @brief Sets the linear and angular speeds of the robot in meters/frame.
    */
-  void setBaseSpeed(double, double);
+  void setBaseSpeed(double linear, double angular);
 
   /**
-   * @brief Sets the speed of the (right) end-effector in meters/frame.
+   * @brief Sets the speed of the end-effector in meters/frame.
    */
-  void setEndEffectorSpeed(double);
+  void setEndEffectorSpeed(double speed, Arm arm = RIGHT_ARM);
 
   void resetRobot();
 
@@ -133,9 +140,10 @@ public:
                          bool interpolate_orientation = true,
                          bool stop_while_snapping = true,
                          bool check_for_collisions = true,
-                         int skip_object_id = -1);
+                         int skip_object_id = -1,
+                         Arm arm = RIGHT_ARM);
 
-  bool isSnapDone() const;
+  bool isSnapDone(Arm arm = RIGHT_ARM) const;
 
   /**
    * @brief Provides a way to notify the simulator of key events recieved
@@ -143,11 +151,11 @@ public:
    */
   void processKeyEvent(int key, int type);
 
-  void updateEndEffectorMarker();
+  void updateEndEffectorMarker(Arm arm = RIGHT_ARM);
 
-  void updateUpperArmMarker();
+  void updateUpperArmMarker(Arm arm = RIGHT_ARM);
 
-  void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &);
+  void updateEndEffectorMarkerVelocity(const geometry_msgs::Twist &twist, Arm arm = RIGHT_ARM);
 
   bool isBaseMoving() const;
 
@@ -155,44 +163,44 @@ public:
    * @brief Checks to see if the given pose is a valid pose for the end effector
    *        using FK with the current joint angles
    */
-  bool isValidEndEffectorPose(const geometry_msgs::Pose &);
+  bool isValidEndEffectorPose(const geometry_msgs::Pose &pose, Arm arm = RIGHT_ARM);
 
   bool validityCheck(const std::vector<double>& rangles, 
                      const std::vector<double>& langles, 
                      BodyPose& bp, 
                      const geometry_msgs::Pose& obj);
 
-  void computeObjectPose(std::vector<double> eef, BodyPose bp, geometry_msgs::Pose& obj);
+  void computeObjectPose(const std::vector<double> &eef, BodyPose bp, geometry_msgs::Pose& obj, Arm arm = RIGHT_ARM);
 
-  void attach(int id, KDL::Frame transform);
+  void attach(int id, KDL::Frame transform, Arm arm = RIGHT_ARM);
 
-  void detach();
+  void detach(Arm arm = RIGHT_ARM);
 
   /**
    * @brief Returns true if an object is attached to the end-effector of the robot
    */
-  bool isObjectAttached() const;
+  bool isObjectAttached(Arm arm = RIGHT_ARM) const;
 
   /**
    * @brief If an object is attached to the (right) end-effector, this will
    *        return the object_in_gripper transform (i.e. the gripper to 
    *        object transform.)
    */
-  KDL::Frame getAttachedTransform() const;
+  KDL::Frame getAttachedTransform(Arm arm = RIGHT_ARM) const;
 
   void showEndEffectorWorkspaceArc();
 
   geometry_msgs::Pose getBasePose() const;
 
-  geometry_msgs::Pose getEndEffectorPose();
+  geometry_msgs::Pose getEndEffectorPose(Arm arm = RIGHT_ARM);
 
-  geometry_msgs::Pose getEndEffectorPoseInBase() const;
+  geometry_msgs::Pose getEndEffectorPoseInBase(Arm arm = RIGHT_ARM) const;
 
-  geometry_msgs::Pose getEndEffectorMarkerPose();
+  geometry_msgs::Pose getEndEffectorMarkerPose(Arm arm = RIGHT_ARM);
 
-  bool getObjectPose(geometry_msgs::Pose &object_pose);
+  bool getObjectPose(geometry_msgs::Pose &object_pose, Arm arm = RIGHT_ARM);
 
-  void setMoveEndEffectorWhileDragging(bool);
+  void setMoveEndEffectorWhileDragging(bool move);
 
   /**
    * @brief Performs a basic search to look for the closest valid IK solution for various 
@@ -203,19 +211,20 @@ public:
 				       const std::vector<std::pair<double, double> > &intervals,
 				       const std::vector<double> &d,
 				       double &x, double &y, double &z,
+                                       Arm arm,
 				       bool verbose = false);
 
   bool canMoveRobotMarkers() const;
 
-  void setMoveRobotMarkers(bool);
+  void setMoveRobotMarkers(bool move);
 
-  void enableOrientationControl();
+  void enableOrientationControl(Arm arm = RIGHT_ARM);
   
-  void disableOrientationControl();
+  void disableOrientationControl(Arm arm = RIGHT_ARM);
 
-  void enableUpperArmRollControl();
+  void enableUpperArmRollControl(Arm arm = RIGHT_ARM);
 
-  void disableUpperArmRollControl();
+  void disableUpperArmRollControl(Arm arm = RIGHT_ARM);
 
   double getTorsoPosition() const;
 
@@ -223,7 +232,7 @@ public:
 
   void setIgnoreCollisions(bool ignore);
   
-  void setFrameRate(double);
+  void setFrameRate(double rate);
 
   double getFrameRate() const;
 
@@ -238,14 +247,14 @@ private:
 
   void updateTransforms();
 
-  bool attached_object_;
-  int attached_id_;
-  KDL::Frame attached_transform_;
+  bool attached_object_[NUM_ARMS];
+  int attached_id_[NUM_ARMS];
+  KDL::Frame attached_transform_[NUM_ARMS];
 
   ObjectManager* object_manager_;
   PViz *pviz_;
   interactive_markers::InteractiveMarkerServer *int_marker_server_;
-  EndEffectorController end_effector_controller_;
+  std::vector<EndEffectorController> end_effector_controller_;
 
   nav_core::BaseGlobalPlanner *base_planner_;
   std::vector<geometry_msgs::PoseStamped> base_plan_;
@@ -254,18 +263,18 @@ private:
   MotionRecorder *recorder_;
 
   ros::Subscriber vel_cmd_sub_;
-  ros::Subscriber end_effector_vel_cmd_sub_;
+  ros::Subscriber end_effector_vel_cmd_sub_[NUM_ARMS];
   
   ros::Publisher marker_pub_;
 
   geometry_msgs::Twist vel_cmd_;
   geometry_msgs::Twist key_vel_cmd_;
-  geometry_msgs::Twist end_effector_vel_cmd_;
-  geometry_msgs::Twist end_effector_marker_vel_;
+  geometry_msgs::Twist end_effector_vel_cmd_[NUM_ARMS];
+  geometry_msgs::Twist end_effector_marker_vel_[NUM_ARMS];
   geometry_msgs::PoseStamped base_pose_;
-  geometry_msgs::PoseStamped end_effector_pose_;
-  geometry_msgs::PoseStamped end_effector_goal_pose_;
-  geometry_msgs::Pose r_upper_arm_roll_pose_;
+  geometry_msgs::PoseStamped end_effector_pose_[NUM_ARMS];
+  geometry_msgs::PoseStamped end_effector_goal_pose_[NUM_ARMS];
+  geometry_msgs::Pose upper_arm_roll_pose_[NUM_ARMS];
   sensor_msgs::JointState joint_states_;
   double torso_position_;
 
@@ -273,15 +282,15 @@ private:
 
   geometry_msgs::PoseStamped goal_pose_;
 
-  sbpl_arm_planner::PR2KDLRobotModel kdl_robot_model_;
+  sbpl_arm_planner::PR2KDLRobotModel kdl_robot_model_[NUM_ARMS];
   KDL::Frame map_in_torso_lift_link_;
   std::map<std::string, int> joints_map_;
 
   tf::TransformBroadcaster tf_broadcaster_;
 
-  std::vector<sensor_msgs::JointState> snap_motion_;
-  int snap_motion_count_;
-  bool snap_object_;
+  std::vector<sensor_msgs::JointState> snap_motion_[NUM_ARMS];
+  int snap_motion_count_[NUM_ARMS];
+  bool snap_object_[NUM_ARMS];
   bool stop_while_snapping_;
 
   bool moving_gripper_marker_;
@@ -289,10 +298,10 @@ private:
 
   bool pause_requested_;
 
-  bool goal_orientation_changed_;
-  geometry_msgs::Quaternion end_effector_goal_orientation_;
+  bool goal_orientation_changed_[NUM_ARMS];
+  geometry_msgs::Quaternion end_effector_goal_orientation_[NUM_ARMS];
 
-  double delta_arm_roll_;
+  double delta_arm_roll_[NUM_ARMS];
 
   bool ignore_collisions_;
 

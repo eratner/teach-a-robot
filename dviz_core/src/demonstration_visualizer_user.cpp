@@ -72,8 +72,10 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   std::string larm_filename;
   std::string rarm_filename;
   ros::NodeHandle nh("/dviz_core_node");
-  nh.param<std::string>("left_arm_description_file", larm_filename, "");
-  nh.param<std::string>("right_arm_description_file", rarm_filename, "");
+  std::string default_larm_filename = ros::package::getPath("pr2_collision_checker") + "/config/pr2_left_arm.cfg";
+  std::string default_rarm_filename = ros::package::getPath("pr2_collision_checker") + "/config/pr2_right_arm.cfg";
+  nh.param<std::string>("left_arm_description_file", larm_filename, default_larm_filename);
+  nh.param<std::string>("right_arm_description_file", rarm_filename, default_rarm_filename);
   object_manager_ = new ObjectManager(rarm_filename, larm_filename, id_);
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_, id_);
   demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_, id_);
@@ -157,7 +159,7 @@ void DemonstrationVisualizerUser::run()
     // Update goals and task
     updateGoalsAndTask();
 
-    if(ping_count_ > 4)
+    if(web_ && ping_count_ > 4)
     {
       ROS_ERROR("[DVizUser%d] DVizClient has timed out, destroying user", id_);
       ok_ = false;
@@ -173,7 +175,7 @@ void DemonstrationVisualizerUser::run()
       // }
     }
 
-    if(ping_delay_count_ >= 300)
+    if(web_ && ping_delay_count_ >= 300)
     {
       std_msgs::Empty ping;
       ping_pub_.publish(ping);

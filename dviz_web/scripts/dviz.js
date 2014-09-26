@@ -590,7 +590,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
       this.gameStarted = true;
     } else {
       // If the user has not started the game yet, load the task
-      this.loadTask();
+      this.loadTask('scooping_task.xml');
       this.robotMarkerControl(true);
       // Start recording
       if(workerId !== null && assignmentId !== null) {
@@ -732,7 +732,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
   this.coreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
     args : [this.id.toString(), 
-	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/' + sceneName]
+        '/home/eratner/groovy_rosbuild_ws/teach-a-robot/dviz_core/scenes/' + sceneName]
   }), function(response) {
     if(response.response.length > 0) {
       DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
@@ -1174,9 +1174,13 @@ function init() {
   }
 
   ros = new ROSLIB.Ros({
-    url : 'ws://sbpl.net:21891'
-//    url : 'ws://localhost:9090'
+//    url : 'ws://sbpl.net:21891'
+    url : 'ws://localhost:9090'
   });
+
+  ros.on('error', function(e) {
+           alert('Error! ' + e.toString());
+         });
 
   // Width and height of the viewer, in pixels
   var W = 800;
@@ -1254,7 +1258,7 @@ function init() {
 	    console.log('[DVizClient] Starting DVizUser ID ' + userId);
 	    initializeDemonstration(userId, W, H, ros, viewer);
 
-	    dvizClient.loadScene();
+        dvizClient.loadScene('scooping_scene.xml');
 	    $('#playPause').prop('disabled', false);
 	    $('#playPause').tooltip('show');
 
