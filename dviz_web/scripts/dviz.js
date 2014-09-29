@@ -1182,6 +1182,10 @@ function init() {
     url : 'ws://localhost:9090'
   });
 
+  ros.on('error', function(e) {
+           alert('Error! ' + e.toString());
+         });
+
   // Width and height of the viewer, in pixels
   var W = 800;
   var H = Math.min(600, 

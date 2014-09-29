@@ -26,7 +26,7 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
 
   ROS_DEBUG("[ObjectManager%d] Initializing object manager.", user_id_);
   ROS_DEBUG("[ObjectManager%d] right_arm_file: %s", user_id_, rarm_file_.c_str());
-  ROS_DEBUG("[ObjectManager%d]  left_arm_file: %s", user_id_, larm_file_.c_str());
+  ROS_DEBUG("[ObjectManager%d] left_arm_file: %s", user_id_, larm_file_.c_str());
 
   if(is_core_)
   {
@@ -97,9 +97,9 @@ bool ObjectManager::initializeCollisionChecker(const vector<double> &dims,
   fflush(stdout);
   // create the left & right arm models
   if((rarm_fp = fopen(rarm_file_.c_str(),"r")) == NULL)
-    ROS_ERROR("[ObjectManager%d] Failed to open right arm description file.", user_id_);
+    ROS_ERROR("[ObjectManager%d] Failed to open right arm description file (%s).", user_id_, rarm_file_.c_str());
   if((larm_fp=fopen(larm_file_.c_str(),"r")) == NULL)
-    ROS_ERROR("[ObjectManager%d] Failed to open left arm description file.", user_id_);
+    ROS_ERROR("[ObjectManager%d] Failed to open left arm description file (%s).", user_id_, rarm_file_.c_str()  );
   
   sbpl_arm_planner::SBPLArmModel *r_arm_model = new sbpl_arm_planner::SBPLArmModel(rarm_fp);
   sbpl_arm_planner::SBPLArmModel *l_arm_model = new sbpl_arm_planner::SBPLArmModel(larm_fp);

@@ -159,7 +159,7 @@ void DemonstrationVisualizerUser::run()
     // Update goals and task
     updateGoalsAndTask();
 
-    if(ping_count_ > 4)
+    if(web_ && ping_count_ > 4)
     {
       ROS_ERROR("[DVizUser%d] DVizClient has timed out, destroying user", id_);
       ok_ = false;
@@ -175,7 +175,7 @@ void DemonstrationVisualizerUser::run()
       // }
     }
 
-    if(ping_delay_count_ >= 300)
+    if(web_ && ping_delay_count_ >= 300)
     {
       std_msgs::Empty ping;
       ping_pub_.publish(ping);
