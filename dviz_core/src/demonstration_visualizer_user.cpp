@@ -72,8 +72,10 @@ DemonstrationVisualizerUser::DemonstrationVisualizerUser(int argc, char **argv, 
   std::string larm_filename;
   std::string rarm_filename;
   ros::NodeHandle nh("/dviz_core_node");
-  nh.param<std::string>("left_arm_description_file", larm_filename, "");
-  nh.param<std::string>("right_arm_description_file", rarm_filename, "");
+  std::string default_larm_filename = ros::package::getPath("pr2_collision_checker") + "/config/pr2_left_arm.cfg";
+  std::string default_rarm_filename = ros::package::getPath("pr2_collision_checker") + "/config/pr2_right_arm.cfg";
+  nh.param<std::string>("left_arm_description_file", larm_filename, default_larm_filename);
+  nh.param<std::string>("right_arm_description_file", rarm_filename, default_rarm_filename);
   object_manager_ = new ObjectManager(rarm_filename, larm_filename, id_);
   simulator_ = new PR2Simulator(recorder_, pviz_, int_marker_server_, object_manager_, id_);
   demonstration_scene_manager_ = new DemonstrationSceneManager(pviz_, int_marker_server_, object_manager_, id_);
@@ -882,24 +884,25 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 	       goal_gripper_pose.position.x, goal_gripper_pose.position.y, goal_gripper_pose.position.z, 
 	       roll, pitch, yaw);
 
-      double dist_A = angles::normalize_angle_positive(roll) - angles::normalize_angle_positive(current_roll);
-      double dist_B = angles::normalize_angle_positive(roll + M_PI) - angles::normalize_angle_positive(current_roll);
-      if(std::abs(dist_A) > std::abs(dist_B))
-      {
-	KDL::Rotation rot = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
-	rot.GetQuaternion(x, y, z, w);
-	goal_gripper_pose.orientation.x = x;
-	goal_gripper_pose.orientation.y = y;
-	goal_gripper_pose.orientation.z = z;
-	goal_gripper_pose.orientation.w = w;
+      // @todo buggy!
+//      double dist_A = angles::normalize_angle_positive(roll) - angles::normalize_angle_positive(current_roll);
+//      double dist_B = angles::normalize_angle_positive(roll + M_PI) - angles::normalize_angle_positive(current_roll);
+//      if(std::abs(dist_A) > std::abs(dist_B))
+//      {
+//	KDL::Rotation rot = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+//	rot.GetQuaternion(x, y, z, w);
+//	goal_gripper_pose.orientation.x = x;
+//	goal_gripper_pose.orientation.y = y;
+//	goal_gripper_pose.orientation.z = z;
+//	goal_gripper_pose.orientation.w = w;
 
-	gripper_in_map.M.GetRPY(roll, pitch, yaw);
-	gripper_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
-	// marker_in_map.M.GetRPY(roll, pitch, yaw);
-	// marker_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
-	//gripper_in_map = marker_in_map * gripper_in_marker;
-	object_in_gripper = gripper_in_map.Inverse() * object_in_map;
-      }
+//	gripper_in_map.M.GetRPY(roll, pitch, yaw);
+//	gripper_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+//	// marker_in_map.M.GetRPY(roll, pitch, yaw);
+//	// marker_in_map.M = KDL::Rotation::RPY(roll + M_PI, pitch, yaw);
+//	//gripper_in_map = marker_in_map * gripper_in_marker;
+//	object_in_gripper = gripper_in_map.Inverse() * object_in_map;
+//      }
 
       // For a pick up goal, allow the gripper to be in collision with
       // the object that it must pick up (our collision spheres may not
@@ -909,7 +912,7 @@ void DemonstrationVisualizerUser::updateGoalsAndTask()
 						     pick_up_goal->getGripperJointPosition(),
 						     false,
 	                                             true,
-	                                             true,
+                                                     true,
 	                                             true,
 	                                             true,
 	                                             pick_up_goal->getObjectID());

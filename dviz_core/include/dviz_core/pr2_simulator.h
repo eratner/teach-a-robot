@@ -230,6 +230,8 @@ public:
   bool isBasePlanDone() const;
 
 private:
+  void unnormalize(std::vector<sensor_msgs::JointState> &joints);
+
   bool playing_;
   int user_id_;
   double frame_rate_;

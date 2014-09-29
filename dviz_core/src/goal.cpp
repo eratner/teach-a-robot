@@ -70,7 +70,7 @@ PickUpGoal::PickUpGoal(int goal_number,
     grasp_done_(false),
     gripper_joint_position_(EndEffectorController::GRIPPER_OPEN_ANGLE),
     camera_phi_(M_PI/4.0), camera_theta_(0.0), camera_radius_(1.0),
-    completion_tolerance_(0.05)
+    completion_tolerance_(0.035)
 {
 
 }

@@ -21,7 +21,7 @@ ObjectManager::ObjectManager(std::string rarm_filename, std::string larm_filenam
 
   ros::NodeHandle ph("~");
   ph.param("enable_debug_visualizations", enable_debug_visualizations_, false);
-  ph.param("disable_collision_checking",  disable_collision_checking_, /*true*/false);
+  ph.param("disable_collision_checking",  disable_collision_checking_, false);
   ph.param("visualize_collision_models",  visualize_collision_models_, false);
 
   ROS_DEBUG("[ObjectManager%d] Initializing object manager.", user_id_);
@@ -40,7 +40,6 @@ ObjectManager::~ObjectManager()
   if(collision_checker_ != 0)
   {
     delete collision_checker_;
-    collision_checker_ = 0;
   }
 
   if(is_core_)

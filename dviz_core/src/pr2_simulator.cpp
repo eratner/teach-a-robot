@@ -85,13 +85,20 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   joint_states_.position[5] = -0.0962141;
   joint_states_.position[6] = -0.0864407;
   // Move the right arm in slightly. @todo these should be constants somewhere.
-  joint_states_.position[7] = -0.002109;
-  joint_states_.position[8] = 0.655300;
-  joint_states_.position[9] = 0.000000;
-  joint_states_.position[10] = -1.517650;
-  joint_states_.position[11] = -3.138816;
-  joint_states_.position[12] = -0.862352;
-  joint_states_.position[13] = 3.139786;
+//  joint_states_.position[7] = -0.002109;
+//  joint_states_.position[8] = 0.655300;
+//  joint_states_.position[9] = 0.000000;
+//  joint_states_.position[10] = -1.517650;
+//  joint_states_.position[11] = -3.138816;
+//  joint_states_.position[12] = -0.862352;
+//  joint_states_.position[13] = 3.139786;
+  joint_states_.position[7] = -2.1153f;
+  joint_states_.position[8] = -0.0199f;
+  joint_states_.position[9] = -1.6400f;
+  joint_states_.position[10] = -2.0704f;
+  joint_states_.position[11] = -1.6399f;
+  joint_states_.position[12] = -1.6801f;
+  joint_states_.position[13] = 1.3982f;
  
   // Keep left arm straight down (Only valid if torso is raised all the way)
   joint_states_.position[0] = 0.2;
@@ -173,10 +180,10 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   int_marker.controls.push_back(control);
 
   int_marker_server_->insert(int_marker,
-			     boost::bind(&PR2Simulator::baseMarkerFeedback,
-					 this,
-					 _1)
-			     );
+                             boost::bind(&PR2Simulator::baseMarkerFeedback,
+                                         this,
+                                         _1)
+                             );
   int_marker_server_->applyChanges();
 
   // Attach an interactive marker to the end effectors of the robot.
@@ -202,6 +209,12 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   control.markers[0].pose = geometry_msgs::Pose();
   control.markers[0].pose.orientation.w = 1;
   control.markers[0].header = std_msgs::Header();
+  tf::Quaternion rot(int_marker.pose.orientation.x,
+                     int_marker.pose.orientation.y,
+                     int_marker.pose.orientation.z,
+                     int_marker.pose.orientation.w);
+  tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+  tf::quaternionTFToMsg(rot.inverse() * rot2, control.orientation);
 
   control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
   int_marker.controls.clear();
@@ -235,7 +248,6 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
 PR2Simulator::~PR2Simulator()
 {
   delete base_planner_;
-  base_planner_ = 0;
 }
 
 void PR2Simulator::play()
@@ -907,13 +919,20 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
   int_marker_server_->applyChanges();
 
   // Reset the joints (Leave the left arm joints as they were)
-  joint_states_.position[7] = -0.002109;
-  joint_states_.position[8] = 0.655300;
-  joint_states_.position[9] = 0.000000;
-  joint_states_.position[10] = -1.517650;
-  joint_states_.position[11] = -3.138816;
-  joint_states_.position[12] = -0.862352;
-  joint_states_.position[13] = 0.0;
+  joint_states_.position[7] = -2.1153f;
+  joint_states_.position[8] = -0.0199f;
+  joint_states_.position[9] = -1.6400f;
+  joint_states_.position[10] = -2.0704f;
+  joint_states_.position[11] = -1.6399f;
+  joint_states_.position[12] = -1.6801f;
+  joint_states_.position[13] = 1.3982f;
+//  joint_states_.position[7] = -0.002109;
+//  joint_states_.position[8] = 0.655300;
+//  joint_states_.position[9] = 0.000000;
+//  joint_states_.position[10] = -1.517650;
+//  joint_states_.position[11] = -3.138816;
+//  joint_states_.position[12] = -0.862352;
+//  joint_states_.position[13] = 3.139786;
 
   joint_states_.position[14] = EndEffectorController::GRIPPER_OPEN_ANGLE;
 
@@ -929,7 +948,19 @@ void PR2Simulator::resetRobotTo(const geometry_msgs::Pose &pose, double torso_po
   end_effector_controller_.setState(EndEffectorController::INITIAL);
 
   // Reset the pose of the end-effector.
-  int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose, end_effector_pose_.header);
+//  int_marker_server_->setPose("r_gripper_marker", end_effector_pose_.pose, end_effector_pose_.header);
+//  int_marker_server_->applyChanges();
+  visualization_msgs::InteractiveMarker gripper_marker;
+  int_marker_server_->get("r_gripper_marker", gripper_marker);
+  gripper_marker.pose = end_effector_pose_.pose;
+  tf::Quaternion rot(end_effector_pose_.pose.orientation.x,
+                     end_effector_pose_.pose.orientation.y,
+                     end_effector_pose_.pose.orientation.z,
+                     end_effector_pose_.pose.orientation.w);
+  tf::Quaternion rot2(tf::Vector3(0, 1.0, 0), M_PI/2.0);
+  tf::quaternionTFToMsg(rot.inverse() * rot2, gripper_marker.controls.at(0).orientation);
+
+  int_marker_server_->insert(gripper_marker);
   int_marker_server_->applyChanges();
 
   if(attached_object_)
@@ -1177,6 +1208,8 @@ bool PR2Simulator::snapEndEffectorTo(const geometry_msgs::Pose &pose,
 
 	  
     ROS_INFO("[PR2Sim] Generated %d points in the interpolation.", int(snap_motion_.size()));
+    ROS_INFO("[PR2Sim] Unnormalizing snap motion...");
+    unnormalize(snap_motion_);
 
     return true;
   }
@@ -2098,6 +2131,32 @@ double PR2Simulator::getFrameRate() const
 bool PR2Simulator::isBasePlanDone() const
 {
   return (base_plan_index_ >= base_plan_.size());
+}
+
+void PR2Simulator::unnormalize(std::vector<sensor_msgs::JointState> &joints)
+{
+  for(int i = 0; i < joints.size(); ++i)
+  {
+    std::vector<double> new_positions;
+    for(int j = 0; j < joints[i].name.size(); ++j)
+    {
+      double current = joints[i].position[j];
+      if(joints[i].name[j].substr(1).compare("_forearm_roll_joint") == 0 ||
+         joints[i].name[j].substr(1).compare("_wrist_roll_joint") == 0)
+      {
+        // Continuous joint; needs to be unnormalized
+//        ROS_INFO("Unnormalizing joint %s...", joints[i].name[j].c_str());
+        double previous = i == 0 ? joint_states_.position[j] : joints[i - 1].position[j];
+        while(previous - current > M_PI)
+          current += M_2_PI;
+        while(current - previous > M_PI)
+          current -= M_2_PI;
+      }
+      new_positions.push_back(current);
+    }
+//    ROS_INFO("Adding %d new positions...", (int)new_positions.size());
+    joints[i].position = new_positions;
+  }
 }
 
 } // namespace demonstration_visualizer
