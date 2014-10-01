@@ -59,6 +59,7 @@ DEMOS = "/home/eratner/demonstrations/good"
 FK_SERVICE = None
 MARKER_PUBLISHER = None
 VISUALIZATIONS = False
+FRAME_RATE = 10.0
 
 def normalizeAnglePositive(angle):
     return math.fmod(math.fmod(angle, 2.0 * math.pi) + 2.0 * math.pi, 2.0 * math.pi)
@@ -80,6 +81,16 @@ def shortestAngularDistance(fromAngle, toAngle):
 
 def dist(posA, posB):
     return math.sqrt(pow(posA[0] - posB[0], 2) + pow(posA[1] - posB[1], 2) + pow(posA[2] - posB[2], 2))
+
+def quatDist(qA, qB):
+    #print str(2.0 * (qA[0] * qB[0] + qA[1] * qB[1] + qA[2] * qB[2] + qA[3] * qB[3]) - 1.0000001)
+    x = 2.0 * (qA[0] * qB[0] + qA[1] * qB[1] + qA[2] * qB[2] + qA[3] * qB[3]) - 1.0
+    if x > 1.0:
+        x = 1.0
+    elif x < -1.0:
+        x = -1.0
+
+    return math.acos(x)
 
 def getPos(obj, action):
     if action == "Pick Up":
@@ -138,6 +149,45 @@ def toBaseFrame(position, basePose):
     prod = T.dot(np.transpose(v))
     return (prod[0], prod[1], prod[2])
 
+def printWaypoint(waypoint):
+    (r, p, y) = euler_from_quaternion([waypoint.base_pose.orientation.x,
+                                       waypoint.base_pose.orientation.y,
+                                       waypoint.base_pose.orientation.z,
+                                       waypoint.base_pose.orientation.w])
+
+    print 'base_x: {0}, base_y: {1}, base_yaw: {2},  shoulder_lift: {3}, upper_arm_roll: {4}, elbow_flex: {5}, forearm_roll: {6},  wrist_flex: {7}, wrist_roll: {8}'.format(
+    waypoint.base_pose.position.x, waypoint.base_pose.position.y, y, waypoint.joint_states.position[0], waypoint.joint_states.position[1], waypoint.joint_states.position[2],
+     waypoint.joint_states.position[3], waypoint.joint_states.position[4], waypoint.joint_states.position[5], waypoint.joint_states.position[6])
+
+def isDifferent(waypointA, waypointB):
+    diffX = abs(waypointA.base_pose.position.x - waypointB.base_pose.position.x)
+    diffY = abs(waypointA.base_pose.position.y - waypointB.base_pose.position.y)
+    (rollA, pitchA, yawA) = euler_from_quaternion([waypointA.base_pose.orientation.x,
+                                                   waypointA.base_pose.orientation.y,
+                                                   waypointA.base_pose.orientation.z,
+                                                   waypointA.base_pose.orientation.w])
+    (rollB, pitchB, yawB) = euler_from_quaternion([waypointB.base_pose.orientation.x,
+                                                   waypointB.base_pose.orientation.y,
+                                                   waypointB.base_pose.orientation.z,
+                                                   waypointB.base_pose.orientation.w])
+    yawDiff = abs(shortestAngularDistance(yawA, yawB))
+    angleDiffs = []
+    for i in range(7):
+        angleDiffs.append(abs(shortestAngularDistance(waypointA.joint_states.position[i + 7], waypointB.joint_states.position[i + 7])))
+
+    isDiff = False
+    isDiff = isDiff or (diffX > 0.0)
+    isDiff = isDiff or (diffY > 0.0)
+    isDiff = isDiff or (yawDiff > 0.0)
+    for i in range(7):
+        isDiff = isDiff or (angleDiffs[i] > 0.0)
+
+   # printWaypoint(waypointA)
+    #printWaypoint(waypointB)
+    #print 'diffx = ' + str(diffX) + ' diffy = ' + str(diffY) + ' diffyaw = ' + str(yawDiff) + ' jadiff = ' + str(angleDiffs)
+    #print 'is diff? ' + str(isDiff)
+    return isDiff
+
 def parseBagfile(name):
     bag = rosbag.Bag(name, "r")
 
@@ -158,9 +208,16 @@ def parseBagfile(name):
         # stepData[i][j] = total distance for DoF j, within region i, where i = (1, 2, 3, 4)
         #                  and j = (0, 1, 2, ..., 9) (one for each of the 10 DoFs)
         #                  note that region 4 is the DoF distances over the entire trajectory
-        stepData = [[0.0 for y in range(10)] for x in range(5)]
-        stepData[0] = [step.object_type, step.action, step.step_duration.to_sec()]
-        if len(step.waypoints) > 0:
+
+        # stepData[i][j] = total distance for group j (where j = 0 for base xy group, j = 1 for base yaw group,
+        #                  j = 2 for upper arm group, j = 3 for lower arm group)
+        # stepData[0] = [object, action, total time, total time (no idle)]
+        #stepData = [[0.0 for y in range(10)] for x in range(5)]
+        #stepData = [[0.0 for y in range(4)] for x in range(11)]
+        stepData = [[0.0 for y in range(4)] for x in range(5)]
+        stepData[0] = [step.object_type, step.action, step.step_duration.to_sec(), 0.0]
+        numWaypoints = len(step.waypoints)
+        if numWaypoints > 0:
             # Get the initial position of the base
             initialBasePos = (step.waypoints[0].base_pose.position.x,
                               step.waypoints[0].base_pose.position.y,
@@ -192,7 +249,7 @@ def parseBagfile(name):
                 baseMarker.color.b = 0.0
                 MARKER_PUBLISHER.publish(baseMarker)
 
-            # Get the initial position of the right gripper
+            #Get the initial position of the right gripper
             gripperPoseStamped = runFK(step.waypoints[0].joint_states.position[7:14],
                                        "r_wrist_roll_link")
             if gripperPoseStamped is None:
@@ -205,11 +262,7 @@ def parseBagfile(name):
                                              gripperPoseStamped.pose.position.y,
                                              gripperPoseStamped.pose.position.z],
                                             step.waypoints[0].base_pose)
-            # initialGripperPos = (gripperPoseStamped.pose.position.x + 
-            #                      (initialBasePos[0] * math.cos(baseYaw) - initialBasePos[1] * math.sin(baseYaw)),
-            #                      gripperPoseStamped.pose.position.y + 
-            #                      (initialBasePos[1] * math.cos(baseYaw) + initialBasePos[0] * math.sin(baseYaw)),
-            #                      gripperPoseStamped.pose.position.z)
+
             if VISUALIZATIONS:
                 gripperMarker = Marker()
                 gripperMarker.header.frame_id = "map"
@@ -234,15 +287,14 @@ def parseBagfile(name):
                 MARKER_PUBLISHER.publish(gripperMarker)
 
             # Get the position of the goal
-            #goalPos = getPos(step.object_type, step.action)
             goalPos = (0, 0, 0)
-            if step.action == "Pick Up":
-                print "PICK UP"
+            if step.action == 'Pick Up':
+                print 'PICK UP'
                 goalPos = (step.grasp.position.x,
                            step.grasp.position.y,
                            step.grasp.position.z)
             else:
-                print "PLACE"
+                print 'PLACE'
                 goalPos = getFinalPos(step.object_type)
 
             if VISUALIZATIONS:
@@ -268,66 +320,82 @@ def parseBagfile(name):
                 gripperMarker.color.b = 0.0
                 MARKER_PUBLISHER.publish(gripperMarker)
 
+            # "Clean" the list of waypoints so that it includes no idle waypoints
+            # wpts = [step.waypoints[0]]
+            # numWpts = 1
+            # k = 1
+            # while k < len(step.waypoints):
+            #     if isDifferent(wpts[numWpts - 1], step.waypoints[k]):
+            #         wpts.append(step.waypoints[k])
+            #         numWpts += 1
 
+            #     k += 1
+            numWpts = numWaypoints
+            wpts = step.waypoints
+
+            print 'Num waypoints changed from ' + str(numWaypoints) + ' to ' + str(numWpts)
             # For each waypoint, determine which region the current position falls in:
             # ( INITIAL ---- I ----- | -------- II --------- | --- III --- GOAL )
             # I is the start region (stepData[1])
             # II is the region between start and goal ranges (stepData[2])
             # III is the goal region (stepData[3])
-            for i in range(len(step.waypoints) - 1):
-                basePos = (step.waypoints[i].base_pose.position.x,
-                           step.waypoints[i].base_pose.position.y,
-                           step.waypoints[i].base_pose.position.z)
-                (baseRoll, basePitch, baseYaw) = euler_from_quaternion([step.waypoints[i].base_pose.orientation.x,
-                                                                        step.waypoints[i].base_pose.orientation.y,
-                                                                        step.waypoints[i].base_pose.orientation.z,
-                                                                        step.waypoints[i].base_pose.orientation.w])
-                gripperPoseStamped = runFK(step.waypoints[i].joint_states.position[7:14],
+            for i in range(numWpts - 1):
+                #percentile = int((float(i) / numWpts) * 100.0) / 10
+                #print 'Percentile = ' + str(percentile)
+                basePos = (wpts[i].base_pose.position.x,
+                           wpts[i].base_pose.position.y,
+                           wpts[i].base_pose.position.z)
+                (baseRoll, basePitch, baseYaw) = euler_from_quaternion([wpts[i].base_pose.orientation.x,
+                                                                        wpts[i].base_pose.orientation.y,
+                                                                        wpts[i].base_pose.orientation.z,
+                                                                        wpts[i].base_pose.orientation.w])
+
+                # Get the pose of the gripper at waypoints i and i + 1
+                firstGripperPoseStamped = runFK(step.waypoints[i].joint_states.position[7:14],
                                            "r_wrist_roll_link")
-                if gripperPoseStamped is None:
-                    print "FK failed; must skip waypoint " + str(i)
+                if firstGripperPoseStamped is None:
+                    print "FK failed; must skip this step"
                     continue
 
                 # The pose of the right gripper is returned in the base_link frame, so must be 
                 # transformed back into the map frame
-                # TRANS = tf.transformations.translation_matrix([step.waypoints[i].base_pose.position.x,
-                #                                                step.waypoints[i].base_pose.position.y,
-                #                                                step.waypoints[i].base_pose.position.z])
-                # ROT = tf.transformations.quaternion_matrix([step.waypoints[i].base_pose.orientation.x,
-                #                                             step.waypoints[i].base_pose.orientation.y,
-                #                                             step.waypoints[i].base_pose.orientation.z,
-                #                                             step.waypoints[i].base_pose.orientation.w])
-                # T = tf.transformations.concatenate_matrices(TRANS, ROT)
-                # vec = np.array([gripperPoseStamped.pose.position.x,
-                #                 gripperPoseStamped.pose.position.y,
-                #                 gripperPoseStamped.pose.position.z,
-                #                 1])
-                # print T
-                # print vec
-                # prod = T.dot(np.transpose(vec))
-                # print "PROD = " + str(prod)
-                # gripperPos = (prod[0],
-                #               prod[1],
-                #               prod[2])
-                #gripperPos = (gripperPoseStamped.pose.position.x + 
-                #              (basePos[0] * math.cos(baseYaw) - basePos[1] * math.sin(baseYaw)),
-                #              gripperPoseStamped.pose.position.y + 
-                #              (basePos[1] * math.cos(baseYaw) + basePos[0] * math.sin(baseYaw)),
-                #              gripperPoseStamped.pose.position.z)
-                gripperPos = toBaseFrame([gripperPoseStamped.pose.position.x,
-                                          gripperPoseStamped.pose.position.y,
-                                          gripperPoseStamped.pose.position.z],
-                                         step.waypoints[i].base_pose)
+                firstGripperPos = toBaseFrame([firstGripperPoseStamped.pose.position.x,
+                                               firstGripperPoseStamped.pose.position.y,
+                                               firstGripperPoseStamped.pose.position.z],
+                                              step.waypoints[i].base_pose)
+
+
+
+                regions = []
+                # Get the distance from the initial position to the current position
+                distInitialToCurrent = dist(initialGripperPos, firstGripperPos)
+                # Get the distance from the current position to the goal position
+                distCurrentToGoal = dist(firstGripperPos, goalPos)
+                #if distCurrentToGoal < 0.5:
+                #    print 'Close to goal: ' + str(distCurrentToGoal)
+
+                if distInitialToCurrent <= 1.0 or distCurrentToGoal <= 1.0: # In region I or III (or possibly both)
+                    if distInitialToCurrent <= 1.0:
+                        regions.append(1)
+                    if distCurrentToGoal <= 1.0:
+                        regions.append(3)
+                    if len(regions) == 2:
+                        print 'In both start and goal regions'
+                else:
+                    regions.append(2)
+
+                regions.append(4)
+
                 if VISUALIZATIONS:
                     gripperMarker = Marker()
-                    gripperMarker.header.frame_id = "map"
+                    gripperMarker.header.frame_id = 'map'
                     gripperMarker.header.stamp = rospy.Time.now()
                     gripperMarker.type = Marker.SPHERE
-                    gripperMarker.ns = name + "_step_" + str(numSteps) + "_gripper_waypoint"
+                    gripperMarker.ns = name + '_step_' + str(numSteps) + '_gripper_waypoint'
                     gripperMarker.id = i
-                    gripperMarker.pose.position.x = gripperPos[0]
-                    gripperMarker.pose.position.y = gripperPos[1]
-                    gripperMarker.pose.position.z = gripperPos[2]
+                    gripperMarker.pose.position.x = firstGripperPos[0]
+                    gripperMarker.pose.position.y = firstGripperPos[1]
+                    gripperMarker.pose.position.z = firstGripperPos[2]
                     gripperMarker.pose.orientation.x = 0
                     gripperMarker.pose.orientation.y = 0
                     gripperMarker.pose.orientation.z = 0
@@ -341,18 +409,18 @@ def parseBagfile(name):
                     gripperMarker.color.b = 0.0
                     MARKER_PUBLISHER.publish(gripperMarker)
                     baseMarker = Marker()
-                    baseMarker.header.frame_id = "map"
+                    baseMarker.header.frame_id = 'map'
                     baseMarker.header.stamp = rospy.Time.now()
                     baseMarker.type = Marker.CUBE
-                    baseMarker.ns = name + "_step_" + str(numSteps) + "_base_waypoint"
+                    baseMarker.ns = name + '_step_' + str(numSteps) + '_base_waypoint'
                     baseMarker.id = i
                     baseMarker.pose.position.x = basePos[0]
                     baseMarker.pose.position.y = basePos[1]
                     baseMarker.pose.position.z = basePos[2]
-                    baseMarker.pose.orientation.x = step.waypoints[i].base_pose.orientation.x
-                    baseMarker.pose.orientation.y = step.waypoints[i].base_pose.orientation.y
-                    baseMarker.pose.orientation.z = step.waypoints[i].base_pose.orientation.z
-                    baseMarker.pose.orientation.w = step.waypoints[i].base_pose.orientation.w
+                    baseMarker.pose.orientation.x = wpts[i].base_pose.orientation.x
+                    baseMarker.pose.orientation.y = wpts[i].base_pose.orientation.y
+                    baseMarker.pose.orientation.z = wpts[i].base_pose.orientation.z
+                    baseMarker.pose.orientation.w = wpts[i].base_pose.orientation.w
                     baseMarker.scale.x = 0.45
                     baseMarker.scale.y = 0.45
                     baseMarker.scale.z = 0.45
@@ -362,45 +430,70 @@ def parseBagfile(name):
                     baseMarker.color.b = 0.0
                     MARKER_PUBLISHER.publish(baseMarker)
 
-                regions = []
-                # Get the distance from the initial position to the current position
-                #distInitialToCurrent = dist(initialBasePos, basePos)
-                distInitialToCurrent = dist(initialGripperPos, gripperPos)
-                # Get the distance from the current position to the goal position
-                #distCurrentToGoal = dist(basePos, goalPos)
-                distCurrentToGoal = dist(gripperPos, goalPos)
-                #if distCurrentToGoal < 0.5:
-                #    print "Close to goal: " + str(distCurrentToGoal)
+                secondGripperPoseStamped = runFK(step.waypoints[i + 1].joint_states.position[7:14],
+                                           "r_wrist_roll_link")
+                if secondGripperPoseStamped is None:
+                    print "FK failed; must skip this step"
+                    continue
 
-                if distInitialToCurrent <= 1.0 or distCurrentToGoal <= 1.0: # In region I or III (or possibly both)
-                    if distInitialToCurrent <= 1.0:
-                        regions.append(1)
-                    if distCurrentToGoal <= 1.0:
-                        regions.append(3)
-                    if len(regions) == 2:
-                        print "In both start and goal regions"
-                else:
-                    regions.append(2)
+                # The pose of the right gripper is returned in the base_link frame, so must be 
+                # transformed back into the map frame
+                secondGripperPos = toBaseFrame([secondGripperPoseStamped.pose.position.x,
+                                                secondGripperPoseStamped.pose.position.y,
+                                                secondGripperPoseStamped.pose.position.z],
+                                               step.waypoints[i + 1].base_pose)
 
-                regions.append(4)
                 for region in regions:
-                    # Add the joint distances between waypoints i and i + 1 to the total distances for the joints
-                    stepData[region][0] += abs(step.waypoints[i + 1].base_pose.position.x - 
-                                               step.waypoints[i].base_pose.position.x)
-                    stepData[region][1] += abs(step.waypoints[i + 1].base_pose.position.y -
-                                               step.waypoints[i].base_pose.position.y)
-                    (initialRoll, initialPitch, initialYaw) = euler_from_quaternion([step.waypoints[i].base_pose.orientation.x,
-                                                                                     step.waypoints[i].base_pose.orientation.y,
-                                                                                     step.waypoints[i].base_pose.orientation.z,
-                                                                                     step.waypoints[i].base_pose.orientation.w])
-                    (finalRoll, finalPitch, finalYaw) = euler_from_quaternion([step.waypoints[i + 1].base_pose.orientation.x,
-                                                                               step.waypoints[i + 1].base_pose.orientation.y,
-                                                                               step.waypoints[i + 1].base_pose.orientation.z,
-                                                                               step.waypoints[i + 1].base_pose.orientation.w])
-                    stepData[region][2] += abs(finalYaw - initialYaw)
-                    for j in range(7):
-                        stepData[region][3 + j] += abs(shortestAngularDistance(step.waypoints[i].joint_states.position[j + 7], step.waypoints[i + 1].joint_states.position[j + 7]))
+                    # Group 0: Base xy
+                    initialBase = (wpts[i].base_pose.position.x, wpts[i].base_pose.position.y, 0.0)
+                    finalBase = (wpts[i + 1].base_pose.position.x, wpts[i + 1].base_pose.position.y, 0.0)
+                    stepData[region][0] += dist(initialBase, finalBase)
 
+                    # Group 1: Base yaw
+                    (initialRoll, initialPitch, initialYaw) = euler_from_quaternion([wpts[i].base_pose.orientation.x,
+                                                                                     wpts[i].base_pose.orientation.y,
+                                                                                     wpts[i].base_pose.orientation.z,
+                                                                                     wpts[i].base_pose.orientation.w])
+                    (finalRoll, finalPitch, finalYaw) = euler_from_quaternion([wpts[i + 1].base_pose.orientation.x,
+                                                                               wpts[i + 1].base_pose.orientation.y,
+                                                                               wpts[i + 1].base_pose.orientation.z,
+                                                                               wpts[i + 1].base_pose.orientation.w])
+                    stepData[region][1] += abs(shortestAngularDistance(initialYaw, finalYaw))
+
+
+                    # Group 2: End-effector xyz
+                    first = (firstGripperPoseStamped.pose.position.x,
+                             firstGripperPoseStamped.pose.position.y,
+                             firstGripperPoseStamped.pose.position.z)
+                    second = (secondGripperPoseStamped.pose.position.x,
+                              secondGripperPoseStamped.pose.position.y,
+                              secondGripperPoseStamped.pose.position.z)
+                             
+                    #stepData[region][2] += dist(firstGripperPos, secondGripperPos)
+                    stepData[region][2] += dist(first, second)
+
+                    # Group 3: End-effector orientation
+                    stepData[region][3] += quatDist([firstGripperPoseStamped.pose.orientation.x, 
+                                                     firstGripperPoseStamped.pose.orientation.y,
+                                                     firstGripperPoseStamped.pose.orientation.z,
+                                                     firstGripperPoseStamped.pose.orientation.w],
+                                                    [secondGripperPoseStamped.pose.orientation.x,
+                                                     secondGripperPoseStamped.pose.orientation.y,
+                                                     secondGripperPoseStamped.pose.orientation.z,
+                                                     secondGripperPoseStamped.pose.orientation.w])
+                    # (eefInitialRoll, eefInitialPitch, eefInitialYaw) = euler_from_quaternion([firstGripperPoseStamped.pose.orientation.x,
+                    #                                                                           firstGripperPoseStamped.pose.orientation.y,
+                    #                                                                           firstGripperPoseStamped.pose.orientation.z,
+                    #                                                                           firstGripperPoseStamped.pose.orientation.w])
+                    # (eefFinalRoll, eefFinalPitch, eefFinalYaw) = euler_from_quaternion([secondGripperPoseStamped.pose.orientation.x,
+                    #                                                                     secondGripperPoseStamped.pose.orientation.y,
+                    #                                                                     secondGripperPoseStamped.pose.orientation.z,
+                    #                                                                     secondGripperPoseStamped.pose.orientation.w])
+                    # stepData[region][3] += abs(shortestAngularDistance(eefInitialRoll, eefFinalRoll))
+                    # stepData[region][3] += abs(shortestAngularDistance(eefInitialPitch, eefFinalPitch))
+                    # stepData[region][3] += abs(shortestAngularDistance(eefInitialYaw, eefFinalYaw))
+
+        stepData[0][3] = float(numWpts) / FRAME_RATE
         data.append(stepData)
         numSteps += 1
 
@@ -423,17 +516,30 @@ def main():
                 data.append(entry)
             numGoalsCompleted += n
 
-        print "====="
-        print "Completed a total of " + str(numGoalsCompleted) + " goals"
-        print "====="
+    print "====="
+    print "Completed a total of " + str(numGoalsCompleted) + " goals"
+    print "====="
 
     # Write the data to a CSV file
     print "Writing " + str(len(data)) + " entries to CSV file"
     with open("output_joint_data.csv", "w") as f:
         writer = csv.writer(f, delimiter=",")
-        writer.writerow(["object", "action", "duration (s)"] + DOF_NAMES * 4)
+        #writer.writerow(["object", "action", "duration (s)", "actual duration (s)"] + ["base xy group", "base yaw group", "upper arm group", "lower arm group"] * 10)
+        writer.writerow(["object", "action", "duration (s)", "actual duration (s)"] + ["base xy", "base yaw", "eef position", "eef orientation"] * 4)
         rows = [x[0] + x[1] + x[2] + x[3] + x[4] for x in data]
         writer.writerows(rows)
+
+    # For the PCA analysis
+    #directories = [DEMOS]
+    #allBagfiles = []
+    #for directory in directories:
+    #print "Looking in directory " + directory
+    #bagfiles = getBagfiles(directory)
+    #print "Found " + str(len(bagfiles)) + " bagfiles in this directory"
+    #bagfiles = bagfiles[:40]
+    #allBagfiles += bagfiles
+    
+    #pcaParseBagfiles(allBagfiles)
 
 if __name__ == "__main__":
     rospy.init_node("dviz_stats")

@@ -208,10 +208,43 @@ PR2Simulator::PR2Simulator(MotionRecorder *recorder,
   int_marker.controls.push_back(control);
   
   int_marker_server_->insert(int_marker,
-			     boost::bind(&PR2Simulator::gripperMarkerFeedback,
-					 this,
-					 _1)
-			     );
+                             boost::bind(&PR2Simulator::gripperMarkerFeedback,
+                                         this,
+                                         _1)
+                             );
+
+  // visualization_msgs::Marker l_gripper_marker = robot_markers_.markers.at(25);
+
+  // int_marker.header.frame_id = resolveName("base_footprint", user_id_);
+  // int_marker.pose = robot_markers_.markers.at(25).pose;
+  // int_marker.name = "l_gripper_marker";
+  // int_marker.description = "";
+  // int_marker.scale = 0.3;
+
+  // l_gripper_marker.scale.x = 1.2;
+  // l_gripper_marker.scale.y = 1.2;
+  // l_gripper_marker.scale.z = 1.2;
+  // l_gripper_marker.color.r = 0;
+  // l_gripper_marker.color.g = 1;
+  // l_gripper_marker.color.b = 0;
+
+  // control.always_visible = true;
+  // control.markers.clear();
+  // control.markers.push_back(l_gripper_marker);
+
+  // control.markers[0].pose = geometry_msgs::Pose();
+  // control.markers[0].pose.orientation.w = 1;
+  // control.markers[0].header = std_msgs::Header();
+
+  // control.interaction_mode = visualization_msgs::InteractiveMarkerControl::MOVE_PLANE;
+  // int_marker.controls.clear();
+  // int_marker.controls.push_back(control);
+
+  // int_marker_server_->insert(int_marker,
+  //                            boost::bind(&PR2Simulator::gripperMarkerFeedback,
+  //                                        this,
+  //                                        _1)
+  //                            );
   int_marker_server_->applyChanges();
 
   ROS_DEBUG("[PR2Sim] About to initialize the kinematic model.");

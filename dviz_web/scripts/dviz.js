@@ -732,7 +732,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
   this.coreCommandClient.callService(new ROSLIB.ServiceRequest({
     command : 'load_scene',
     args : [this.id.toString(), 
-	    '/home/eratner/ros/teach-a-robot/dviz_core/scenes/' + sceneName]
+            '/home/eratner/ros/teach-a-robot/dviz_core/scenes/' + sceneName]
   }), function(response) {
     if(response.response.length > 0) {
       DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
@@ -1254,7 +1254,7 @@ function init() {
 	    console.log('[DVizClient] Starting DVizUser ID ' + userId);
 	    initializeDemonstration(userId, W, H, ros, viewer);
 
-	    dvizClient.loadScene();
+        dvizClient.loadScene();
 	    $('#playPause').prop('disabled', false);
 	    $('#playPause').tooltip('show');
 
