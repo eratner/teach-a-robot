@@ -492,7 +492,7 @@ DVIZ.DemonstrationVisualizerClient = function(options) {
       // Check if we need to change the state of the camera (e.g. if the 
       // next goal is a pick up goal, we need to focus the camera at the 
       // grasp pose)
-      that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
+//      that.displayStatusText('Next goal: ' + that.goals[that.currentGoalNumber].description);
       if(that.goals[that.currentGoalNumber].type === 0) { // Pick up goal
   	// Show an interactive gripper marker at the current goal
   	DVIZ.debug && console.log('[DVizClient] Current goal is of type pick-up');
@@ -590,7 +590,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.play = function() {
       this.gameStarted = true;
     } else {
       // If the user has not started the game yet, load the task
-      this.loadTask();
+      this.loadTask(/*'scooping_task.xml'*/);
       this.robotMarkerControl(true);
       // Start recording
       if(workerId !== null && assignmentId !== null) {
@@ -733,6 +733,7 @@ DVIZ.DemonstrationVisualizerClient.prototype.loadScene = function(scene) {
     command : 'load_scene',
     args : [this.id.toString(), 
             '/home/eratner/ros/teach-a-robot/dviz_core/scenes/' + sceneName]
+            '/home/eratner/groovy_rosbuild_ws/teach-a-robot/dviz_core/scenes/' + sceneName]
   }), function(response) {
     if(response.response.length > 0) {
       DVIZ.debug && console.log('[DVizClient] Error response: ' + res.response);
@@ -1038,8 +1039,10 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
   // description of the next goal in the task
   var message = 'Goal ' + goalNumber.toString() + ' completed! ';
   if(goalNumber + 1 >= this.goals.length) {
-    message += 'Congratulations, the task is complete! Close this window and your demonstration '
-    + ' will automatically be saved. Don\'t forget to submit the Mechanical Turk HIT results.';
+//    message += 'Congratulations, the task is complete! Close this window and your demonstration '
+//    + ' will automatically be saved. Don\'t forget to submit the Mechanical Turk HIT results.';
+      message += 'Congratulations, the task is complete! Close this window and your demonstration '
+      //    + ' will automatically be saved.'
     this.endDemonstration(true);
     $('#playPause').prop('disabled', true);
   } else {
@@ -1047,12 +1050,14 @@ DVIZ.DemonstrationVisualizerClient.prototype.goalCompleted = function(goalNumber
 		this.goals[goalNumber + 1].description);
   }
 
-  message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString() 
-    + ' out of 6 goals</strong>. You are now eligible for <strong>$'
-    + ((goalsCompleted * 0.30).toFixed(2)).toString()
-    + '</strong>! <br />If you\'re done, remember to submit your <strong>Teach-A-Robot'
-    + ' Demonstration ID (' + assignmentId + ')</strong> on the Mechanical Turk HIT page'
-    + ' so that we can pay you.';
+  message = message + '<br />You have now completed <strong>' + goalsCompleted.toString()
+          + ' out of 6 goals</strong>. Keep up the good work!';
+//  message = message + ' <br />You have now completed <strong>' + goalsCompleted.toString()
+//    + ' out of 6 goals</strong>. You are now eligible for <strong>$'
+//    + ((goalsCompleted * 0.30).toFixed(2)).toString()
+//    + '</strong>! <br />If you\'re done, remember to submit your <strong>Teach-A-Robot'
+//    + ' Demonstration ID (' + assignmentId + ')</strong> on the Mechanical Turk HIT page'
+//    + ' so that we can pay you.';
 
   // Save all demonstration progress after each goal is completed
   this.commandClient.callService(new ROSLIB.ServiceRequest({
@@ -1174,9 +1179,13 @@ function init() {
   }
 
   ros = new ROSLIB.Ros({
-    url : 'ws://sbpl.net:21891'
-//    url : 'ws://localhost:9090'
+//    url : 'ws://sbpl.net:21891'
+    url : 'ws://localhost:9090'
   });
+
+  ros.on('error', function(e) {
+           alert('Error! ' + e.toString());
+         });
 
   // Width and height of the viewer, in pixels
   var W = 800;
@@ -1263,8 +1272,8 @@ function init() {
 	    $('#baseHandCamera').prop('disabled', false);
 	    $('#endDemonstration').prop('disabled', false);
 
-	    dvizClient.displayStatusText('Connected to the server! (Capped at ' + 
-					fps.toString() + ' FPS)');
+//	    dvizClient.displayStatusText('Connected to the server! (Capped at ' +
+//					fps.toString() + ' FPS)');
 
 	    // Show the instructions and prompt the user to input their id
 	    if(!replayMode) {

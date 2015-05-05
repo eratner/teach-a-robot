@@ -1,5 +1,5 @@
 <collision_model>
-    <object label="hockey_stick" mesh_resource="package://dviz_core/meshes/web/hockey_stick/hockey_stick_reduced.dae" />
+    <object label="hockey_stick" mesh_resource="package://dviz_core/meshes/web/hockey_stick/hockey_stick.dae" />
 
     <sphere id="1" x="0" y="0" z="0" radius="0.015" />
     <sphere id="2" x="0" y="0" z="0.015" radius="0.015" />

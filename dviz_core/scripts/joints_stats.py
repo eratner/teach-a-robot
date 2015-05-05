@@ -19,26 +19,26 @@ from arm_navigation_msgs.msg import RobotState
 from arm_navigation_msgs.msg import MultiDOFJointState
 from visualization_msgs.msg import Marker
 
-OBJECT_NAMES = ["oil",
-                "cake_mix",
-                "water_bottle",
-                "cake_pan",
-                "hockey_stick",
-                "eggs"]
+OBJECT_NAMES = ['oil',
+                'cake_mix',
+                'water_bottle',
+                'cake_pan',
+                'hockey_stick',
+                'eggs']
 
-ACTION_NAMES = ["pick",
-                "place"]
+ACTION_NAMES = ['pick',
+                'place']
 
-DOF_NAMES = ["base_x",
-             "base_y",
-             "base_theta",
-             "r_shoulder_pan_joint",
-             "r_shoulder_lift_joint",
-             "r_upper_arm_roll_joint",
-             "r_elbow_flex_joint",
-             "r_forearm_roll_joint",
-             "r_wrist_flex_joint",
-             "r_wrist_roll_joint"]
+DOF_NAMES = ['base_x',
+             'base_y',
+             'base_theta',
+             'r_shoulder_pan_joint',
+             'r_shoulder_lift_joint',
+             'r_upper_arm_roll_joint',
+             'r_elbow_flex_joint',
+             'r_forearm_roll_joint',
+             'r_wrist_flex_joint',
+             'r_wrist_roll_joint']
 
 INITIAL_OBJECT_POSITIONS = [(-1.51785, 1.18239, 1.01662),    # oil
                             (-1.53422, 0.0206066, 1.47446),  # cake mix
@@ -54,7 +54,7 @@ FINAL_OBJECT_POSITIONS = [(0.515593, 0.850125, 1.01283),     # oil
                           (1.52564, 2.53245, 0.600653),      # hockey stick
                           (0.492781, 2.69086, 0.917871)]     # eggs
 
-DEMOS = "/home/eratner/demonstrations/good"
+DEMOS = '/home/eratner/demonstrations/good'
 
 FK_SERVICE = None
 MARKER_PUBLISHER = None
@@ -93,7 +93,7 @@ def quatDist(qA, qB):
     return math.acos(x)
 
 def getPos(obj, action):
-    if action == "Pick Up":
+    if action == 'Pick Up':
         return getInitialPos(obj)
     else:
         return getFinalPos(obj)
@@ -109,26 +109,26 @@ def getFinalPos(obj):
 def getBagfiles(directory):
     bagfiles = []
     for f in os.listdir(directory):
-        if f.endswith(".bag"):
+        if f.endswith('.bag'):
             bagfiles.append(os.path.join(directory, f))
 
     return bagfiles
 
 # Returns the (stamped) pose of the given link in the base_link frame
 def runFK(angles, linkName):
-    #rospy.loginfo("Running FK for link " + linkName)
+    #rospy.loginfo('Running FK for link ' + linkName)
     header = rospy.Header()
     header.stamp = rospy.get_rostime()
-    header.frame_id = "base_link"
+    header.frame_id = 'base_link'
     jointState = JointState(header, DOF_NAMES[3:], angles, [], [])
     try:
         response = FK_SERVICE(header, [linkName], RobotState(jointState, MultiDOFJointState()))
     except rospy.ServiceException, e:
-        rospy.logerr("FK service call failed with error %s" % e)
+        rospy.logerr('FK service call failed with error %s' % e)
         return None
 
     if response.error_code.val != 1:
-        rospy.loginfo("FK failed!")
+        rospy.loginfo('FK failed!')
         return None
 
     return response.pose_stamped[0]
@@ -189,19 +189,19 @@ def isDifferent(waypointA, waypointB):
     return isDiff
 
 def parseBagfile(name):
-    bag = rosbag.Bag(name, "r")
+    bag = rosbag.Bag(name, 'r')
 
     demo = UserDemonstration()
-    for topic, msg, t in bag.read_messages(topics = ["/demonstration"]):
+    for topic, msg, t in bag.read_messages(topics = ['/demonstration']):
         demo = msg
 
-    #print "Parsing bagfile with " + str(len(demo.steps) - 1) + " goals completed" 
+    #print 'Parsing bagfile with ' + str(len(demo.steps) - 1) + ' goals completed'
     data = []
     numSteps = 0
     for step in demo.steps:
         if VISUALIZATIONS:
-            raw_input("Press any key to continue...")
-        if step.object_type == "EOT" or step.object_type == "?" or step.step_duration.to_sec() <= 0:
+            raw_input('Press any key to continue...')
+        if step.object_type == 'EOT' or step.object_type == '?' or step.step_duration.to_sec() <= 0:
             continue
 
         # stepData[0] = [object, action, total_time]
@@ -228,10 +228,10 @@ def parseBagfile(name):
                                                                     step.waypoints[0].base_pose.orientation.w])
             if VISUALIZATIONS:
                 baseMarker = Marker()
-                baseMarker.header.frame_id = "map"
+                baseMarker.header.frame_id = 'map'
                 baseMarker.header.stamp = rospy.Time.now()
                 baseMarker.type = Marker.CUBE
-                baseMarker.ns = name + "_initial_markers"
+                baseMarker.ns = name + '_initial_markers'
                 baseMarker.id = numSteps * 3
                 baseMarker.pose.position.x = initialBasePos[0]
                 baseMarker.pose.position.y = initialBasePos[1]
@@ -251,9 +251,9 @@ def parseBagfile(name):
 
             #Get the initial position of the right gripper
             gripperPoseStamped = runFK(step.waypoints[0].joint_states.position[7:14],
-                                       "r_wrist_roll_link")
+                                       'r_wrist_roll_link')
             if gripperPoseStamped is None:
-                print "FK failed; must skip this step"
+                print 'FK failed; must skip this step'
                 continue
 
             # The pose of the right gripper is returned in the base_link frame, so must be 
@@ -265,10 +265,10 @@ def parseBagfile(name):
 
             if VISUALIZATIONS:
                 gripperMarker = Marker()
-                gripperMarker.header.frame_id = "map"
+                gripperMarker.header.frame_id = 'map'
                 gripperMarker.header.stamp = rospy.Time.now()
                 gripperMarker.type = Marker.SPHERE
-                gripperMarker.ns = name + "_initial_markers"
+                gripperMarker.ns = name + '_initial_markers'
                 gripperMarker.id = numSteps * 3 + 1
                 gripperMarker.pose.position.x = initialGripperPos[0]
                 gripperMarker.pose.position.y = initialGripperPos[1]
@@ -299,10 +299,10 @@ def parseBagfile(name):
 
             if VISUALIZATIONS:
                 gripperMarker = Marker()
-                gripperMarker.header.frame_id = "map"
+                gripperMarker.header.frame_id = 'map'
                 gripperMarker.header.stamp = rospy.Time.now()
                 gripperMarker.type = Marker.SPHERE
-                gripperMarker.ns = name + "_initial_markers"
+                gripperMarker.ns = name + '_initial_markers'
                 gripperMarker.id = numSteps * 3 + 2
                 gripperMarker.pose.position.x = goalPos[0]
                 gripperMarker.pose.position.y = goalPos[1]
@@ -359,32 +359,34 @@ def parseBagfile(name):
 
                 # The pose of the right gripper is returned in the base_link frame, so must be 
                 # transformed back into the map frame
-                firstGripperPos = toBaseFrame([firstGripperPoseStamped.pose.position.x,
-                                               firstGripperPoseStamped.pose.position.y,
-                                               firstGripperPoseStamped.pose.position.z],
-                                              step.waypoints[i].base_pose)
-
-
-
-                regions = []
-                # Get the distance from the initial position to the current position
-                distInitialToCurrent = dist(initialGripperPos, firstGripperPos)
-                # Get the distance from the current position to the goal position
-                distCurrentToGoal = dist(firstGripperPos, goalPos)
-                #if distCurrentToGoal < 0.5:
-                #    print 'Close to goal: ' + str(distCurrentToGoal)
-
-                if distInitialToCurrent <= 1.0 or distCurrentToGoal <= 1.0: # In region I or III (or possibly both)
-                    if distInitialToCurrent <= 1.0:
-                        regions.append(1)
-                    if distCurrentToGoal <= 1.0:
-                        regions.append(3)
-                    if len(regions) == 2:
-                        print 'In both start and goal regions'
-                else:
-                    regions.append(2)
-
-                regions.append(4)
+                # TRANS = tf.transformations.translation_matrix([step.waypoints[i].base_pose.position.x,
+                #                                                step.waypoints[i].base_pose.position.y,
+                #                                                step.waypoints[i].base_pose.position.z])
+                # ROT = tf.transformations.quaternion_matrix([step.waypoints[i].base_pose.orientation.x,
+                #                                             step.waypoints[i].base_pose.orientation.y,
+                #                                             step.waypoints[i].base_pose.orientation.z,
+                #                                             step.waypoints[i].base_pose.orientation.w])
+                # T = tf.transformations.concatenate_matrices(TRANS, ROT)
+                # vec = np.array([gripperPoseStamped.pose.position.x,
+                #                 gripperPoseStamped.pose.position.y,
+                #                 gripperPoseStamped.pose.position.z,
+                #                 1])
+                # print T
+                # print vec
+                # prod = T.dot(np.transpose(vec))
+                # print 'PROD = ' + str(prod)
+                # gripperPos = (prod[0],
+                #               prod[1],
+                #               prod[2])
+                #gripperPos = (gripperPoseStamped.pose.position.x + 
+                #              (basePos[0] * math.cos(baseYaw) - basePos[1] * math.sin(baseYaw)),
+                #              gripperPoseStamped.pose.position.y + 
+                #              (basePos[1] * math.cos(baseYaw) + basePos[0] * math.sin(baseYaw)),
+                #              gripperPoseStamped.pose.position.z)
+                gripperPos = toBaseFrame([gripperPoseStamped.pose.position.x,
+                                          gripperPoseStamped.pose.position.y,
+                                          gripperPoseStamped.pose.position.z],
+                                         step.waypoints[i].base_pose)
 
                 if VISUALIZATIONS:
                     gripperMarker = Marker()
@@ -430,18 +432,25 @@ def parseBagfile(name):
                     baseMarker.color.b = 0.0
                     MARKER_PUBLISHER.publish(baseMarker)
 
-                secondGripperPoseStamped = runFK(step.waypoints[i + 1].joint_states.position[7:14],
-                                           "r_wrist_roll_link")
-                if secondGripperPoseStamped is None:
-                    print "FK failed; must skip this step"
-                    continue
+                regions = []
+                # Get the distance from the initial position to the current position
+                #distInitialToCurrent = dist(initialBasePos, basePos)
+                distInitialToCurrent = dist(initialGripperPos, gripperPos)
+                # Get the distance from the current position to the goal position
+                #distCurrentToGoal = dist(basePos, goalPos)
+                distCurrentToGoal = dist(gripperPos, goalPos)
+                #if distCurrentToGoal < 0.5:
+                #    print 'Close to goal: ' + str(distCurrentToGoal)
 
-                # The pose of the right gripper is returned in the base_link frame, so must be 
-                # transformed back into the map frame
-                secondGripperPos = toBaseFrame([secondGripperPoseStamped.pose.position.x,
-                                                secondGripperPoseStamped.pose.position.y,
-                                                secondGripperPoseStamped.pose.position.z],
-                                               step.waypoints[i + 1].base_pose)
+                if distInitialToCurrent <= 1.0 or distCurrentToGoal <= 1.0: # In region I or III (or possibly both)
+                    if distInitialToCurrent <= 1.0:
+                        regions.append(1)
+                    if distCurrentToGoal <= 1.0:
+                        regions.append(3)
+                    if len(regions) == 2:
+                        print 'In both start and goal regions'
+                else:
+                    regions.append(2)
 
                 for region in regions:
                     # Group 0: Base xy
@@ -497,7 +506,7 @@ def parseBagfile(name):
         data.append(stepData)
         numSteps += 1
 
-    print "Processed " + str(numSteps) + " goals completed"
+    print 'Processed ' + str(numSteps) + ' goals completed'
     return numSteps, data
 
 def main():
@@ -506,9 +515,9 @@ def main():
     numGoalsCompleted = 0
     data = []
     for directory in directories:
-        print "Looking in directory " + directory
+        print 'Looking in directory ' + directory
         bagfiles = getBagfiles(directory)
-        print "Found " + str(len(bagfiles)) + " bagfiles in this directory"
+        print 'Found ' + str(len(bagfiles)) + ' bagfiles in this directory'
         numBagfiles += len(bagfiles)
         for bagfile in bagfiles:
             n, bagData = parseBagfile(bagfile)
@@ -516,41 +525,28 @@ def main():
                 data.append(entry)
             numGoalsCompleted += n
 
-    print "====="
-    print "Completed a total of " + str(numGoalsCompleted) + " goals"
-    print "====="
+        print '====='
+        print 'Completed a total of ' + str(numGoalsCompleted) + ' goals'
+        print '====='
 
     # Write the data to a CSV file
-    print "Writing " + str(len(data)) + " entries to CSV file"
-    with open("output_joint_data.csv", "w") as f:
-        writer = csv.writer(f, delimiter=",")
-        #writer.writerow(["object", "action", "duration (s)", "actual duration (s)"] + ["base xy group", "base yaw group", "upper arm group", "lower arm group"] * 10)
-        writer.writerow(["object", "action", "duration (s)", "actual duration (s)"] + ["base xy", "base yaw", "eef position", "eef orientation"] * 4)
+    print 'Writing ' + str(len(data)) + ' entries to CSV file'
+    with open('output_joint_data.csv', 'w') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow(['object', 'action', 'duration (s)'] + DOF_NAMES * 4)
         rows = [x[0] + x[1] + x[2] + x[3] + x[4] for x in data]
         writer.writerows(rows)
 
-    # For the PCA analysis
-    #directories = [DEMOS]
-    #allBagfiles = []
-    #for directory in directories:
-    #print "Looking in directory " + directory
-    #bagfiles = getBagfiles(directory)
-    #print "Found " + str(len(bagfiles)) + " bagfiles in this directory"
-    #bagfiles = bagfiles[:40]
-    #allBagfiles += bagfiles
-    
-    #pcaParseBagfiles(allBagfiles)
-
-if __name__ == "__main__":
-    rospy.init_node("dviz_stats")
+if __name__ == '__main__':
+    rospy.init_node('dviz_stats')
 
     # Initialize FK service to get pose of eef
-    FK_SERVICE = rospy.ServiceProxy("/pr2_right_arm_kinematics/get_fk", GetPositionFK, True)
-    rospy.loginfo("Waiting for PR2 right arm FK service...")
-    rospy.wait_for_service("/pr2_right_arm_kinematics/get_fk")
-    rospy.loginfo("...FK service found.")
+    FK_SERVICE = rospy.ServiceProxy('/pr2_right_arm_kinematics/get_fk', GetPositionFK, True)
+    rospy.loginfo('Waiting for PR2 right arm FK service...')
+    rospy.wait_for_service('/pr2_right_arm_kinematics/get_fk')
+    rospy.loginfo('...FK service found.')
 
     # Initialize a marker publisher for debugging
-    MARKER_PUBLISHER = rospy.Publisher("/visualization_marker", Marker)
+    MARKER_PUBLISHER = rospy.Publisher('/visualization_marker', Marker)
 
     main()

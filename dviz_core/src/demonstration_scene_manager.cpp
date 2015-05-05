@@ -81,7 +81,7 @@ void DemonstrationSceneManager::updateScene()
       }
     }
     
-    setGoalsChanged(false);    
+    setGoalsChanged(false);
   }
 
   // Second, update the positions of the objects
