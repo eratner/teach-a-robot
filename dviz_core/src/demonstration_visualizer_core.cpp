@@ -369,10 +369,10 @@ void DemonstrationVisualizerCore::run()
   ros::Rate rate(10.0);
   while(ros::ok())
   {
-    if(stats_counter_ % 200 == 0)
-      writeStats();
+    // if(stats_counter_ % 200 == 0)
+    //   writeStats();
 
-    stats_counter_++;
+    // stats_counter_++;
     ros::spinOnce();
     rate.sleep();
   }
